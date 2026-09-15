@@ -212,6 +212,8 @@ critical background work = none
 shutdown inhibitor = none
 ```
 
+Runs blocked in `AWAITING_APPROVAL` do not count as runnable work and do not by themselves inhibit idle shutdown once their Approval record, checkpoint and required recovery generation are durable. They retain durable state but no exclusive compute lease.
+
 Use a configurable grace period:
 
 ```text
@@ -241,6 +243,8 @@ recovery completes
 ↓
 submit/resume Run
 ```
+
+If the only pending work is a human decision for an `AWAITING_APPROVAL` Run, the client follows the same wake path, submits the durable approval/rejection decision, and the Run returns to scheduling through `RESUME_QUEUED`. The approval request itself never executes the privileged action inline.
 
 Two implementation options remain acceptable:
 
@@ -364,6 +368,7 @@ Initial two-user policy:
 | system maintenance | shared 50/50 |
 | fixed persistent storage/backups | shared 50/50 |
 | paused Run while not holding compute | £0 active compute |
+| `AWAITING_APPROVAL` while not holding compute | £0 active compute |
 
 This is deliberately simple and auditable.
 
@@ -389,6 +394,8 @@ Friend = 30 min
 Alex is not charged active compute for the period Run A was paused.
 
 This is why billing attaches to the exclusive compute lease, not merely `run.started_at → run.finished_at`.
+
+The same rule applies to approval waits: once the Run reaches a safe `AWAITING_APPROVAL` checkpoint and releases its lease, the waiting interval is not attributed to the Run owner as active compute. Any provider boot/idle/shutdown overhead remains subject to the explicit shared-overhead policy.
 
 ## Billing formula
 
@@ -620,7 +627,9 @@ A11 contract is complete when:
 9. client wake/recovery is part of the selected topology;
 10. always-on GPU hosting is rejected for v1;
 11. a persistent control node is optional future infrastructure, not mandatory v1 cost;
-12. exact hardware/rate selection waits for A9/A10 measured evidence.
+12. approval-blocked Runs release compute and may coexist with another active Run or an idle/deallocated VPS;
+13. `AWAITING_APPROVAL` time without a compute lease is £0 active user compute;
+14. exact hardware/rate selection waits for A9/A10 measured evidence.
 
 ## Selected Cloud v1 architecture
 
