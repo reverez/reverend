@@ -29,7 +29,7 @@ The project is currently transitioning from a validated single-machine system in
 
 ## Current Stable Baseline
 
-**Release line:** Reverend `0.4.0`
+**Release line:** Reverend 0.4.0
 
 The current `main` branch represents the stabilized local-first implementation.
 
