@@ -603,6 +603,17 @@ The Cloud implementation programme must eventually pass at least the following s
 4. model confidence cannot override verification.
 5. corrected candidate must pass required gates before merge approval.
 
+### E2E-16 — Approval wait releases compute
+
+1. a running Run reaches a safe boundary before a privileged action.
+2. the Approval request and Run checkpoint are durably persisted.
+3. the Run enters `AWAITING_APPROVAL` and releases its exclusive compute/tool leases.
+4. another queued Run may execute, or the VPS may deallocate when no runnable work remains and recovery durability gates pass.
+5. the human approval/rejection decision is persisted without executing the privileged action inline.
+6. an approved Run transitions through `RESUME_QUEUED`, reacquires a fresh lease and revalidates the approval.
+7. a changed, expired or mismatched action/identity/scope requires a new Approval.
+8. a crash/restart while the decision is still pending restores `AWAITING_APPROVAL` without consuming compute.
+
 ## Architecture dependency checklist
 
 Final A12 status may change to ACCEPTED only when each analysis artifact answers the following.
@@ -712,7 +723,7 @@ Deliver:
 - approval records/UI contract;
 - isolated branch push/PR path using Run owner.
 
-Acceptance focus: E2E-02/12/15.
+Acceptance focus: E2E-02/12/15/16.
 
 ### C4 — Durable execution
 
@@ -726,7 +737,7 @@ Deliver:
 - recovery manager;
 - stale-lease invalidation.
 
-Acceptance focus: E2E-04/06/07/08.
+Acceptance focus: E2E-04/06/07/08/16.
 
 ### C5 — Client recovery and VPS lifecycle
 
@@ -834,6 +845,7 @@ VPS lifecycle
 replacement-machine recovery
 cost attribution
 budget enforcement
+approval-wait lease release/recovery
 verification/integration policy
 ~~~
 
@@ -852,7 +864,8 @@ Before the cloud deployment becomes the primary Reverend environment:
 7. one client may be offline without preventing ordinary operation;
 8. there is a manual provider/admin recovery procedure if both clients are unavailable;
 9. the selected model/runtime passes A9/A10 live workload gates;
-10. cost dashboards distinguish estimated from actual charges.
+10. cost dashboards distinguish estimated from actual charges;
+11. a Run can remain `AWAITING_APPROVAL` across VPS deallocation/restart without retaining compute or losing its bounded Approval request.
 
 ## Deferred post-v1 capabilities
 
