@@ -333,6 +333,7 @@ approval_id
 run_id
 project_id
 action_type
+action_fingerprint
 requested_actor
 effective_external_identity
 resource summary
@@ -355,6 +356,46 @@ Run owner: Alex
 ```
 
 The approval cannot silently switch the action to the approver's GitHub credentials. Approval authorizes the Run owner's action; it does not transfer ownership.
+
+### Approval execution rule
+
+An Approval authorizes one bounded action; it does not execute that action and it does not justify retaining compute while a human is deciding.
+
+The `action_fingerprint` binds the decision to the security-relevant operation, target/resource scope and effective external identity that were presented for approval.
+
+A7 owns the lifecycle mechanics:
+
+```text
+approval required
+↓
+durable Approval + checkpoint
+↓
+AWAITING_APPROVAL
+↓
+release compute
+↓
+human decision
+↓
+RESUME_QUEUED
+↓
+fresh compute lease
+↓
+revalidate approval
+↓
+execute bounded action
+```
+
+Before using an approved action, trusted host enforcement must verify:
+
+- the Approval is still approved and unexpired;
+- the Run and immutable owner still match;
+- the effective external identity still matches;
+- the action fingerprint and target/resource scope still match;
+- no revocation or stronger current policy invalidates the decision.
+
+If any security-relevant input changed, the previous Approval is stale and a new Approval is required.
+
+The approval endpoint must never bypass the Tool Broker, scheduler or policy checks by executing the privileged action inline.
 
 ## Approval policies
 
@@ -713,7 +754,9 @@ A8 analysis is complete when all of the following are unambiguous:
 12. untrusted execution cannot access host/control/secret surfaces;
 13. recovery peers are authenticated and encrypted;
 14. emergency control has run/project/global scope;
-15. privileged events are attributable without recording secret values.
+15. privileged events are attributable without recording secret values;
+16. approvals bind to a stable action fingerprint and cannot be reused for a changed action;
+17. approving records authority but does not directly execute the privileged action or bypass fresh scheduling/policy validation.
 
 ## Frozen A8 invariant
 

@@ -75,7 +75,9 @@ A7 freezes the following v1 decisions:
 9. Cloud v1 limits pre-emption depth to one;
 10. stale resource leases never survive a machine/process recovery as active authority;
 11. recovery may reconstruct a Run on fresh compatible compute;
-12. critical recovery generations are replicated off the VPS, initially to authenticated Reverend clients.
+12. critical recovery generations are replicated off the VPS, initially to authenticated Reverend clients;
+13. `AWAITING_APPROVAL` is a durable non-compute state: once the approval request and checkpoint are durable at a safe boundary, the Run releases execution leases;
+14. an approval decision never executes the blocked action directly: the Run returns through `RESUME_QUEUED`, reacquires fresh compute and revalidates the approval before continuing.
 
 ## Run lifecycle
 
@@ -107,7 +109,14 @@ RUNNING
   │       ├── safe → RESUME_QUEUED
   │       └── ambiguous → RECOVERY_BLOCKED
   │
-  ├── approval → AWAITING_APPROVAL
+  ├── approval required
+  │       ↓
+  │  checkpoint + release leases
+  │       ↓
+  │  AWAITING_APPROVAL
+  │       ├── approved → RESUME_QUEUED → RESUMING → RUNNING
+  │       ├── rejected → replan/terminal by workflow policy
+  │       └── expired  → new approval required if action remains necessary
   │
   └── terminal
           ├── COMPLETED
@@ -184,6 +193,73 @@ The current action becomes `INTERRUPTED` or `UNKNOWN` according to whether the s
 Recovery then follows the tool's resume strategy.
 
 Emergency interruption is not the default pre-emption path.
+
+## Awaiting human approval
+
+`AWAITING_APPROVAL` is a blocked durable Run state, not an active compute state.
+
+A Run enters it only after the current atomic action has settled at a safe boundary. The transition is:
+
+```text
+RUNNING
+↓
+approval required for next bounded action
+↓
+persist Approval request
+↓
+write complete Run checkpoint containing approval_ref + workflow cursor
+↓
+verify durability
+↓
+release compute/tool execution leases
+↓
+AWAITING_APPROVAL
+```
+
+While a Run is `AWAITING_APPROVAL`:
+
+- it does not hold the exclusive top-level compute lease;
+- it does not count as `ACTIVE`, `RESUME_NEXT` or `NORMAL` runnable queue work;
+- its workspace, checkpoint, Approval record and other durable state remain retained;
+- another Run may acquire the VPS and execute;
+- the VPS may enter idle grace and deallocate if no runnable work remains and the normal A7 recovery-replication gates pass.
+
+The approval itself is durable authority, not an execution trigger.
+
+### Approval decision
+
+When an authorized human approves:
+
+1. persist the Approval decision;
+2. verify the approval is still unexpired and bound to the same Run, owner/external identity, action fingerprint, target/resource scope and policy;
+3. write/advance durable state so the decision survives a crash;
+4. transition `AWAITING_APPROVAL → RESUME_QUEUED`;
+5. let the scheduler acquire a fresh compute lease;
+6. transition through `RESUMING`;
+7. immediately revalidate the approval before the side effect executes.
+
+The approval API must not execute the privileged action inline and must not bypass the scheduler.
+
+If the proposed action, target, effective external identity or other security-relevant parameters changed while the Run was waiting, the previous approval is stale and cannot be reused. A new Approval is required.
+
+If an approval is rejected, the rejection is persisted. The workflow may then replan/continue via `RESUME_QUEUED` when useful, or become terminal according to workflow policy.
+
+If an approval expires before use, it grants no authority. If the action is still required, a new Approval must be requested.
+
+### Restart while awaiting approval
+
+A clean or unclean restart must preserve a still-pending approval block.
+
+If the latest valid checkpoint and durable Approval record show:
+
+```text
+Run = AWAITING_APPROVAL
+Approval = PENDING
+```
+
+recovery restores `AWAITING_APPROVAL` without acquiring compute.
+
+If a durable approval/rejection decision exists, recovery processes that decision through the normal queue/state-machine path. It must not execute the action directly during recovery.
 
 ## Pre-emption policy
 
@@ -443,9 +519,7 @@ expire/revoke stale runtime leases
 ↓
 find non-terminal Runs
 ↓
-mark affected Runs RECOVERING
-↓
-select newest valid checkpoint
+select newest valid checkpoint + durable Run/Approval state
 ↓
 verify checkpoint/object hashes
 ↓
@@ -455,14 +529,16 @@ inspect Action Journal after checkpoint watermark
 ↓
 reconcile STARTED/UNKNOWN actions
 ↓
-rebuild transient model/context state
+classify durable lifecycle state
+├── AWAITING_APPROVAL + pending Approval → restore AWAITING_APPROVAL, no compute lease
+├── PAUSED                               → restore PAUSED, no compute lease
+├── runnable/interrupted work            → RECOVERING → RESUME_QUEUED
+└── ambiguous/unsafe                     → RECOVERY_BLOCKED
 ↓
-safe?
-├── yes → RESUME_QUEUED
-└── no  → RECOVERY_BLOCKED
+rebuild transient model/context state only when the Run becomes runnable
 ```
 
-A recovered Run normally returns to the queue rather than directly bypassing scheduling.
+A recovered runnable Run normally returns to the queue rather than directly bypassing scheduling. A Run durably blocked on human approval remains blocked and does not acquire compute merely because the server restarted.
 
 ## Recovery-blocked contract
 
@@ -503,6 +579,8 @@ Before compute deallocation:
 6. replicate critical recovery state off the VPS;
 7. write a clean-shutdown record;
 8. only then allow provider deallocation.
+
+A Run in `AWAITING_APPROVAL` does not by itself block graceful deallocation once its Approval record, checkpoint and required recovery generation are durable. Approving while the VPS is off first wakes Reverend; the decision is then persisted and the Run re-enters scheduling.
 
 The exact provider lifecycle implementation belongs to A10/A11, but A7 defines what "safe to power off" means.
 
@@ -648,7 +726,12 @@ A7 analysis is complete when implementation can satisfy all of the following:
 13. unclean startup automatically enters recovery;
 14. ambiguous recovery fails into `RECOVERY_BLOCKED`;
 15. graceful VPS shutdown requires a valid recovery generation;
-16. at least one authorised off-VPS replica acknowledges critical state before automatic shutdown.
+16. at least one authorised off-VPS replica acknowledges critical state before automatic shutdown;
+17. `AWAITING_APPROVAL` releases compute after its Approval request and checkpoint are durable;
+18. an approval-blocked Run does not prevent another Run from acquiring the exclusive compute lease;
+19. approval decisions resume through `RESUME_QUEUED` and a fresh lease rather than executing inline;
+20. restart preserves a pending `AWAITING_APPROVAL` state without spuriously requeueing it;
+21. a stale, expired or action-mismatched Approval cannot authorize execution.
 
 ## Frozen A7 invariant
 
