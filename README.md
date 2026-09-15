@@ -1,53 +1,1338 @@
 # Reverend
 
-**Reverend 0.4.0** is a local-first AI engineering and knowledge workstation.
+**Reverend** is a local-first AI engineering and knowledge workstation evolving into a private, cloud-hosted autonomous development platform.
 
-It combines conversational assistance, evidence-aware research, local knowledge retrieval,
-persistent engineering memory, repository intelligence, isolated software-development
-workflows, bounded specialist workers, privacy controls, and ReverendBench evaluation in
-one local Workstation.
+Its long-term goal is to provide **Codex-class and eventually beyond-Codex autonomous software engineering** through specialist agents, repository intelligence, durable execution, verification, memory, research, tool use, and dynamically allocated compute.
 
-All model inference remains local. Reverend does not require a paid or cloud inference API.
+Reverend is not intended to be a generic chatbot.
 
-> Programme status: Reverend **0.4.0 M6–M18 is live-accepted and stabilized** on
-> `main`. The retained M16–M18 acceptance report passed **619 tests** plus live local
-> inference, `qwen3-coder:30b` residency, SearXNG search and searched-image/sandbox
-> probes. Post-acceptance stabilization additionally validated the canonical data root,
-> authority-first research, safe primary-source snippet fallback, autonomous development,
-> and the modern browser shell. New engineering work branches from `main` and returns
-> through review + CI.
+The core execution model is:
 
-## Platform target
+```text
+objective
+→ understand
+→ plan
+→ decompose
+→ execute
+→ inspect
+→ test
+→ repair
+→ independently verify
+→ deliver reviewable artifacts
+```
 
-The validated development/runtime target is **Linux / WSL2** with:
+The project is currently transitioning from a validated single-machine system into a two-user cloud architecture with centrally hosted AI compute.
 
-- Python **3.11+**;
-- Git;
-- Ollama reachable locally;
-- `bubblewrap` / `bwrap` and standard Linux resource limits for the accepted sandbox
-  contract;
-- enough RAM/VRAM for the local models you enable.
+---
 
-The browser UI binds to **127.0.0.1 only**.
+# Project Status
 
-## Local model roles
+## Current Stable Baseline
 
-The default logical roles currently resolve to:
+**Release line:** Reverend `0.4.0`
 
-| Role | Default model | Purpose |
-| --- | --- | --- |
-| FAST_GENERAL / ROUTER | `qwen3.5:4b` | everyday answers and bounded classification |
-| FAST_CODE | `qwen2.5-coder:7b` | inexpensive coding work |
-| STRONG_CODE | `qwen3-coder:30b` | repository planning/implementation |
-| DEEP_REASON / CRITIC | `deepseek-r1:8b` | hard reasoning and independent review |
-| EMBED | `bge-m3:latest` | local semantic retrieval |
+The current `main` branch represents the stabilized local-first implementation.
 
-Logical roles are part of Reverend's architecture; concrete model assignments may evolve.
+The retained M6–M18 acceptance programme validated:
 
-## Install from a clean checkout
+- **619 passing tests**
+- live local inference
+- `qwen3-coder:30b` STRONG_CODE residency
+- FAST_GENERAL inference
+- DEEP_REASON inference
+- local SearXNG research
+- searched-image acquisition
+- sandbox validation
+- autonomous development workflows
+- isolated Git worktrees
+- deterministic verification
+- independent verification
+- persistent engineering memory
+- repository intelligence
+- privacy modes
+- browser Workstation
+- artifact rendering
+- evidence/provenance handling
+
+The accepted architecture remains the foundation for the cloud programme.
+
+## Current Cloud Programme
+
+Reverend is now entering the:
+
+> **Reverend Cloud Analysis Phase**
+
+The objective is to redesign the infrastructure around:
+
+- two authenticated developers;
+- thin frontend/CLI clients;
+- one authoritative Reverend control plane;
+- centrally hosted models;
+- cloud GPU compute;
+- dynamic specialist-agent teams;
+- durable long-running execution;
+- pause/resume and crash recovery;
+- resource-aware scheduling;
+- per-user cloud-cost attribution;
+- eventual elastic GPU provisioning.
+
+The cloud architecture is **under analysis**.
+
+Planned cloud features described in this README must not be interpreted as already implemented.
+
+---
+
+# Product Goal
+
+The development subsystem is intended to automate increasingly large portions of software engineering.
+
+The target experience is approximately:
+
+```text
+Human
+  │
+  │ objective + constraints
+  ▼
+Reverend
+  │
+  ├── understand repository
+  ├── investigate requirements
+  ├── research when required
+  ├── design architecture
+  ├── plan implementation
+  ├── modify multiple files
+  ├── use terminal/build tools
+  ├── run tests
+  ├── debug failures
+  ├── repair implementation
+  ├── perform security/performance review
+  ├── independently verify results
+  └── produce a reviewable branch / artifact set
+```
+
+Reverend should eventually support complete project construction rather than only isolated code completion.
+
+Target workloads include:
+
+- Python
+- C++
+- CUDA
+- frontend/web systems
+- APIs and backend services
+- data systems
+- AI/ML projects
+- scientific software
+- repository migrations
+- testing
+- deployment automation
+- research-driven engineering
+- simulation workflows
+- asset-generation workflows
+
+---
+
+# Design Philosophy
+
+Reverend follows several core principles.
+
+## Models are resources, not agents
+
+A specialist role must not be permanently tied to one model.
+
+Incorrect:
+
+```text
+Architect = Model A
+Developer = Model B
+Verifier = Model C
+```
+
+Target:
+
+```text
+Agent Role
+    ↓
+Capability Requirements
+    ↓
+Model Router
+    ↓
+Compute Scheduler
+    ↓
+Best eligible model/runtime
+```
+
+Models can therefore evolve without redesigning Reverend.
+
+---
+
+## Agents are roles, not permanent processes
+
+Reverend's specialist architecture describes capabilities such as:
+
+```text
+Researcher
+Product Strategist
+Systems Architect
+Developer
+Tester
+Security Reviewer
+Performance Specialist
+Verifier
+Failure Investigator
+Deployment Specialist
+```
+
+A future runtime may instantiate zero, one, or several instances of each role depending on the task.
+
+A simple problem may use:
+
+```text
+Developer
+→ Verifier
+```
+
+A difficult problem may use:
+
+```text
+Engineering Lead
+├── Repository Analyst
+├── Systems Architect
+├── Developer A
+├── Developer B
+└── Test Specialist
+
+        ↓
+
+Independent Assurance
+├── Verifier
+├── Security Reviewer
+└── Failure Investigator
+```
+
+More hardware should enable **selective parallelism**, not uncontrolled agent spawning.
+
+---
+
+## Deterministic evidence outranks model confidence
+
+A model declaring that work is correct does not make it correct.
+
+Where applicable, Reverend prefers:
+
+```text
+tests
+builds
+linters
+static analysis
+benchmarks
+simulations
+repository state
+external evidence
+```
+
+over subjective model confidence.
+
+---
+
+## Generated changes remain isolated
+
+Development work occurs in isolated worktrees/workspaces.
+
+The primary repository checkout is not silently modified.
+
+AI-generated changes must pass required verification before they can become integration candidates.
+
+Automatic merging into protected branches is not part of the current architecture.
+
+---
+
+## Durable state must not depend on live compute
+
+The future cloud architecture follows the principle:
+
+> **Compute is replaceable. Run state is durable.**
+
+Reverend must not depend on preserving:
+
+- Python process memory
+- GPU VRAM
+- CUDA state
+- model KV cache
+- open sockets
+- temporary containers
+
+to recover a development run.
+
+---
+
+# Current Architecture
+
+The current stable system can be summarized as:
+
+```text
+USER
+  │
+  ▼
+WORKSTATION / CLI
+  │
+  ▼
+OBJECTIVE INTAKE
+  │
+  ▼
+EXECUTIVE ORCHESTRATION
+  │
+  ├── task planning
+  ├── workflow state
+  ├── policies
+  ├── resource control
+  └── specialist routing
+  │
+  ▼
+CONTEXT / MEMORY
+  │
+  ├── repository intelligence
+  ├── project memory
+  ├── engineering memory
+  ├── evidence
+  └── knowledge retrieval
+  │
+  ▼
+MODEL ROUTING
+  │
+  ├── fast/general
+  ├── coding
+  ├── reasoning
+  ├── critic
+  └── embedding
+  │
+  ▼
+TOOLS / WORKSPACE
+  │
+  ├── filesystem
+  ├── Git
+  ├── shell
+  ├── build
+  ├── tests
+  ├── research
+  └── isolated worktrees
+  │
+  ▼
+VERIFICATION
+  │
+  ├── acceptance
+  ├── tests
+  ├── regression
+  ├── static analysis
+  ├── security
+  └── independent verification
+  │
+  ▼
+DELIVERY
+```
+
+---
+
+# Current Model Runtime
+
+The current accepted logical model roles are:
+
+| Role | Current model | Purpose |
+|---|---|---|
+| FAST_GENERAL | `qwen3.5:4b` | general low-cost inference |
+| ROUTER | `qwen3.5:4b` | request classification/routing |
+| FAST_CODE | `qwen2.5-coder:7b` | inexpensive code work |
+| STRONG_CODE | `qwen3-coder:30b` | repository-scale coding |
+| DEEP_REASON | `deepseek-r1:8b` | difficult reasoning |
+| CRITIC | `deepseek-r1:8b` | independent critique |
+| EMBED | `bge-m3:latest` | semantic retrieval |
+
+These are **current runtime defaults**, not the final Reverend Cloud model fleet.
+
+The Cloud Analysis Phase will research and benchmark replacement or additional models before future hardware is selected.
+
+---
+
+# Current Compute Model
+
+The accepted implementation currently targets Linux / WSL2 and local inference through Ollama.
+
+Reverend already contains foundations for:
+
+- model profiles
+- model health
+- ResourceRequests
+- ResourceLeases
+- GPU serialization
+- RAM/VRAM accounting
+- residency management
+- hardware inspection
+- scheduling
+- queue wait metrics
+
+The current architecture intentionally serializes heavyweight inference unless hardware evidence demonstrates safe concurrency.
+
+---
+
+# Reverend Cloud Target Architecture
+
+The current design direction separates persistent control infrastructure from expensive GPU compute.
+
+```text
+          CLIENTS
+
+    Developer A        Developer B
+        │                  │
+        ├──── GUI / CLI ───┤
+        │                  │
+        └──── HTTPS ───────┘
+                │
+                ▼
+
+       REVEREND CONTROL PLANE
+
+     Authentication / Identity
+                │
+          Project / Run API
+                │
+          Executive Runtime
+                │
+       Workflow / Task Fabric
+                │
+      Context / Memory Fabric
+                │
+       Agent / Team Runtime
+                │
+         Model Router
+                │
+        Compute Governor
+                │
+        ┌───────┴─────────┐
+        ▼                 ▼
+
+   CONTROL COMPUTE      GPU COMPUTE
+   persistent/cheap     elastic/expensive
+
+   state                LLM inference
+   DB                   vision
+   Git                  assets
+   queue                simulation
+   artifacts
+   orchestration
+   accounting
+```
+
+The precise deployment topology remains under analysis.
+
+---
+
+# Two-User Operating Model
+
+The initial cloud deployment targets:
+
+```text
+one private Reverend installation
+two authenticated developers
+one authoritative control plane
+one active top-level run initially
+```
+
+Each run has immutable ownership.
+
+Conceptually:
+
+```text
+Run
+├── run_id
+├── owner_user_id
+├── project_id
+├── objective
+├── workflow_state
+├── resource budget
+├── workspace
+├── Git identity
+└── checkpoint history
+```
+
+The user viewing a run is not necessarily the user who owns the run.
+
+Run ownership determines:
+
+- Git identity
+- user-scoped credentials
+- approvals where policy requires owner approval
+- compute-cost attribution
+- audit attribution
+
+---
+
+# Frontend / Backend Boundary
+
+## Client responsibilities
+
+The frontend/CLI may provide:
+
+- authentication UX
+- conversation/run interface
+- project selection
+- run creation
+- run queue
+- live execution activity
+- agent/team visualization
+- pause/resume controls
+- approval UI
+- artifact inspection
+- compute status
+- model status
+- resource usage
+- cost dashboards
+- settings
+
+The client does **not** own authoritative execution state.
+
+Disconnecting the client must not terminate a running Reverend job.
+
+## Backend responsibilities
+
+The Reverend backend owns:
+
+- authentication authority
+- users/projects/runs
+- orchestration
+- workflow DAG
+- agent execution
+- resource allocation
+- context compilation
+- memory
+- tools
+- model routing
+- compute routing
+- workspaces
+- Git
+- secrets
+- verification
+- checkpointing
+- recovery
+- billing/accounting
+- infrastructure lifecycle
+
+SSH remains an administrative interface, not the Reverend application protocol.
+
+---
+
+# Future Specialist Organisation
+
+Reverend currently organizes intelligence conceptually into several major domains.
+
+## Discovery / Product
+
+Potential specialist roles include:
+
+- Research Intelligence
+- Stakeholder Intelligence
+- Product Strategy
+- UX / Accessibility Intelligence
+
+## Engineering
+
+Potential roles include:
+
+- Systems Architect
+- Repository Analyst
+- Coding Intelligence
+- Test Engineering
+- Integration
+- Dependency / Migration Intelligence
+- Performance Intelligence
+
+## Assurance
+
+Potential roles include:
+
+- Independent Verification
+- Security Review
+- Performance Validation
+- Adversarial Critic
+- Failure Investigation
+
+## Capability / Production
+
+Future capability workers may include:
+
+- image generation
+- 3D / Blender workflows
+- ComfyUI
+- audio
+- simulation
+- CFD / FEA workloads
+- isolated testbeds
+- deployment automation
+- external applications
+- additional tool bridges
+
+These are logical capabilities.
+
+They do not imply that every run launches every specialist.
+
+---
+
+# Agent Teams and Swarms
+
+The future runtime is expected to support dynamically formed teams.
+
+Conceptually:
+
+```text
+AgentTeam
+├── objective
+├── leader
+├── members
+├── task DAG
+├── artifact namespace
+├── context policy
+├── compute budget
+├── concurrency budget
+├── verification policy
+└── termination policy
+```
+
+Example research team:
+
+```text
+Research Lead
+├── Official Documentation Researcher
+├── Academic Researcher
+├── Ecosystem Researcher
+└── Competitor Researcher
+
+        ↓
+
+Evidence Synthesis
+
+        ↓
+
+Independent Critic
+```
+
+Example engineering team:
+
+```text
+Engineering Lead
+├── Repository Analyst
+├── Architect
+├── Developer
+└── Test Specialist
+
+        ↓
+
+Integration
+
+        ↓
+
+Independent Verification
+```
+
+Swarm execution must remain bounded.
+
+Reverend should instantiate the **minimum sufficient team** rather than maximizing the number of agents.
+
+---
+
+# Context and Memory Architecture
+
+Scaling the number of agents must not mean replicating the entire project context into every model invocation.
+
+The target model separates:
+
+```text
+AUTHORITATIVE PROJECT STATE
+        │
+        ├── repository
+        ├── requirements
+        ├── verified decisions
+        └── trusted facts
+
+SHARED ARTIFACT SPACE
+        │
+        ├── plans
+        ├── evidence packs
+        ├── patches
+        ├── reports
+        └── verification results
+
+AGENT WORKING CONTEXT
+        │
+        └── task-specific bounded context
+
+EXPERIENCE MEMORY
+        │
+        ├── historical successes
+        ├── failures
+        ├── benchmarks
+        └── strategies
+```
+
+Agents should primarily communicate through typed artifacts rather than unbounded shared conversations.
+
+Examples include:
+
+```text
+ResearchEvidencePack
+ArchitectureDecision
+ImplementationPlan
+PatchArtifact
+TestReport
+PerformanceReport
+SecurityReport
+FailureReport
+VerificationReport
+```
+
+---
+
+# Scheduling and Resource Architecture
+
+Future Reverend scheduling separates:
+
+```text
+WORKFLOW SCHEDULING
+```
+
+from:
+
+```text
+COMPUTE SCHEDULING
+```
+
+The Workflow Scheduler determines which tasks are logically executable.
+
+The Compute Scheduler determines which of those tasks can physically execute.
+
+Example:
+
+```text
+Research A      CPU / network
+Research B      CPU / network
+Code indexing   CPU
+Build           CPU
+Test suite      CPU
+Developer       GPU
+Verifier        waiting for GPU
+```
+
+Logical agent concurrency therefore does not require equivalent model concurrency.
+
+---
+
+# Resource Hierarchy
+
+The future resource model is expected to support hierarchical budgets:
+
+```text
+Run Budget
+    ↓
+Team Budget
+    ↓
+Task Budget
+    ↓
+Agent Budget
+    ↓
+Model / Tool Lease
+```
+
+A resource request may include:
+
+```text
+CPU
+RAM
+GPU
+VRAM
+context requirement
+model capability
+expected runtime
+maximum duration
+priority
+maximum cost
+```
+
+This architecture will later support both resource optimization and per-user billing.
+
+---
+
+# Model Fabric
+
+The target Model Fabric will select models by capability rather than hardcoded role/model relationships.
+
+Conceptually:
+
+```text
+Agent
+  │
+  ▼
+ModelRequirement
+  │
+  ├── coding quality
+  ├── reasoning quality
+  ├── context requirement
+  ├── vision requirement
+  ├── tool calling
+  ├── latency
+  ├── cost ceiling
+  └── trust policy
+  │
+  ▼
+Model Router
+  │
+  ▼
+Provider / Runtime
+```
+
+Potential runtime technologies under analysis include:
+
+- Ollama
+- vLLM
+- SGLang
+- other self-hosted inference runtimes where justified
+
+No final Reverend Cloud model/runtime selection has been frozen.
+
+---
+
+# Compute Fabric
+
+The future Compute Fabric should treat machines as interchangeable nodes.
+
+```text
+ComputeNode
+├── node_id
+├── provider
+├── CPU
+├── RAM
+├── GPU
+├── VRAM
+├── storage
+├── runtimes
+├── health
+├── current leases
+└── cost profile
+```
+
+Possible future node types include:
+
+```text
+persistent control node
+48 GB GPU worker
+80 GB GPU worker
+96 GB GPU worker
+141 GB GPU worker
+asset-generation worker
+simulation worker
+```
+
+Actual hardware will be selected only after model research and benchmarking.
+
+---
+
+# Durable Execution
+
+Long-running development must survive:
+
+- browser disconnects
+- worker crashes
+- backend restarts
+- GPU termination
+- planned pause
+- cloud shutdown
+- compute replacement
+
+The target run lifecycle includes states such as:
+
+```text
+QUEUED
+STARTING
+RUNNING
+
+PAUSE_REQUESTED
+PAUSING
+PAUSED
+
+RESUME_QUEUED
+RESUMING
+
+AWAITING_APPROVAL
+
+RECOVERING
+RECOVERY_BLOCKED
+
+COMPLETED
+FAILED
+CANCELLED
+```
+
+---
+
+# Checkpointing
+
+Checkpoints capture logical application state, not machine memory.
+
+A future checkpoint may reference:
+
+```text
+run
+objective
+task DAG
+completed tasks
+pending tasks
+agent state
+plan
+context references
+memory references
+workspace
+repository
+branch
+HEAD
+uncommitted changes
+artifacts
+evidence
+decisions
+remaining budgets
+retries
+pending approvals
+last completed action
+```
+
+The system should be capable of reconstructing a run on fresh compute.
+
+---
+
+# Action Journal
+
+External side effects require stronger durability than ordinary model reasoning.
+
+The planned action-journal model is:
+
+```text
+persist intent
+    ↓
+STARTED
+    ↓
+perform action
+    ↓
+observe result
+    ↓
+persist result
+    ↓
+COMPLETED
+```
+
+Possible action states include:
+
+```text
+PLANNED
+STARTED
+COMPLETED
+FAILED
+INTERRUPTED
+UNKNOWN
+```
+
+After a crash, unknown actions must be reconciled before blind retries.
+
+Examples:
+
+```text
+git push
+→ inspect remote before retry
+
+file write
+→ inspect workspace
+
+tests
+→ rerun
+
+LLM inference
+→ restart
+
+deployment
+→ verify target environment
+```
+
+---
+
+# Security Model
+
+Reverend is designed around explicit authority boundaries.
+
+Important principles include:
+
+- authenticated users
+- immutable run ownership
+- project-scoped authority
+- isolated workspaces
+- explicit tool permissions
+- server-side secrets
+- encrypted persistent state
+- restricted model context
+- safe network policies
+- non-root agent execution
+- explicit approvals for dangerous operations
+- no credentials returned to the browser
+- no infrastructure credentials exposed to models
+- deterministic verification before integration
+
+---
+
+# Git and GitHub Identity
+
+Each Reverend user may have their own GitHub authority.
+
+A run's GitHub identity is derived from:
+
+```text
+run
+ ↓
+run.owner
+ ↓
+owner GitHub identity
+```
+
+not whichever user is currently viewing the UI.
+
+Expected policy direction:
+
+| Operation | Default target policy |
+|---|---|
+| commit to isolated run branch | automatic |
+| push isolated run branch | automatic |
+| create pull request | automatic |
+| push directly to protected branch | approval |
+| merge | approval |
+| force push | approval |
+| delete repository | prohibited |
+
+Exact policies remain subject to the Cloud Analysis Phase.
+
+---
+
+# Cloud Cost and Accounting
+
+The target cloud architecture must be affordable for a two-developer project.
+
+Reverend should eventually record resource usage by:
+
+```text
+user_id
+project_id
+run_id
+agent_id
+compute node
+GPU model
+model
+start time
+end time
+GPU seconds
+CPU time
+storage
+estimated cost
+actual cost
+```
+
+Costs will be divided conceptually into:
+
+## Shared fixed costs
+
+Examples:
+
+- control-plane hosting
+- domain
+- shared durable storage
+- backups
+
+## Variable costs
+
+Examples:
+
+- GPU runtime
+- project-specific cloud storage
+- paid external APIs where enabled
+
+Variable compute costs should be attributable to the owner of the run that consumed them.
+
+All user-facing financial analysis for the initial deployment will be performed in **GBP (£)**.
+
+---
+
+# Benchmarking Philosophy
+
+Public model benchmarks are useful for candidate selection but do not determine Reverend's final model fleet.
+
+The final decision should use Reverend-specific engineering workloads.
+
+Evaluation should include:
+
+```text
+task completion
+build success
+test success
+repair rounds
+human intervention
+wall-clock time
+context usage
+GPU time
+cost
+```
+
+A core economic metric is expected to be:
+
+```text
+£ per verified successful engineering task
+```
+
+rather than only tokens per second or benchmark score.
+
+Candidate models may be evaluated on complete project-building tasks.
+
+---
+
+# Reverend Cloud Analysis Programme
+
+Cloud implementation does not begin until the major architectural questions have been investigated.
+
+## A0 — Baseline & Requirements Freeze
+
+Audit current Reverend and freeze:
+
+- terminology
+- accepted behaviour
+- architectural invariants
+- current limitations
+- migration scope
+
+---
+
+## A1 — Codex-Class Product Definition
+
+Define measurable autonomous development requirements for Reverend to reach and eventually exceed Codex-style engineering workflows.
+
+---
+
+## A2 — Client / Server & Two-User Architecture
+
+Define:
+
+- frontend/backend boundary
+- authenticated identities
+- projects
+- run ownership
+- queueing
+- approvals
+- API contracts
+- live event transport
+- remote access
+
+---
+
+## A3 — Agent Cognitive Runtime
+
+Define:
+
+- `AgentSpec`
+- `AgentInstance`
+- role catalogue
+- permissions
+- context rules
+- budgets
+- completion
+- escalation
+- model-independent specialist execution
+
+---
+
+## A4 — Agent Teams, Swarms & Parallelism
+
+Define:
+
+- `AgentTeam`
+- team leadership
+- task decomposition
+- dynamic specialist creation
+- bounded subagents
+- logical parallelism
+- disagreement handling
+- minimum-sufficient-team selection
+
+---
+
+## A5 — Context, Memory & Agent Communication
+
+Define:
+
+- authoritative state
+- project/run memory
+- agent working context
+- shared artifacts
+- experience memory
+- compression
+- retrieval
+- provenance
+- typed communication
+
+---
+
+## A6 — Scheduling, Compute & Resource Architecture
+
+Define:
+
+- Workflow Scheduler
+- Compute Scheduler
+- ComputeNode
+- ResourceRequest
+- ResourceLease
+- CPU/RAM/GPU/VRAM allocation
+- concurrency
+- pre-emption
+- hierarchical budgets
+- resource recovery
+
+---
+
+## A7 — Durable Execution, Pause/Resume & Recovery
+
+Define:
+
+- run lifecycle
+- safe interruption
+- checkpoints
+- action journal
+- recovery
+- pause/resume
+- crash reconciliation
+- machine-independent continuation
+
+---
+
+## A8 — Security, Identity, Git & Secrets
+
+Define:
+
+- authentication
+- authorization
+- run ownership
+- GitHub identity
+- secrets
+- worker authentication
+- model trust
+- approvals
+- emergency control
+
+---
+
+## A9 — Model Requirements & Model Research
+
+Determine requirements and candidates for:
+
+- router
+- researchers
+- research synthesis
+- architect
+- fast developer
+- primary developer
+- critic/verifier
+- failure investigator
+- vision
+- embedding
+- reranking
+- asset generation
+- maximum-quality escalation
+
+Research will use current model sources and independent benchmark evidence.
+
+---
+
+## A10 — Hardware, Runtime & Cloud Topology
+
+Map candidate models onto:
+
+- GPU VRAM
+- system RAM
+- CPU
+- context
+- runtime
+- quantisation
+- storage
+- network
+
+Evaluate cloud GPU classes and inference runtimes.
+
+---
+
+## A11 — Economics, Billing & Architecture Selection
+
+Calculate:
+
+- GPU cost
+- persistent infrastructure
+- storage
+- backup
+- idle overhead
+- per-user attribution
+- budget limits
+- cost per successful task
+
+Select the preferred Reverend Cloud v1 configuration.
+
+---
+
+## A12 — Cloud Architecture Acceptance
+
+Perform the final cross-system review.
+
+The architecture is accepted only when frontend and backend can be implemented independently against stable contracts and all major subsystems agree.
+
+A12 produces the implementation programme.
+
+---
+
+# What Is Not Yet Implemented
+
+The following should currently be treated as **target architecture**, not accepted production functionality:
+
+- full remote cloud inference
+- elastic RunPod provisioning
+- dynamic multi-agent swarms
+- cloud GPU fleet routing
+- remote worker registration
+- hierarchical cloud budgets
+- per-user GPU billing
+- durable cross-machine pause/resume
+- distributed Action Journal recovery
+- PostgreSQL-backed cloud control plane
+- cloud secrets service
+- client/server production authentication
+- cloud cost dashboards
+- multiple GPU-node scheduling
+- Codex-class end-to-end project automation
+- automatic asset-generation scheduling
+
+Do not implement these opportunistically outside the analysis/implementation programme without an architecture decision.
+
+---
+
+# Current Installation
+
+The stable Reverend implementation currently targets Linux / WSL2.
+
+Requirements:
+
+- Python 3.11+
+- Git
+- Ollama
+- Linux sandbox capabilities
+- sufficient RAM/VRAM for selected local models
+
+Clone and install:
 
 ```bash
-git clone <your-repository-url>
+git clone <repository-url>
 cd reverend
 
 python3 -m venv .venv
@@ -55,46 +1340,40 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 ```
 
-Optional Kiwix/ZIM reference support:
+Optional reference support:
 
 ```bash
 .venv/bin/pip install -e '.[dev,reference]'
 ```
 
-Confirm the release identity:
+Check the installed version:
 
 ```bash
 .venv/bin/reverend --version
-# reverend 0.4.0
 ```
 
-The repository convenience wrapper uses the same environment:
+Expected current release line:
 
-```bash
-scripts/reverend --version
+```text
+reverend 0.4.0
 ```
 
-## Configure Ollama and runtime state
+---
 
-Reverend is environment-first. Copy `.env.example` only if you need overrides.
+# Runtime Configuration
 
-The important settings are:
+Important current settings include:
 
-- `OLLAMA_HOST` — optional Ollama endpoint. If unset, Reverend uses localhost on native
-  Linux and can discover the Windows gateway under WSL.
-- `AI_DATA_ROOT` — operational databases, artifacts, worktrees, public-source cache and
-  other runtime state. Keep this outside the Git repository.
-- `REVEREND_RUNTIME_CONFIG` — optional JSON configuration path. The default is
-  `~/.config/reverend/runtime.json`.
-- `REVEREND_STATE_KEY_FILE` — optional encrypted-state key path. The default is
-  `~/.config/reverend/state-v1.key`.
-- `QDRANT_URL` — optional external Qdrant server. If unset, Reverend uses the embedded
-  store under the data root.
-- `QDRANT_COLLECTION` — optional collection override.
+```text
+AI_DATA_ROOT
+REVEREND_RUNTIME_CONFIG
+REVEREND_STATE_KEY_FILE
+OLLAMA_HOST
+QDRANT_URL
+QDRANT_COLLECTION
+```
 
-Do not place credentials in the repository or `.env.example`.
-
-Example runtime config:
+Example:
 
 ```json
 {
@@ -103,221 +1382,107 @@ Example runtime config:
 }
 ```
 
-## Start the Workstation
+Credentials must not be committed to the repository.
+
+---
+
+# Starting the Current Workstation
 
 ```bash
 .venv/bin/reverend gui
 ```
 
-Default address:
+Default:
 
 ```text
 http://127.0.0.1:8765
 ```
 
-Choose another local port if required:
+The current stable Workstation remains loopback-oriented.
 
-```bash
-.venv/bin/reverend gui --port 8877
-```
+It should not simply be exposed publicly by changing the bind address.
 
-The server binds only to loopback, uses a per-process browser/API session token, rejects
-cross-site API requests, sends restrictive browser security headers, and does not log
-request bodies or tokens.
+Remote/cloud access will be introduced through the Cloud architecture programme.
 
-## Normal Workstation workflow
+---
 
-The normal experience is **Auto**:
+# Current Development Workflow
 
-1. write the objective in natural language;
-2. optionally select a project, knowledge/research context, privacy mode or network policy;
-3. Reverend deterministically classifies what it can;
-4. low-confidence requests use the bounded local ROUTER;
-5. the orchestrator selects the cheapest sufficient local capability;
-6. evidence is retrieved only from requested/eligible trust classes;
-7. irrelevant evidence is discarded;
-8. uncertainty triggers corrective retrieval, clarification, capability escalation or
-   abstention;
-9. development runs in an isolated task worktree and must pass deterministic verification.
-
-Manual Ask / Reason / Research controls remain advanced overrides.
-
-## Privacy modes
-
-### Normal
-
-Conversation and Workstation state persist in encrypted form.
-
-### Private
-
-Encrypted persistent conversation state is available, but the conversation is not intended
-for automatic long-term-memory promotion.
-
-### Ephemeral
-
-Conversation/messages/chat-job state remain process-local and are cleared after use/restart.
-
-Persistent Workstation payloads use versioned authenticated encryption. State files and the
-state key are restricted to the current user where the platform supports POSIX ownership
-and permissions.
-
-## Network policy
-
-Reverend exposes explicit network policies:
-
-- **OFF** — no fresh network acquisition;
-- **ASK** — fresh network use requires explicit approval;
-- **AUTO** — the workflow may use configured network capability when fresh evidence is
-  required.
-
-Retrieved public content remains **untrusted data**, never instructions.
-
-An explicit public URL can be fetched from the CLI only with network opt-in:
-
-```bash
-.venv/bin/reverend web-fetch 'https://example.org/document' --allow-network
-```
-
-General query-to-web search is not enabled implicitly. The canonical no-paid-API backend is
-a self-hosted SearXNG instance on loopback; start the bundled profile with
-`scripts/reverend-searxng up`, then load `eval "$(scripts/reverend-searxng env)"`.
-Brave remains an optional adapter rather than a required service. If AUTO needs fresh search
-and no provider is configured, Reverend reports `network_search_unavailable` rather than
-silently inventing fresh evidence. Reverend normally fetches search results through its
-restricted page worker before evidence gating. When a recognized first-party vendor page is
-blocked by the remote site, Reverend may retain a bounded title/snippet fallback with explicit
-`search_snippet` transport provenance and lower transport confidence; secondary-source
-snippets are never promoted by this fallback.
-
-## Projects and software development
-
-Project registration defaults to:
-
-```text
-untrusted_repo
-```
-
-Untrusted repositories are inspection-only. Reverend does not silently promote trust.
-
-Trusted development retains the accepted isolated flow:
+Trusted development currently follows approximately:
 
 ```text
 request
 → trust check
 → isolated Git worktree
-→ code localization
+→ repository analysis
 → structured plan
-→ bounded workers
-→ host-controlled structured edits
+→ bounded implementation
 → deterministic verification
 → bounded repair
 → independent verification
 → result
 ```
 
-The primary checkout is not modified by the development engine. Integration is a separate,
-explicit human action.
-
-The lower-level CLI development surface remains available:
+Lower-level CLI access remains available:
 
 ```bash
 .venv/bin/reverend dev implement \
-  --project /path/to/clean/repository \
+  --project /path/to/repository \
   --request 'Implement the requested change.' \
   --acceptance 'Relevant tests pass.' \
   --json
 ```
 
-Review generated changes before integrating them.
+Generated changes should be reviewed before integration.
 
-## Code intelligence
+---
 
-Reverend provides deterministic repository profiling, Python AST symbols/imports, bounded
-dependency/call graph expansion and structural/lexical retrieval.
+# Research and Evidence
 
-Optional semantic code indexing is reconstructable and never makes vectors authoritative
-over current source text:
+Reverend separates evidence into classes such as:
 
-```bash
-.venv/bin/reverend code-index /path/to/repository
-.venv/bin/reverend code-search /path/to/repository 'query'
+```text
+PERSONAL
+PROJECT
+REFERENCE
+FRESH
 ```
 
-## Knowledge and evidence
+Retrieved public content is treated as data, not as trusted instructions.
 
-Reverend separates evidence into:
+Network usage remains policy controlled.
 
-- **PERSONAL** — your notes/documents;
-- **PROJECT** — repository/project evidence;
-- **REFERENCE** — stable trusted reference material;
-- **FRESH** — explicitly permitted network-derived evidence.
+The self-hosted SearXNG path is available for current public-web research.
 
-The evidence engine retrieves, deduplicates, ranks and gates candidates before they enter
-authoritative answer context. Missing or irrelevant evidence is not forced into an answer.
+---
 
-The earlier Knowledge Fabric ingestion/search surfaces remain available for advanced local
-corpora:
+# Privacy
 
-```bash
-.venv/bin/reverend status
-.venv/bin/reverend doctor
-.venv/bin/reverend doctor --deep
+Current Workstation modes include:
 
-.venv/bin/reverend sync --dry-run
-.venv/bin/reverend sync --apply
-
-.venv/bin/reverend search 'Jacobian matrix'
-.venv/bin/reverend search 'vector spaces' --mode lexical --limit 5
+```text
+Normal
+Private
+Ephemeral
 ```
 
-The AI note compiler still writes external **unreviewed** drafts rather than silently
-promoting generated content into source notes.
+Persistent Workstation data can use authenticated encryption.
 
-## Engineering memory
+Loss of the state encryption key intentionally makes protected state unrecoverable.
 
-Engineering memory is typed and provenance-backed. Supported operational record classes
-include facts, decisions, experiments, failures, results and user constraints.
+Backups must therefore include both data and appropriately protected recovery-key material.
 
-```bash
-.venv/bin/reverend memory search PROJECT_ID 'query'
-```
+---
 
-Model hypotheses do not become verified facts merely because a model generated them.
+# Validation
 
-## ReverendBench and validation
-
-Run the complete Python suite:
+Run the full Python suite with:
 
 ```bash
 .venv/bin/python -m pytest -q
 ```
 
-List benchmark cases:
-
-```bash
-.venv/bin/reverend benchmark list
-```
-
-Run deterministic routing acceptance:
-
-```bash
-.venv/bin/reverend benchmark routing
-```
-
-Run selected/full ReverendBench cases:
-
-```bash
-.venv/bin/reverend benchmark run
-.venv/bin/reverend benchmark run --case CASE_ID
-```
-
-Milestone validation evidence is retained under:
-
-```text
-benchmarks/results/vnext/
-```
-
-The canonical final acceptance command for the current branch is:
+Current final validation:
 
 ```bash
 .venv/bin/python -m reverend.benchmarks.final_validation \
@@ -325,88 +1490,151 @@ The canonical final acceptance command for the current branch is:
   --report-root benchmarks/results/vnext/final-validation
 ```
 
-Use `--skip-live` only for portable software validation. Portable-only success exits 2 by
-design and does not certify the real Ollama/search/image paths. The earlier accepted M15
-baseline evidence remains under `benchmarks/results/vnext/m15/live-validation/`.
+Portable-only validation:
 
-## Backup and recovery
+```bash
+.venv/bin/python -m reverend.benchmarks.final_validation \
+  --repository . \
+  --skip-live \
+  --report-root benchmarks/results/vnext/final-validation
+```
 
-Reverend intentionally separates encrypted persistent state from its encryption key.
+Portable validation does not certify real model/search/runtime behaviour.
 
-Before a migration or destructive maintenance operation, back up:
+---
 
-1. the configured `AI_DATA_ROOT`;
-2. the state key, normally `~/.config/reverend/state-v1.key`;
-3. the runtime config, normally `~/.config/reverend/runtime.json`;
-4. any external source corpora that are not independently backed up.
+# Repository Structure
 
-**Losing the state key makes encrypted persistent Workstation state intentionally
-unrecoverable.** Do not store the only copy of the key inside the data directory backup.
+Important areas currently include:
 
-For Knowledge Fabric/Qdrant migrations:
+```text
+benchmarks/
+config/
+deploy/
+docs/
+fixtures/
+scripts/
+src/reverend/
+tests/
+```
 
-- stop active writers;
-- preserve SQLite and the old vector collection;
-- migrate/copy into a new collection;
-- validate counts/generations/retrieval;
-- switch configuration only after validation;
-- keep the old collection for rollback.
+Major runtime areas include:
 
-FTS/vector indexes are reconstructable. Source documents remain authoritative.
+```text
+src/reverend/controlplane/
+src/reverend/development/
+src/reverend/intelligence/
+src/reverend/observability/
+src/reverend/policy/
+src/reverend/research/
+src/reverend/runtime/
+src/reverend/specialists/
+src/reverend/ui/
+src/reverend/workstation/
+```
 
-## Security boundaries
+Cloud work should extend existing subsystem authority rather than creating duplicate control planes.
 
-Reverend's accepted vNext invariants include:
+---
 
-- local-only model inference;
-- explicit network policy;
-- no arbitrary worker shell/filesystem authority;
-- typed bounded worker state;
-- isolated development worktrees;
-- path/hash validation before structured edits;
-- deterministic verification over model confidence;
-- credential/environment filtering;
-- explicit project trust;
-- fail-closed command sandbox construction;
-- hidden host home/credentials for the accepted untrusted sandbox contract;
-- read-only system runtime and bounded writable workspace;
-- CPU/RAM/process/file-descriptor/core-dump limits;
-- sanitized local browser rendering.
+# Development Discipline
 
-See:
+`main` is the canonical stable integration branch.
 
-- [vNext architecture](docs/vnext-architecture.md)
-- [0.4.0 upgrade and recovery](docs/release-0.4.0.md)
-- [safety and recovery](docs/safety.md)
-- [repository consolidation](docs/repository-consolidation.md)
-- [parallel development workflow](docs/development-workflow.md)
+Major work should:
 
-## Known release limitations
+```text
+branch from accepted main
+→ implement narrow scope
+→ add deterministic tests
+→ run targeted validation
+→ run full portable validation
+→ perform live validation when required
+→ review
+→ integrate
+```
 
-- Reverend is currently validated primarily on Linux/WSL2.
-- No general web-search provider is enabled implicitly. The supported canonical free
-  deployment is bundled self-hosted SearXNG; public upstream search engines may still impose
-  rate limits or CAPTCHAs.
-- Untrusted repositories remain inspection-only for the full development workflow.
-- The accepted sandbox does not claim that arbitrary hostile repository checkout/
-  materialization is safe.
-- Large-model inference remains serialized unless future hardware evidence supports safe
-  concurrency.
-- Qdrant server migration must remain explicit and rollback-safe.
-- Citations/provenance demonstrate source use, not perfect semantic entailment.
-- AI-generated code and drafts still require human review before integration/promotion.
+Do not silently weaken existing security, verification or authority boundaries while implementing cloud functionality.
 
-## Release discipline
+---
 
-The M6–M18 programme has a retained **live-accepted** final validation, and the
-post-acceptance stabilization pass is complete on `main`. Parallel optimization work must
-branch from the stabilized `main` baseline and return only through review + green CI.
-Reverend does not automatically:
+# Immediate Next Step
 
-- merge the branch;
-- create a tag;
-- publish a GitHub release;
-- upload a package;
-- integrate generated development changes.
+The project is currently in the **Analysis Phase**.
 
-Those are explicit post-acceptance actions.
+Implementation should not begin with GPU provisioning or model installation.
+
+The immediate sequence is:
+
+```text
+A0
+Baseline & Requirements Freeze
+
+↓
+A1
+Codex-Class Product Definition
+
+↓
+A2–A8
+Runtime / client-server / agents / memory /
+scheduling / recovery / security architecture
+
+↓
+A9
+Model Research
+
+↓
+A10
+Hardware + Runtime + Cloud Selection
+
+↓
+A11
+Economics + Billing
+
+↓
+A12
+Architecture Acceptance
+
+↓
+Implementation Programme
+```
+
+The first active architectural task is:
+
+> **A0 — establish the exact current Reverend baseline, accepted invariants, terminology, migration scope and known limitations before redesigning the runtime.**
+
+---
+
+# Long-Term Direction
+
+Reverend is intended to evolve from:
+
+```text
+single-user
+local workstation
+fixed model roles
+single-machine compute
+```
+
+into:
+
+```text
+private shared AI engineering platform
+        │
+        ├── specialist intelligence
+        ├── dynamic agent teams
+        ├── persistent engineering memory
+        ├── repository understanding
+        ├── research
+        ├── autonomous implementation
+        ├── independent assurance
+        ├── durable execution
+        ├── elastic model compute
+        ├── simulation
+        ├── asset generation
+        └── deployment automation
+```
+
+while retaining the principles that made the original system reliable:
+
+> **bounded autonomy, explicit authority, durable evidence, isolated execution, deterministic verification, measurable performance, and human control over consequential integration.**
