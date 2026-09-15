@@ -67,3 +67,9 @@ obsidian/
 # Generated benchmark output
 benchmarks/results/*
 !benchmarks/results/.gitkeep
+
+# VPS-local secrets/runtime
+deploy/vps/reverend.env
+secrets/
+*.pem
+*.key

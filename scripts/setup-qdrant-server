@@ -4,10 +4,11 @@ set -euo pipefail
 VERSION="${QDRANT_VERSION:-v1.19.1}"
 
 BIN_DIR="$HOME/.local/bin"
-DATA_DIR="$HOME/reverend-data/dev/ai-data/qdrant-server"
-LINK_DIR="$HOME/.local/share/local-ai-qdrant"
+DATA_ROOT="${AI_DATA_ROOT:-$HOME/.local/share/reverend}"
+DATA_DIR="$DATA_ROOT/qdrant-server"
+LINK_DIR="$HOME/.local/share/reverend-qdrant"
 UNIT_DIR="$HOME/.config/systemd/user"
-UNIT="$UNIT_DIR/local-ai-qdrant.service"
+UNIT="$UNIT_DIR/reverend-qdrant.service"
 
 mkdir -p \
   "$BIN_DIR" \
@@ -82,13 +83,13 @@ YAML
 
 cat > "$UNIT" <<'UNIT'
 [Unit]
-Description=Local AI Qdrant Server
+Description=Reverend Qdrant Server
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/.local/share/local-ai-qdrant
-ExecStart=%h/.local/bin/qdrant --config-path %h/.local/share/local-ai-qdrant/config.yaml
+WorkingDirectory=%h/.local/share/reverend-qdrant
+ExecStart=%h/.local/bin/qdrant --config-path %h/.local/share/reverend-qdrant/config.yaml
 Restart=on-failure
 RestartSec=2
 
@@ -103,7 +104,7 @@ echo
 echo "Starting user service..."
 
 systemctl --user daemon-reload
-systemctl --user enable --now local-ai-qdrant.service
+systemctl --user enable --now reverend-qdrant.service
 
 sleep 2
 
@@ -117,4 +118,4 @@ echo "Qdrant service:"
 systemctl --user \
   --no-pager \
   --full \
-  status local-ai-qdrant.service
+  status reverend-qdrant.service

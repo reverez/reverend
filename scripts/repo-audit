@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== Reverend repository audit ==="
+
+bad_db="$(
+  git ls-files |
+  grep -Ei '\.(db|db-wal|db-shm|sqlite|sqlite3)$' || true
+)"
+
+test -z "$bad_db" || {
+  echo "FAIL: database files tracked:"
+  echo "$bad_db"
+  exit 1
+}
+
+bad_private="$(
+  git ls-files |
+  grep -Ei '(^|/)(personal|private|vault|vaults|obsidian)(/|$)' || true
+)"
+
+test -z "$bad_private" || {
+  echo "FAIL: private paths tracked:"
+  echo "$bad_private"
+  exit 1
+}
+
+bad_results="$(
+  git ls-files 'benchmarks/results/*' |
+  grep -v '^benchmarks/results/.gitkeep$' || true
+)"
+
+test -z "$bad_results" || {
+  echo "FAIL: generated benchmark results tracked:"
+  echo "$bad_results"
+  exit 1
+}
+
+grep -Eq '^corpora:[[:space:]]*\{\}[[:space:]]*$' \
+  config/corpora.yaml || {
+    echo "FAIL: config/corpora.yaml is not blank"
+    exit 1
+}
+
+echo "PASS: no databases"
+echo "PASS: no private-data directories"
+echo "PASS: no generated benchmark payloads"
+echo "PASS: shared corpora configuration is blank"
+echo "Repository audit PASSED."

@@ -1,0 +1,29 @@
+[Unit]
+Description=Reverend AI Workstation
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=reverend
+Group=reverend
+WorkingDirectory=/opt/reverend
+EnvironmentFile=-/etc/reverend/reverend.env
+
+ExecStart=/opt/reverend/.venv/bin/reverend gui --port 8765
+
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+
+UMask=0077
+StateDirectory=reverend
+StateDirectoryMode=0700
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
