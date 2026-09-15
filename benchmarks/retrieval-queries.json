@@ -1,0 +1,453 @@
+{
+  "description": "28 fixed queries. Relevance labels verified from actual note titles and chunk passages before comparative retrieval. Sparse document judgments, not exhaustive relevance. No private passage text retained.",
+  "queries": [
+    {
+      "query": "Jacobian matrix",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/06 Matrix Algebra/14 Determinants, Geometry, Orientation, and Volume.md",
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/03 Calculus, Geometry & Change/03 Multivariable Calculus/Multivariable Calculus.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/03 Calculus, Geometry & Change/03 Multivariable Calculus/Multivariable Calculus.md",
+          "chunk_id": "38b4c4cf-b8ce-5c15-a161-12097be16b3f",
+          "section": "4. Compressed Reconstruction"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/06 Matrix Algebra/14 Determinants, Geometry, Orientation, and Volume.md",
+          "chunk_id": "5365bae6-5e58-5a28-8b46-7c65f6f496ad",
+          "section": "4.22 Change of variables preview"
+        }
+      ]
+    },
+    {
+      "query": "eigenvectors",
+      "relevant_sources": [
+        "02 University/Year 1/Semester 2/COMP1043 Mathematics for Computer Scientists 2/Notes/06 Eigenvalues & Eigenvectors.md",
+        "02 University/Year 1/Semester 2/COMP1043 Mathematics/Notes/06 Eigenvalues & Eigenvectors.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1043 Mathematics for Computer Scientists 2/Notes/06 Eigenvalues & Eigenvectors.md",
+          "chunk_id": "56b3e3a7-a112-559e-855e-490890432c2e",
+          "section": "6.2.1 Structural Definition"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1043 Mathematics/Notes/06 Eigenvalues & Eigenvectors.md",
+          "chunk_id": "020653dd-0c50-53c4-a7c2-ea4485e0d502",
+          "section": "6.4.3 The Diagonalization Theorem"
+        }
+      ]
+    },
+    {
+      "query": "vector spaces",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/01 From Coordinate Vectors to Abstract Vector Spaces.md",
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/02 Fields, Scalars, and the Vector Space Axioms.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/01 From Coordinate Vectors to Abstract Vector Spaces.md",
+          "chunk_id": "0e7839c3-7671-5e66-ac57-000a412b5b24",
+          "section": "Note Production Checklist"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/02 Fields, Scalars, and the Vector Space Axioms.md",
+          "chunk_id": "6e19d7e9-0412-5db6-a614-4830005c791d",
+          "section": "6. Common Mistakes and Corrections"
+        }
+      ]
+    },
+    {
+      "query": "Bayes theorem",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/04 Introductory Probability/06 Bayes Theorem and Total Probability.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/04 Introductory Probability/06 Bayes Theorem and Total Probability.md",
+          "chunk_id": "04ea8107-149e-5bd9-82bd-34dca1646a75",
+          "section": "Retrieval 3"
+        }
+      ]
+    },
+    {
+      "query": "TCP handshake",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/11 TCP Connections Sequence Numbers Reliability and State Machines.md",
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/06 TCP Reliability Byte Streams and Connection Lifecycle.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/11 TCP Connections Sequence Numbers Reliability and State Machines.md",
+          "chunk_id": "9cd57c6c-2a81-5796-8e17-fdca3c95c46d",
+          "section": "Core retrieval"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/06 TCP Reliability Byte Streams and Connection Lifecycle.md",
+          "chunk_id": "27343fbc-a466-5c7b-8f12-bca7973c885b",
+          "section": "Learning Outcomes"
+        }
+      ]
+    },
+    {
+      "query": "virtual memory page faults",
+      "relevant_sources": [
+        "02 University/Year 2/Semester 1/COMP2007 Operating Systems and Concurrency/Notes/21 Virtual Memory Page Faults Multilevel Tables and TLBs.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 2/Semester 1/COMP2007 Operating Systems and Concurrency/Notes/21 Virtual Memory Page Faults Multilevel Tables and TLBs.md",
+          "chunk_id": "13e93874-87cf-5622-bf43-b6e303d38a2f",
+          "section": "21 Virtual Memory Page Faults Multilevel Tables and TLBs"
+        }
+      ]
+    },
+    {
+      "query": "linked lists",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/03 Data Structures/06 Linked Lists Nodes Pointers and Traversal.md",
+        "02 University/Year 1/Semester 1/COMP1005 Programming and Algorithms/Notes/19 Linked Lists and Dynamic Data Structures.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/03 Data Structures/06 Linked Lists Nodes Pointers and Traversal.md",
+          "chunk_id": "236af6bb-e0a5-5cbe-bcfc-7e5cf0ef0c31",
+          "section": "9. Source Trace"
+        },
+        {
+          "source": "02 University/Year 1/Semester 1/COMP1005 Programming and Algorithms/Notes/19 Linked Lists and Dynamic Data Structures.md",
+          "chunk_id": "0ab2e2ea-3427-5754-9c3d-912080a25a00",
+          "section": "4.3 Linked-list structure"
+        }
+      ]
+    },
+    {
+      "query": "recursion base cases",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/01 Programming Fundamentals/14 Recursion and Recursive Thinking.md",
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/08 Functional Programming Basics/08 Recursion Structural Recursion and Base Cases.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/01 Programming Fundamentals/14 Recursion and Recursive Thinking.md",
+          "chunk_id": "68c48cf4-1d32-5fea-a72b-963e78c318f4",
+          "section": "4.5 Multiple base cases"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/08 Functional Programming Basics/08 Recursion Structural Recursion and Base Cases.md",
+          "chunk_id": "257ae183-a05b-5a52-966a-77cbfd9cf817",
+          "section": "08 Recursion Structural Recursion and Base Cases"
+        }
+      ]
+    },
+    {
+      "query": "SQL data definition",
+      "relevant_sources": [
+        "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/03 SQL Data Definition Language.md",
+        "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/03 SQL Data Definition Language.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/03 SQL Data Definition Language.md",
+          "chunk_id": "020bc18b-b071-5fed-a548-c17419266f76",
+          "section": "DDL: Data Definition Language"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/03 SQL Data Definition Language.md",
+          "chunk_id": "063c28b1-2e34-53ec-9e48-d59644fed490",
+          "section": "DDL: Data Definition Language"
+        }
+      ]
+    },
+    {
+      "query": "SQL data manipulation",
+      "relevant_sources": [
+        "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/04 SQL Data Manipulation Language.md",
+        "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/04 SQL Data Manipulation Language.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/04 SQL Data Manipulation Language.md",
+          "chunk_id": "2dd1c69f-73f5-52c1-b616-6dec25b3e8b6",
+          "section": "SQL Data Manipulation language"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/04 SQL Data Manipulation Language.md",
+          "chunk_id": "38af7229-06a8-5c93-a29f-0acc399b0ba0",
+          "section": "SQL Data Manipulation language"
+        }
+      ]
+    },
+    {
+      "query": "antiderivatives",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/03 Calculus, Geometry & Change/02 Integral Calculus/02 Antiderivatives and Families of Functions.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/03 Calculus, Geometry & Change/02 Integral Calculus/02 Antiderivatives and Families of Functions.md",
+          "chunk_id": "08d2fa58-495b-5b28-a092-86d00c746600",
+          "section": "Q4. What does $\\int f(x)\\,dx$ mean?"
+        }
+      ]
+    },
+    {
+      "query": "subspace criterion",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/04 Subspaces and the Subspace Criterion.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/07 Vector Spaces/04 Subspaces and the Subspace Criterion.md",
+          "chunk_id": "2954a5f0-3572-506c-89c4-fa3ebef50388",
+          "section": "6. Common Mistakes and Corrections"
+        }
+      ]
+    },
+    {
+      "query": "TCP congestion control",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/12 TCP Flow Control Congestion Control RTT and Retransmission.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/12 TCP Flow Control Congestion Control RTT and Retransmission.md",
+          "chunk_id": "25375cdc-ff93-527e-b8f5-c872b65d501c",
+          "section": "Why control is needed"
+        }
+      ]
+    },
+    {
+      "query": "database normalisation",
+      "relevant_sources": [
+        "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/02 Normalisation.md",
+        "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/02 Normalisation.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases & Interfaces/Notes/02 Normalisation.md",
+          "chunk_id": "1aa4821b-7965-5e91-a00c-8ad7b77a0666",
+          "section": "02 Normalisation"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1004 Databases and Interfaces/Notes/00 Needs Classification/02 Normalisation.md",
+          "chunk_id": "2272dd9d-f69f-54c8-aa5d-1b2334fb8d02",
+          "section": "02 Normalisation"
+        }
+      ]
+    },
+    {
+      "query": "Dijkstra shortest paths",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/03 Graph Theory Basics/12 Weighted Graphs Dijkstra Algorithm and Shortest Paths.md",
+        "02 University/Year 1/Semester 1/COMP1055 Networks/Notes/14 Routing Algorithms and Dijkstra Shortest Paths.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/03 Graph Theory Basics/12 Weighted Graphs Dijkstra Algorithm and Shortest Paths.md",
+          "chunk_id": "22b527f2-0d76-575b-80cd-0998bfd8cc36",
+          "section": "8. Quick Retrieval Prompts"
+        },
+        {
+          "source": "02 University/Year 1/Semester 1/COMP1055 Networks/Notes/14 Routing Algorithms and Dijkstra Shortest Paths.md",
+          "chunk_id": "4d7e882c-e84d-54d0-a2b4-d6c9be29bdce",
+          "section": "14 Routing Algorithms and Dijkstra Shortest Paths"
+        }
+      ]
+    },
+    {
+      "query": "binary search",
+      "relevant_sources": [
+        "02 University/Year 1/Semester 1/COMP1005 Programming and Algorithms/Notes/24 Recursion Linear Search and Binary Search.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "02 University/Year 1/Semester 1/COMP1005 Programming and Algorithms/Notes/24 Recursion Linear Search and Binary Search.md",
+          "chunk_id": "019a4fc6-aee9-5d07-add5-defd795d6d74",
+          "section": "Q18. Why not binary everywhere"
+        }
+      ]
+    },
+    {
+      "query": "hash table collisions",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/03 Data Structures/12 Hash Tables Hash Functions Collisions and Load Factor.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/03 Data Structures/12 Hash Tables Hash Functions Collisions and Load Factor.md",
+          "chunk_id": "013d6652-8d62-55bc-acd8-1a342a8024d6",
+          "section": "Q5. Resize reason"
+        }
+      ]
+    },
+    {
+      "query": "mathematical induction",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/01 Logic, Sets & Proofs/04 Proof Methodology/16 Mathematical Induction as a Proof Schema.md",
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/01 Logic, Sets & Proofs/05 Mathematical Induction/01 Why Mathematical Induction Works.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/01 Logic, Sets & Proofs/04 Proof Methodology/16 Mathematical Induction as a Proof Schema.md",
+          "chunk_id": "1441103a-d2ad-58fb-b837-03974fa01321",
+          "section": "16 Mathematical Induction as a Proof Schema"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/01 Logic, Sets & Proofs/05 Mathematical Induction/01 Why Mathematical Induction Works.md",
+          "chunk_id": "0bb75d56-1a86-5667-a5e0-07f1bf02d77c",
+          "section": "01 Why Mathematical Induction Works"
+        }
+      ]
+    },
+    {
+      "query": "conditional probability",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/04 Introductory Probability/05 Conditional Probability and Multiplication Rules.md",
+        "02 University/Year 1/Semester 2/COMP1008 Fundamentals of AI/Notes/05 Conditional Probability & Bayes Rule.md",
+        "02 University/Year 1/Semester 2/COMP1008 Fundamentals of Artificial Intelligence/Notes/05 Conditional Probability & Bayes Rule.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/04 Discrete, Probability & Data Foundations/04 Introductory Probability/05 Conditional Probability and Multiplication Rules.md",
+          "chunk_id": "44b91acc-ac73-586c-9e5b-695605add2c1",
+          "section": "4. Deep Explanation"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1008 Fundamentals of AI/Notes/05 Conditional Probability & Bayes Rule.md",
+          "chunk_id": "9bed336f-218b-5fa9-9659-2fd9297cedb7",
+          "section": "COMP1008: Step 5 – Conditional Probability & Bayes Rule"
+        },
+        {
+          "source": "02 University/Year 1/Semester 2/COMP1008 Fundamentals of Artificial Intelligence/Notes/05 Conditional Probability & Bayes Rule.md",
+          "chunk_id": "fd4524d2-f556-5077-8189-c87e19ea43d2",
+          "section": "COMP1008: Step 5 – Conditional Probability & Bayes Rule"
+        }
+      ]
+    },
+    {
+      "query": "cache hits and misses",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/05 Memory and Processor Models/04 Cache Hits Misses and Average Memory Access Time.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/05 Memory and Processor Models/04 Cache Hits Misses and Average Memory Access Time.md",
+          "chunk_id": "4eacc48c-2940-5045-afa3-5c722662035b",
+          "section": "9. Source Trace"
+        }
+      ]
+    },
+    {
+      "query": "deadlock starvation livelock",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/06 Operating Systems Foundations/12 Deadlock Starvation Livelock and Concurrency Verification.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/06 Operating Systems Foundations/12 Deadlock Starvation Livelock and Concurrency Verification.md",
+          "chunk_id": "52bd359c-566e-5a36-bdd7-31095a91c0be",
+          "section": "10. Knowledge Lock"
+        }
+      ]
+    },
+    {
+      "query": "polymorphism dynamic dispatch",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/07 Object-Oriented Programming/09 Method Overriding Polymorphism and Dynamic Dispatch.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/07 Object-Oriented Programming/09 Method Overriding Polymorphism and Dynamic Dispatch.md",
+          "chunk_id": "33a5dd2e-723e-573a-903f-9a2743733f1a",
+          "section": "09 Method Overriding Polymorphism and Dynamic Dispatch"
+        }
+      ]
+    },
+    {
+      "query": "inheritance subclasses",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/07 Object-Oriented Programming/08 Inheritance Subclasses and Code Reuse.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/02 Programming & Software Literacy/07 Object-Oriented Programming/08 Inheritance Subclasses and Code Reuse.md",
+          "chunk_id": "0e6c54b0-2b11-5603-8637-4acfcb37eee9",
+          "section": "1. Orientation"
+        }
+      ]
+    },
+    {
+      "query": "matrix multiplication",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/06 Matrix Algebra/04 Matrix Multiplication and the Row-Column Rule.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/06 Matrix Algebra/04 Matrix Multiplication and the Row-Column Rule.md",
+          "chunk_id": "07d58c84-8ebf-5161-92fe-ef3008bc4184",
+          "section": "Q25. Transformation bridge"
+        }
+      ]
+    },
+    {
+      "query": "DNS name resolution",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/14 DNS Naming Resolution Caching and Service Discovery.md",
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/04 DNS Names Resolution and the Naming Layer.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/07 Computer Networks Foundations/14 DNS Naming Resolution Caching and Service Discovery.md",
+          "chunk_id": "4ba20933-4570-5ee8-a084-5d07b3babae9",
+          "section": "Core retrieval"
+        },
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/04 DNS Names Resolution and the Naming Layer.md",
+          "chunk_id": "3fecbab5-015e-5304-9f67-703d371d05b1",
+          "section": "2. Compressed Reconstruction"
+        }
+      ]
+    },
+    {
+      "query": "HTTP methods status codes",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/09 HTTP Requests Responses Methods and Status Codes.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/04 Data, Interfaces & Professional Context/03 Web and Internet Foundations/09 HTTP Requests Responses Methods and Status Codes.md",
+          "chunk_id": "1be50441-d985-56cc-9448-069ecc91e3bd",
+          "section": "Standards-Grounded"
+        }
+      ]
+    },
+    {
+      "query": "complex numbers imaginary unit",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/04 Complex Numbers/01 Imaginary Unit and the Complex Number System.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Mathematics/Notes/Phase 1 - Foundations (BSc Y1-1)/02 Number, Algebra & Functions/04 Complex Numbers/01 Imaginary Unit and the Complex Number System.md",
+          "chunk_id": "16136e6a-1461-507c-896c-748e8152fbc5",
+          "section": "01 Imaginary Unit and the Complex Number System"
+        }
+      ]
+    },
+    {
+      "query": "Boolean functions gates",
+      "relevant_sources": [
+        "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/01 Digital Logic/05 Boolean Functions and Gate-Level Realisation.md"
+      ],
+      "label_evidence": [
+        {
+          "source": "01 Ivory Tower/Formal Sciences/Computer Science/Notes/Phase 1 - Foundations/03 Machine & Systems Literacy/01 Digital Logic/05 Boolean Functions and Gate-Level Realisation.md",
+          "chunk_id": "a1b35dc8-1f0a-5c0c-9d98-c7c0840a8e1d",
+          "section": "05 Boolean Functions and Gate-Level Realisation"
+        }
+      ]
+    }
+  ]
+}

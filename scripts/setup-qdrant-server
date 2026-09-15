@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="${QDRANT_VERSION:-v1.19.1}"
+
+BIN_DIR="$HOME/.local/bin"
+DATA_DIR="$HOME/reverend-data/dev/ai-data/qdrant-server"
+LINK_DIR="$HOME/.local/share/local-ai-qdrant"
+UNIT_DIR="$HOME/.config/systemd/user"
+UNIT="$UNIT_DIR/local-ai-qdrant.service"
+
+mkdir -p \
+  "$BIN_DIR" \
+  "$DATA_DIR/storage" \
+  "$DATA_DIR/snapshots" \
+  "$UNIT_DIR" \
+  "$HOME/.local/share"
+
+ARCH="$(uname -m)"
+
+case "$ARCH" in
+  x86_64)
+    ASSET="qdrant-x86_64-unknown-linux-gnu.tar.gz"
+    FALLBACK="qdrant-x86_64-unknown-linux-musl.tar.gz"
+    ;;
+  aarch64|arm64)
+    ASSET="qdrant-aarch64-unknown-linux-musl.tar.gz"
+    FALLBACK=""
+    ;;
+  *)
+    echo "Unsupported architecture: $ARCH" >&2
+    exit 1
+    ;;
+esac
+
+BASE="https://github.com/qdrant/qdrant/releases/download/$VERSION"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+echo "Installing Qdrant $VERSION..."
+
+if ! curl -fL \
+  "$BASE/$ASSET" \
+  -o "$TMP/qdrant.tar.gz"
+then
+  if [[ -z "$FALLBACK" ]]; then
+    exit 1
+  fi
+
+  echo "GNU build unavailable; trying musl build..."
+  curl -fL \
+    "$BASE/$FALLBACK" \
+    -o "$TMP/qdrant.tar.gz"
+fi
+
+tar -xzf "$TMP/qdrant.tar.gz" -C "$TMP"
+
+QDRANT_BIN="$(find "$TMP" -type f -name qdrant | head -n 1)"
+
+if [[ -z "$QDRANT_BIN" ]]; then
+  echo "Downloaded archive did not contain qdrant." >&2
+  exit 1
+fi
+
+install -m 0755 "$QDRANT_BIN" "$BIN_DIR/qdrant"
+
+rm -f "$LINK_DIR"
+ln -s "$DATA_DIR" "$LINK_DIR"
+
+cat > "$DATA_DIR/config.yaml" <<'YAML'
+log_level: INFO
+
+storage:
+  storage_path: ./storage
+  snapshots_path: ./snapshots
+
+service:
+  host: 127.0.0.1
+  http_port: 6333
+  grpc_port: 6334
+YAML
+
+cat > "$UNIT" <<'UNIT'
+[Unit]
+Description=Local AI Qdrant Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/local-ai-qdrant
+ExecStart=%h/.local/bin/qdrant --config-path %h/.local/share/local-ai-qdrant/config.yaml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
+UNIT
+
+echo
+"$BIN_DIR/qdrant" --version
+
+echo
+echo "Starting user service..."
+
+systemctl --user daemon-reload
+systemctl --user enable --now local-ai-qdrant.service
+
+sleep 2
+
+echo
+echo "Checking HTTP endpoint..."
+curl -fsS http://127.0.0.1:6333/
+
+echo
+echo
+echo "Qdrant service:"
+systemctl --user \
+  --no-pager \
+  --full \
+  status local-ai-qdrant.service

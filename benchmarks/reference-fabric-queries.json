@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "purpose": "M10 held-out reference ranking quality and cache latency probe",
+  "cases": [
+    {
+      "case_id": "mercury-planet",
+      "query": "mercury planet",
+      "expected_titles": [
+        "Mercury (planet)"
+      ]
+    },
+    {
+      "case_id": "python-language",
+      "query": "python programming language",
+      "expected_titles": [
+        "Python (programming language)"
+      ]
+    },
+    {
+      "case_id": "apollo-11",
+      "query": "apollo 11 moon landing",
+      "expected_titles": [
+        "Apollo 11"
+      ]
+    },
+    {
+      "case_id": "general-relativity",
+      "query": "einstein gravity general relativity",
+      "expected_titles": [
+        "General relativity"
+      ]
+    },
+    {
+      "case_id": "quicksort",
+      "query": "quicksort sorting algorithm",
+      "expected_titles": [
+        "Quicksort"
+      ]
+    },
+    {
+      "case_id": "matrix-multiplication",
+      "query": "matrix multiplication linear algebra",
+      "expected_titles": [
+        "Matrix multiplication"
+      ]
+    },
+    {
+      "case_id": "photosynthesis",
+      "query": "photosynthesis plants light",
+      "expected_titles": [
+        "Photosynthesis"
+      ]
+    },
+    {
+      "case_id": "tcp",
+      "query": "transmission control protocol tcp",
+      "expected_titles": [
+        "Transmission Control Protocol"
+      ]
+    },
+    {
+      "case_id": "world-wide-web",
+      "query": "world wide web tim berners lee",
+      "expected_titles": [
+        "World Wide Web"
+      ]
+    },
+    {
+      "case_id": "fourier-transform",
+      "query": "fourier transform frequency domain",
+      "expected_titles": [
+        "Fourier transform"
+      ]
+    },
+    {
+      "case_id": "rocket",
+      "query": "rocket propulsion vehicle",
+      "expected_titles": [
+        "Rocket"
+      ]
+    },
+    {
+      "case_id": "xavier",
+      "query": "xavier renegade angel",
+      "expected_titles": [
+        "Xavier: Renegade Angel"
+      ]
+    }
+  ]
+}

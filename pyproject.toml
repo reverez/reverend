@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reverend"
+dynamic = ["version"]
+description = "Local-first persistent AI engineering workstation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "qdrant-client",
+    "pymupdf",
+    "pyyaml",
+    "cryptography==50.0.1",
+]
+
+[project.optional-dependencies]
+reference = ["libzim==3.13.0"]
+dev = [
+    "pytest>=8",
+    "setuptools>=68",
+    "wheel",
+]
+
+[project.scripts]
+reverend = "reverend.cli:main"
+ai = "reverend.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reverend*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+reverend = ["ui/**/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "reverend.__version__"}

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="reverend-token" content="__SESSION_TOKEN__">
+  <title>Reverend · Local engineering workstation</title>
+  <link rel="stylesheet" href="/assets/vendor/katex/dist/katex.min.css">
+  <link rel="stylesheet" href="/assets/vendor/highlight/styles/github-dark.min.css">
+  <link rel="stylesheet" href="/assets/app.css">
+  <script defer src="/assets/vendor/markdown-it/dist/markdown-it.min.js"></script>
+  <script defer src="/assets/vendor/dompurify/dist/purify.min.js"></script>
+  <script defer src="/assets/vendor/highlight/highlight.min.js"></script>
+  <script defer src="/assets/vendor/katex/dist/katex.min.js"></script>
+  <script defer src="/assets/vendor/katex/dist/contrib/auto-render.min.js"></script>
+  <script defer src="/assets/diagrams.js"></script>
+  <script defer src="/assets/sources.js"></script>
+  <script defer src="/assets/app.js"></script>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <a href="#" class="brand" aria-label="Reverend home">
+        <span class="brand-symbol">R</span>
+        <span class="brand-name">Reverend</span>
+        <span class="version">LOCAL</span>
+      </a>
+      <button id="new-chat" class="new-chat" type="button">
+        <span class="nav-icon">＋</span><span class="sidebar-copy">New chat</span><kbd>⌘ K</kbd>
+      </button>
+      <nav aria-label="Workspace">
+        <button data-view="chat" class="active"><span class="nav-icon">◌</span><span class="sidebar-copy">Chats</span></button>
+        <button data-view="projects"><span class="nav-icon">▧</span><span class="sidebar-copy">Projects</span></button>
+        <button data-view="knowledge"><span class="nav-icon">⌕</span><span class="sidebar-copy">Knowledge</span></button>
+        <button data-view="tasks"><span class="nav-icon">☷</span><span class="sidebar-copy">Activity</span></button>
+        <button data-view="control-plane"><span class="nav-icon">◇</span><span class="sidebar-copy">Control plane</span></button>
+      </nav>
+    </div>
+
+    <div class="history-section">
+      <div class="sidebar-label">RECENT</div>
+      <label class="conversation-search-wrap">
+        <span>⌕</span>
+        <input id="conversation-search" type="search" placeholder="Search chats" autocomplete="off" aria-label="Search conversations">
+      </label>
+      <div id="conversations" class="conversation-list"></div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <button data-view="status" class="status-link"><span class="nav-icon">⚙</span><span class="sidebar-copy">Settings & status</span><span class="online-dot"></span></button>
+      <p class="runtime-caption"><span class="online-dot"></span><span class="sidebar-copy">Local inference</span></p>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="menu-toggle" class="icon-button" type="button" aria-label="Toggle navigation">☰</button>
+        <button id="sidebar-collapse" class="icon-button desktop-collapse" type="button" aria-label="Collapse navigation" aria-pressed="false">‹</button>
+        <div class="conversation-heading">
+          <strong id="view-title">New conversation</strong>
+          <span id="breadcrumb">Workspace</span>
+        </div>
+      </div>
+      <div class="topbar-center" aria-label="Active workflow">
+        <span id="active-workflow" class="workflow-chip">Auto · web ask</span>
+        <span id="active-model" class="model-chip" hidden>Local models</span>
+        <span id="context-usage" class="context-usage-chip" hidden aria-label="Safe input context utilization"></span>
+      </div>
+      <div class="topbar-right">
+        <span class="local-badge"><i></i> Local</span>
+        <button id="inspector-toggle" class="icon-button" type="button" aria-expanded="false" aria-controls="inspector" title="Inspector">☷</button>
+      </div>
+    </header>
+
+    <section id="chat-view" class="view active">
+      <div id="chat-workspace" class="chat-workspace">
+        <div class="conversation-pane">
+          <div id="messages" class="messages" aria-live="polite">
+            <div class="welcome">
+              <div class="welcome-mark">R</div>
+              <h1>How can I help?</h1>
+              <p>Ask, research, reason, or work directly with a project.</p>
+              <div class="suggestions">
+                <button data-prompt="Explain how a Jacobian connects derivatives and linear maps."><b>Explore a concept</b><small>Clear technical explanation</small></button>
+                <button data-prompt="What important AI model releases were announced this week?"><b>Research something current</b><small>Fresh evidence when needed</small></button>
+                <button data-prompt="Help me reason through a difficult software architecture decision."><b>Think deeply</b><small>Trade-offs and structured reasoning</small></button>
+                <button data-view="projects"><b>Work on a project</b><small>Plan, implement, verify</small></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-wrap">
+            <form id="composer">
+              <div id="context-chips"></div>
+              <textarea id="prompt" placeholder="Message Reverend…" rows="1" maxlength="12000" aria-label="Message"></textarea>
+              <div id="acceptance-row" hidden><input id="acceptance" placeholder="Acceptance criteria · what should verification prove?" maxlength="12000"></div>
+              <div class="composer-bottom">
+                <div class="mode-control">
+                  <details id="composer-options">
+                    <summary id="mode-summary">Auto</summary>
+                    <div class="composer-options-panel">
+                      <label>Workflow
+                        <select id="mode" aria-label="Mode">
+                          <option value="auto">Auto</option>
+                          <option value="ask">Ask</option>
+                          <option value="reason">Reason</option>
+                          <option value="research">Research</option>
+                          <option value="develop">Develop</option>
+                        </select>
+                      </label>
+                      <label>Privacy
+                        <select id="privacy-mode" aria-label="Conversation privacy">
+                          <option value="normal">Normal · persistent</option>
+                          <option value="private">Private · no memory promotion</option>
+                          <option value="ephemeral">Ephemeral · session only</option>
+                        </select>
+                      </label>
+                      <label>Web access
+                        <select id="network-policy" aria-label="Web access">
+                          <option value="ASK" selected>Ask · approve when fresh evidence is needed</option>
+                          <option value="OFF">Off · local only</option>
+                          <option value="AUTO">Auto · search when needed</option>
+                        </select>
+                      </label>
+                      <div id="context-row">
+                        <select id="project-select" aria-label="Project context"><option value="">No project context</option></select>
+                        <label><input type="checkbox" id="use-knowledge"> Use knowledge</label>
+                      </div>
+                      <span id="model-label" hidden></span>
+                      <p id="workflow-help" class="muted">Auto routes locally and asks before fresh network access.</p>
+                    </div>
+                  </details>
+                  <button id="add-context" type="button" aria-label="Choose project context">＋ Project</button>
+                  <button id="web-policy-pill" type="button" aria-pressed="false" title="Cycle web access policy">◎ Web ask</button>
+                  <span id="privacy-pill" class="privacy-pill" title="Conversation privacy">Normal</span>
+                </div>
+                <span id="generation-state" role="status"></span>
+                <button id="stop" type="button" hidden>■ Stop</button>
+                <button id="send" type="submit" aria-label="Send message">↑</button>
+              </div>
+            </form>
+            <p class="composer-hint">Inference stays local. Public evidence is fetched only under the selected web policy.</p>
+          </div>
+        </div>
+
+        <aside id="inspector" class="inspector" aria-label="Conversation inspector" aria-hidden="true">
+          <div class="inspector-header">
+            <div>
+              <div class="eyebrow">INSPECTOR</div>
+              <strong id="inspector-title">Conversation details</strong>
+              <small id="inspector-subtitle">Sources, runtime evidence, and safe previews</small>
+            </div>
+            <div class="inspector-actions">
+              <button id="inspector-expand" type="button" aria-label="Expand inspector" title="Expand inspector">▣</button>
+              <button id="inspector-close" type="button" aria-label="Close inspector">✕</button>
+            </div>
+          </div>
+          <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
+            <button type="button" data-inspector-tab="sources" role="tab">Sources</button>
+            <button type="button" data-inspector-tab="details" role="tab">Details</button>
+            <button type="button" data-inspector-tab="preview" role="tab">Preview</button>
+          </div>
+          <div id="inspector-content" class="inspector-content">
+            <div class="inspector-empty"><strong>Nothing selected</strong><p>Open a citation, response details, or a previewable code block.</p></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="projects-view" class="view panel">
+      <div class="page-heading"><div class="eyebrow">YOUR CODE, YOUR WORKSPACE</div><h1>Projects</h1><p>Register repositories for context or isolated verified development.</p></div>
+      <form id="register-project" class="inline-form"><input name="path" placeholder="Absolute path to a Git repository" aria-label="Repository path" required><select name="trust" aria-label="Repository trust"><option value="untrusted_repo">Untrusted · inspection only</option><option value="trusted_repo">Trusted personal repository · allow verification</option></select><button>Register project</button></form>
+      <div id="projects" class="cards"></div>
+    </section>
+
+    <section id="knowledge-view" class="view panel">
+      <div class="eyebrow">EVIDENCE BEFORE ANSWERS</div><h1>Knowledge</h1><p class="muted">Search persistent sources and inspect provenance.</p>
+      <form id="knowledge-search" class="inline-form"><input name="query" placeholder="Search notes, concepts, or technical material…" required aria-label="Knowledge query"><select name="mode" aria-label="Retrieval mode"><option value="hybrid">Hybrid</option><option value="lexical">Lexical · offline</option><option value="dense">Semantic</option></select><button>Search</button></form>
+      <div id="knowledge-results"></div>
+      <details><summary>Fetch a public page manually</summary><p class="muted">One public HTTPS page, fetched in a restricted worker. Content remains untrusted; inference stays local.</p><form id="public-fetch" class="inline-form"><input name="url" type="url" placeholder="https://documentation.example/page" required aria-label="Public documentation URL"><label><input name="allow_network" type="checkbox" required> Allow this request</label><button>Fetch source</button></form><div id="public-source"></div></details>
+      <hr><h2>Engineering memory</h2><p class="muted">Project-scoped evidence with provenance. Select a project in Chats first.</p>
+      <form id="memory-search" class="inline-form"><input name="query" placeholder="Search engineering records" aria-label="Memory query"><button>Find records</button></form>
+      <details><summary>Record evidence or a user constraint</summary><form id="memory-add" class="memory-form"><select name="kind" aria-label="Memory type"><option>FACT</option><option>DECISION</option><option>EXPERIMENT</option><option>FAILURE</option><option>RESULT</option><option>USER_CONSTRAINT</option></select><textarea name="content" maxlength="2000" placeholder="Evidence-backed statement" required></textarea><input name="source" placeholder="Source (person, check, document)" required><input name="evidence" placeholder="Evidence reference (artifact, task, review, URL)" required><button>Save record</button></form></details>
+      <div id="memory-results"></div>
+    </section>
+
+    <section id="tasks-view" class="view panel">
+      <div class="eyebrow">PLAN · IMPLEMENT · VERIFY</div><h1>Development tasks</h1>
+      <div class="task-layout"><div id="tasks" class="task-list"></div><div id="task-detail"><div class="empty-state">Select a task to inspect its plan, changes, and verification evidence.</div></div></div>
+    </section>
+
+    <section id="control-plane-view" class="view panel">
+      <div class="eyebrow">WORKFLOWS · SPECIALISTS · RESOURCES · ARTIFACTS</div>
+      <h1>Control plane</h1>
+      <p class="muted">Read-only operational projection. Execution authority remains in the Reverend runtime.</p>
+      <div id="control-plane" class="cards"></div>
+    </section>
+
+    <section id="status-view" class="view panel">
+      <div class="eyebrow">LOCAL, OBSERVABLE, UNDER YOUR CONTROL</div><h1>System status</h1><div id="status" class="cards"></div>
+    </section>
+
+    <div id="notice" role="alert" hidden></div>
+    <dialog id="source-dialog"><button id="close-source" aria-label="Close source">✕</button><div id="source-detail"></div></dialog>
+    <dialog id="artifact-dialog"><button id="close-dialog" aria-label="Close artifact">✕</button><h2>Verification output</h2><pre id="artifact-output"></pre></dialog>
+  </main>
+</body>
+</html>

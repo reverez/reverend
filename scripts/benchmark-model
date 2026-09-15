@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""Benchmark context allocation through Ollama without changing global settings."""
+import json, os, subprocess, sys, time, urllib.request
+
+base = os.environ.get("OLLAMA_HOST", "http://192.168.160.1:11434").rstrip("/")
+model = sys.argv[1] if len(sys.argv) > 1 else "qwen3.5:4b"
+contexts = [4096, 16384, 32768, 65536]
+def call(path, payload=None, timeout=600):
+    data = None if payload is None else json.dumps(payload).encode()
+    req = urllib.request.Request(base+path, data=data, headers={"Content-Type":"application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+results = []
+for ctx in contexts:
+    row = {"context": ctx, "success": False}
+    try:
+        t0 = time.monotonic()
+        result = call("/api/generate", {"model":model,"prompt":"In one short sentence, explain why tests matter.",
+                      "stream":False,"keep_alive":"5m","options":{"num_ctx":ctx,"num_predict":48}})
+        elapsed = time.monotonic()-t0
+        ps = call("/api/ps")
+        loaded = next((m for m in ps.get("models",[]) if m.get("name")==model), {})
+        try:
+            gpu = subprocess.check_output(["nvidia-smi","--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                                          text=True, timeout=10).strip()
+        except Exception:
+            gpu = None
+        eval_count, eval_ns = result.get("eval_count",0), result.get("eval_duration",0)
+        row.update(success=True, elapsed_seconds=round(elapsed,2), first_response_seconds=round(elapsed,2),
+                   tokens_per_second=round(eval_count/(eval_ns/1e9),2) if eval_ns else None,
+                   processor="100% GPU" if loaded and loaded.get("size_vram")==loaded.get("size") else "GPU/CPU or unknown",
+                   model_size_bytes=loaded.get("size"), vram_model_bytes=loaded.get("size_vram"),
+                   gpu_memory_used_mib=int(gpu) if gpu and gpu.isdigit() else None,
+                   response=result.get("response","").strip())
+    except Exception as exc:
+        row["error"] = str(exc)
+    results.append(row)
+    print(json.dumps(row), flush=True)
+    if not row["success"] or row.get("processor") != "100% GPU":
+        break
+print("RESULTS=" + json.dumps(results))

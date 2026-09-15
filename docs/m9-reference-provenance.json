@@ -1,0 +1,41 @@
+{
+  "filename": "wikipedia_en_all_mini_2026-06.zim",
+  "path": "/home/user/dev/ai-data/reference/kiwix/wikipedia_en_all_mini_2026-06.zim",
+  "byte_size": 12531679311,
+  "sha256": "1d0f8178709481c831272d95f95dccc030e9193e38e732b86b1938ae2606226e",
+  "origin": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2026-06.zim",
+  "download_url": "https://www.mirrorservice.org/sites/download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2026-06.zim",
+  "initial_download_url": "https://mirror.download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2026-06.zim",
+  "acquired_at": "2026-09-14T15:15:08.594802+00:00",
+  "provider_sha256": "1d0f8178709481c831272d95f95dccc030e9193e38e732b86b1938ae2606226e",
+  "provider_digest_origin": "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2026-06.zim",
+  "verification": "SHA-256 matches official Kiwix digest",
+  "zim_metadata": {
+    "Counter": "application/javascript=4;application/pdf=4;font/ttf=1;image/png=4;image/svg+xml=19;image/svg+xml; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/SVG/1.0.0\"=33754;text/css=39;text/html=8513331;text/html; charset=iso-8859-1=1;text/javascript=3",
+    "Creator": "Wikipedia",
+    "Date": "2026-06-11",
+    "Description": "The free encyclopedia",
+    "Flavour": "mini",
+    "Language": "eng",
+    "Name": "wikipedia_en_all",
+    "Publisher": "openZIM",
+    "Scraper": "mwoffliner 1.17.5",
+    "Source": "en.wikipedia.org",
+    "Tags": "wikipedia;_category:wikipedia;_pictures:no;_videos:no;_details:no;_ftindex:yes",
+    "Title": "Wikipedia"
+  },
+  "archive_uuid": "0a12b922-4c5e-e600-4b06-fe81c0241191",
+  "article_count": 19183502,
+  "has_title_index": true,
+  "has_fulltext_index": true,
+  "archive_internal_checksum": "8b0110b7df979fbe0d3e7efa8c5b4da4",
+  "license_metadata_present": false,
+  "article_rights_sample": {
+    "article_path": "Rocket",
+    "notice": "This article is issued from Wikipedia . The text is available under Creative Commons Attribution-Share Alike 4.0 unless otherwise noted. Additional terms may apply for the media files.",
+    "links": [
+      "https://en.wikipedia.org/wiki/?title=Rocket&oldid=1358166262",
+      "https://creativecommons.org/licenses/by-sa/4.0/deed.en"
+    ]
+  }
+}

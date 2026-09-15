@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+CONFIG="$ROOT/deploy/searxng/settings.yml"
+NAME="${REVEREND_SEARXNG_CONTAINER:-reverend-searxng}"
+PORT="${REVEREND_SEARXNG_PORT:-8888}"
+IMAGE="${REVEREND_SEARXNG_IMAGE:-ghcr.io/searxng/searxng:2026.9.13-96479fff6}"
+ENDPOINT="http://127.0.0.1:${PORT}"
+
+runtime() {
+  if [[ -n "${REVEREND_CONTAINER_RUNTIME:-}" ]]; then
+    command -v "$REVEREND_CONTAINER_RUNTIME" >/dev/null 2>&1 || {
+      echo "Container runtime '$REVEREND_CONTAINER_RUNTIME' was not found." >&2
+      exit 1
+    }
+    printf '%s\n' "$REVEREND_CONTAINER_RUNTIME"
+    return
+  fi
+  if command -v podman >/dev/null 2>&1; then
+    printf 'podman\n'
+    return
+  fi
+  if command -v docker >/dev/null 2>&1; then
+    printf 'docker\n'
+    return
+  fi
+  echo "Reverend local search requires Docker Engine or Podman." >&2
+  exit 1
+}
+
+RUNTIME="$(runtime)"
+
+container_exists() {
+  "$RUNTIME" inspect "$NAME" >/dev/null 2>&1
+}
+
+health() {
+  command -v curl >/dev/null 2>&1 || {
+    echo "curl is required for the SearXNG health check." >&2
+    return 1
+  }
+  local response
+  if ! response="$(curl -fsS --max-time 10 "$ENDPOINT/search?q=Reverend&format=json&categories=general")"; then
+    echo "SearXNG is not reachable at $ENDPOINT" >&2
+    return 1
+  fi
+  if ! python3 -c 'import json,sys; data=json.load(sys.stdin); assert isinstance(data.get("results"),list)' <<<"$response"; then
+    echo "SearXNG did not return a valid JSON result list." >&2
+    return 1
+  fi
+}
+
+print_env() {
+  cat <<EOF
+export REVEREND_WEB_SEARCH_PROVIDER=searxng
+export REVEREND_WEB_SEARCH_ENDPOINT=$ENDPOINT
+export REVEREND_WEB_SEARCH_COUNTRY=GB
+export REVEREND_WEB_SEARCH_LANGUAGE=en
+EOF
+}
+
+case "${1:-status}" in
+  up)
+    if container_exists; then
+      "$RUNTIME" start "$NAME" >/dev/null
+    else
+      SECRET="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+      "$RUNTIME" run -d         --name "$NAME"         -p "127.0.0.1:${PORT}:8080"         -e "SEARXNG_BASE_URL=$ENDPOINT/"         -e "SEARXNG_SECRET=$SECRET"         -v "$CONFIG:/etc/searxng/settings.yml:ro"         "$IMAGE" >/dev/null
+    fi
+    for _ in {1..30}; do
+      if health >/dev/null 2>&1; then
+        echo "SearXNG is healthy at $ENDPOINT"
+        print_env
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "SearXNG started but its JSON API did not become healthy." >&2
+    "$RUNTIME" logs --tail 80 "$NAME" >&2 || true
+    exit 1
+    ;;
+  test)
+    health
+    echo "SearXNG JSON search API: PASS"
+    ;;
+  status)
+    if ! container_exists; then
+      echo "SearXNG container is not created."
+      exit 1
+    fi
+    "$RUNTIME" ps -a --filter "name=^/?${NAME}$"
+    if health >/dev/null 2>&1; then
+      echo "SearXNG JSON search API: PASS"
+    else
+      echo "SearXNG JSON search API: FAIL"
+      exit 1
+    fi
+    ;;
+  env)
+    print_env
+    ;;
+  stop)
+    if container_exists; then
+      "$RUNTIME" stop "$NAME" >/dev/null
+      echo "Stopped $NAME"
+    fi
+    ;;
+  rm)
+    if container_exists; then
+      "$RUNTIME" rm -f "$NAME" >/dev/null
+      echo "Removed $NAME"
+    fi
+    ;;
+  logs)
+    "$RUNTIME" logs --tail 120 "$NAME"
+    ;;
+  *)
+    echo "Usage: scripts/reverend-searxng {up|test|status|env|stop|rm|logs}" >&2
+    exit 2
+    ;;
+esac

@@ -1,0 +1,69 @@
+# Secrets and environment
+.env
+.env.*
+!.env.example
+*.log
+
+# Python
+.venv
+.reverend-build/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+
+# Static-analysis caches
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Reverend local state
+.reverend/
+*.db
+*.db-shm
+*.db-wal
+
+# Development-engine artifacts
+.worktrees/
+artifacts/
+tmp/
+
+# Emergency local backups
+*.orig
+*.before-*
+
+# Editors / operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+.browser-test/
+
+# Pinned offline browser assets are source dependencies, not build output.
+!src/reverend/ui/vendor/*/dist/
+!src/reverend/ui/vendor/*/dist/**
+
+# Offline reference payloads must stay outside Git.
+*.zim
+*.zim.*
+reference/kiwix/
+
+# Personal / machine-local data
+config/corpora.local.yaml
+config/corpora.private.yaml
+personal/
+private/
+vault/
+vaults/
+obsidian/
+*.private.yaml
+*.private.yml
+
+# Generated benchmark output
+benchmarks/results/*
+!benchmarks/results/.gitkeep

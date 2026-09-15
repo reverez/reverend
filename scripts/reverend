@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Resolve the actual launcher file rather than the path of a symlink such as
+# ~/.local/bin/reverend. Without this, ROOT incorrectly becomes ~/.local.
+SOURCE="$(readlink -f -- "${BASH_SOURCE[0]}")"
+
+SCRIPT_DIR="$(
+    cd -- "$(dirname -- "$SOURCE")"
+    pwd
+)"
+
+ROOT="$(
+    cd -- "$SCRIPT_DIR/.."
+    pwd
+)"
+
+PYTHON="$ROOT/.venv/bin/python"
+
+if [[ ! -x "$PYTHON" ]]; then
+    echo "Reverend virtual environment not found: $PYTHON" >&2
+    echo "Create it with:" >&2
+    echo "  cd \"$ROOT\"" >&2
+    echo "  python3 -m venv .venv" >&2
+    echo "  .venv/bin/pip install -e '.[dev]'" >&2
+    exit 1
+fi
+
+exec "$PYTHON" -m reverend.cli "$@"
