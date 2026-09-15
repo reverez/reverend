@@ -19,21 +19,52 @@ jobs:
       REVEREND_TEMPLATE: ${{ github.workspace }}/.ci-vault/Master Note Template v20.md
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect documentation-only pull request
+        id: changes
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          changed_files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}...HEAD")"
+          docs_only=true
+          while IFS= read -r file; do
+            test -n "$file" || continue
+            case "$file" in
+              *.md) ;;
+              *)
+                docs_only=false
+                break
+                ;;
+            esac
+          done <<< "$changed_files"
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$changed_files"
       - name: Branch hygiene
         run: |
           git diff --check
           test -z "$(git status --short)"
+      - name: Documentation sanity
+        if: github.event_name == 'pull_request' && steps.changes.outputs.docs_only == 'true'
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}...HEAD" | grep -qx 'README.md'; then
+            grep -Fq 'Reverend 0.4.0' README.md
+          fi
       - uses: actions/setup-python@v5
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         with:
           python-version: "3.12"
           cache: pip
       - name: Install
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: python -m pip install -e ".[dev]"
       - name: Create portable template fixture
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           mkdir -p "$REVEREND_VAULT"
           printf '# CI Master Note Template\n' > "$REVEREND_TEMPLATE"
       - name: Compile vNext Python modules
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           python -m py_compile \
             src/reverend/intelligence/evidence.py \
@@ -86,9 +117,11 @@ jobs:
             src/reverend/workstation/service.py \
             src/reverend/benchmarks/workstation.py
       - name: Validate shell helpers
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           bash -n scripts/reverend-searxng
       - name: Validate UI JavaScript
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           node --check src/reverend/ui/app.js
           node --check src/reverend/ui/sources.js
@@ -102,6 +135,7 @@ jobs:
           if(!rejected)process.exit(1);
           NODE
       - name: Targeted unit tests
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           python -m pytest -q \
             tests/test_codeintel_graph.py \
@@ -159,12 +193,16 @@ jobs:
             tests/test_m16_benchmark_catalog.py \
             tests/test_m17_benchmark_catalog.py
       - name: ResearchBench RQ1
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: python -m reverend.benchmarks.research_quality
       - name: Full unit suite
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: python -m pytest -q
       - name: Clean package and startup release smoke
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: python -m reverend.benchmarks.release .
       - name: M16 portable validation contract
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           set +e
           python -m reverend.benchmarks.m16_validation \
@@ -191,6 +229,7 @@ jobs:
           assert summary["live_strong_code"]["skipped"] is True
           PY
       - name: M17 portable validation contract
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           set +e
           python -m reverend.benchmarks.m17_validation \
@@ -217,6 +256,7 @@ jobs:
           PY
 
       - name: M18 portable validation contract
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           set +e
           python -m reverend.benchmarks.m18_validation \
@@ -243,6 +283,7 @@ jobs:
           PY
 
       - name: Final portable programme validation
+        if: github.event_name != 'pull_request' || steps.changes.outputs.docs_only != 'true'
         run: |
           set +e
           python -m reverend.benchmarks.final_validation \
