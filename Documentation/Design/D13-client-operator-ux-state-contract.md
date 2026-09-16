@@ -549,3 +549,29 @@ Where the switch can create meaningful cold-start/reprovisioning cost, disclose 
 No setting may imply that the user's laptop is providing required compute.
 
 The application must remain fully functional from a newly authenticated browser with no local Reverend installation.
+
+
+### Model cold-start presentation
+
+The Chat/Run surface should distinguish:
+
+~~~text
+Provisioning compute
+Hydrating model
+Verifying model
+Loading model
+Health checking
+Ready
+~~~
+
+For long hydration, show bounded progress such as bytes downloaded/total when available.
+
+The user may inspect estimated cold-start cost and whether the model was:
+
+- already resident;
+- found in ephemeral cache;
+- hydrated from upstream.
+
+Cloud v1 does not prompt a user to upload model weights for normal startup.
+
+A model-source outage is presented as a bounded infrastructure blocker, not as a request to keep a laptop online.
