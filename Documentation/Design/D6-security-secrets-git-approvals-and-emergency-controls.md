@@ -995,3 +995,54 @@ Run-now is an owner action and is rate-limited.
 A new run-now cannot displace an already pending RESUME_NEXT chain under ordinary policy.
 
 This closes an authority/cost abuse path where one viewer could repeatedly force another owner's Run to spend or lose scheduling position.
+
+
+---
+
+## 41. Recursive Audit Cycle 6 — Storage Trust, Git Credential Hygiene and Data Sensitivity
+
+### Persistent storage trust boundary
+
+The Control Plane host is a trusted durable domain and stores private Project data in PostgreSQL, BlobStore and workspaces.
+
+Cloud v1 requires encryption at rest at the host/volume layer or equivalent provider-backed storage encryption, plus restrictive filesystem ownership.
+
+Additionally:
+
+- off-host backups/recovery packages are application-encrypted;
+- Secret Broker values remain separately application-encrypted;
+- swap/core-dump policy must not casually expose Secret Broker material;
+- a Project requiring stronger-than-host-trust confidentiality must use a future stronger storage profile rather than being silently treated as equivalent.
+
+This makes the storage threat model explicit instead of implying that only Secrets require protection.
+
+### Git credentials never enter remotes, argv or logs
+
+Trusted Git adapter must not embed credentials in:
+
+- repository URL persisted in `.git/config`;
+- shell command text;
+- process argv visible to other processes;
+- logs/events.
+
+Use a bounded credential helper/askpass/FD or equivalent mechanism owned by the credential execution boundary.
+
+After the action, scrub temporary credential material and verify the repository remote remains canonical and credential-free.
+
+### Sensitivity-aware placement
+
+Project disclosure policy + Artifact/ContextItem sensitivity determine whether plaintext may be sent to:
+
+- COMMUNITY_CLOUD_WORKER;
+- DEDICATED_WORKER;
+- EXTERNAL_API.
+
+Secret-pattern scanning is an additional leak detector, not the authority for classification.
+
+A scanner match may raise sensitivity/block transmission; scanner absence may never downgrade private data to PUBLIC.
+
+### Event/output minimization
+
+Audit/Event/SSE construction uses typed allowlists from D0.
+
+Redaction alone is not considered sufficient protection for arbitrary model/tool output.
