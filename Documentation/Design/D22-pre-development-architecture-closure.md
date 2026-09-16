@@ -412,7 +412,7 @@ Implementation details that vary behind frozen interfaces are not blockers.
 
 Design-closure disposition:
 
-- [x] D0–D22 complete and staged for merge through Design-closure PR #54;
+- [x] D0–D22 complete and merged to `main` through Design-closure PR #54;
 - [x] Design index rebuilt around the final D0–D22 authority order;
 - [x] A10–A12 reconciled with persistent-Control-Plane / disposable-worker execution;
 - [x] D4/D7/D8/D9 reference the final capability documents;
