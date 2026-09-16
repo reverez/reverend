@@ -55,3 +55,10 @@ Only accepted ADRs modify the Design baseline.
 9. link supersession both ways.
 
 An ADR cannot silently weaken A12. If a frozen invariant changes, architecture acceptance must explicitly acknowledge that decision.
+
+
+## Accepted Decisions
+
+- [ADR-001 — Cloud-Only Client and Cloud Recovery Boundary](./ADR-001-cloud-only-client-and-cloud-recovery.md)
+- [ADR-002 — Conversation, Specification and Priority Run Handoff](./ADR-002-conversation-specification-and-priority-handoff.md)
+- [ADR-003 — Developer Media Asset Fabric](./ADR-003-developer-media-asset-fabric.md)
