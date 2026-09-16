@@ -14,7 +14,7 @@ The current stable implementation is **Reverend 0.4.0**, a local-first Linux/WSL
 |---|---|
 | Local Reverend 0.4.0 | Accepted baseline |
 | Cloud Analysis A0–A12 | Complete / accepted |
-| Cloud Design D0–D9 | Complete / ready for Development |
+| Cloud Design D0–D14 | Complete / ready for Development |
 | Cloud implementation | Next phase |
 | Current local inference | Ollama-based |
 | Accepted Cloud v1 inference target | vLLM + Qwen3.8-27B |
@@ -120,9 +120,18 @@ D6  Security, secrets, Git and approvals
 D7  Model profiles, routing and ReverendBench
 D8  Observability, costs, budgets and operations
 D9  Development programme and acceptance gates
+D10 Research, retrieval and evidence acquisition
+D11 Legacy-to-Cloud migration/refactor map
+D12 Tool policy, side-effect and recovery registry
+D13 Client/operator UX state contract
+D14 Development readiness and PostgreSQL test strategy
 ~~~
 
 Implementation should follow these contracts rather than recreating architecture ad hoc.
+
+Design change control:
+- [Architecture Decision Records](Documentation/Design/Decisions/README.md)
+- [Development baseline records](Documentation/Design/Baselines/README.md)
 
 ---
 

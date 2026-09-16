@@ -3,7 +3,7 @@
 > **Phase:** Design  
 > **Status:** READY FOR DEVELOPMENT  
 > **Accepted architecture input:** Documentation/Analysis/A12-cloud-architecture-acceptance.md  
-> **Repository baseline:** main@cc45be4780374b70d9b09fd041c7217d6b890331  
+> **Design closure baseline:** A12 + D0–D14 on main; executable C0 baseline is recorded separately under Design/Baselines  
 > **Purpose:** Turn the accepted A0–A12 architecture into concrete implementation contracts without changing the accepted authority, durability, security, scheduling, model, or cost semantics.
 
 ---
@@ -97,6 +97,11 @@ These are deployment defaults, not permanent semantic bindings.
 | D7 | model profiles, routing, serving and ReverendBench | model fabric |
 | D8 | observability, budgets, billing, operations and deployment | operations plane |
 | D9 | migration waves, branch discipline, testing and development gates | implementation programme |
+| D10 | research, web/reference acquisition, evidence provenance and retrieval | research/evidence fabric |
+| D11 | legacy 0.4.0 → Cloud refactor/cutover map | safe incremental migration |
+| D12 | tool capability, side-effect, secret, approval and recovery registry | Tool Broker safety registry |
+| D13 | browser/CLI/operator lifecycle presentation contract | Cloud operational UX |
+| D14 | Design closure, baseline and PostgreSQL test strategy | C0 Development entry |
 
 ### Architecture diagrams
 
@@ -122,7 +127,17 @@ D5 ── D6
    D8
     ↓
    D9
+    ↓
+D10–D13 closure specifications
+    ↓
+   D14 Development entry
 ~~~
+
+Supporting controls:
+
+- [Architecture Decision Records](./Decisions/README.md)
+- [Development baseline records](./Baselines/README.md)
+- [Architecture diagrams](./Diagrams/README.md)
 
 ---
 
@@ -306,7 +321,7 @@ Exact file names are specified by the focused design documents.
 
 Development may begin when:
 
-- all design documents in this folder are present;
+- D0–D14 plus the ADR and baseline-control documents are present;
 - README points to the accepted Analysis and Design specifications;
 - no Design document contradicts A12;
 - C0 contract work can be implemented without inventing missing authority rules;
@@ -322,7 +337,7 @@ This document set is intended to satisfy that gate.
 When implementation questions conflict, resolve them in this order:
 
 1. A12 accepted invariants;
-2. this Design specification;
+2. D0–D14 and accepted ADRs;
 3. accepted A0–A11 analysis details;
 4. current code semantics where compatible;
 5. implementation convenience.

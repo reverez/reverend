@@ -1,7 +1,7 @@
 # D9 — Development Programme, Migration & Acceptance Gates
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
-> **Depends on:** A12, D0–D8  
+> **Depends on:** A12, D0–D8; Design closure specifications D10–D14  
 > **Purpose:** Convert the Design specification into an ordered development programme that preserves the Reverend 0.4.0 baseline, prevents parallel teams from inventing incompatible contracts, and defines objective gates for Cloud v1 acceptance.
 
 ---
@@ -924,7 +924,7 @@ Until then, README must describe Cloud v1 as Design/Development target, not impl
 
 Before opening C0 branch:
 
-- [ ] Design docs D0–D9 merged to main.
+- [ ] Design docs D0–D14 plus ADR framework merged to main.
 - [ ] README points to Design index.
 - [ ] main is clean/stable.
 - [ ] current Python suite run and result recorded.
@@ -1251,3 +1251,32 @@ Mandatory tests/checks:
 - image/model profile provenance identifies exact Reverend source/runtime/model revisions;
 - mutable `latest` image/model identity cannot become production ELIGIBLE;
 - worker image/config contains no seeded provider/GitHub/database/recovery credential.
+
+
+---
+
+## 49. Design Closure Specifications D10–D14
+
+The final pre-development review added narrow closure specifications without changing A12 authority invariants.
+
+### D10 — Research, Retrieval & Evidence Acquisition
+
+C4 research/context work must follow D10 for search-provider abstraction, restricted fetch, EvidenceSource Artifact persistence, lexical/semantic retrieval, Qdrant derived-state rules and citation/freshness semantics.
+
+### D11 — Legacy-to-Cloud Migration & Refactor Map
+
+From C0 onward, major existing subsystems have explicit KEEP/ADAPT/REPLACE/COMPAT/RETIRE disposition and authority-cutover conditions.
+
+### D12 — Tool Policy, Side-Effect & Recovery Registry
+
+C5/C6 production tool enablement requires an explicit operation descriptor plus recovery entry. Authorization alone is insufficient without D5 recovery semantics.
+
+### D13 — Client & Operator UX State Contract
+
+C2/C8 clients preserve lifecycle intermediate states and never present request submission, Approval or provider intent as completed authoritative state.
+
+### D14 — Development Readiness, Baseline & PostgreSQL Test Strategy
+
+D14 closes Design. C0 may start after a fresh current-main baseline run is recorded using Documentation/Design/Baselines.
+
+D10–D14 do not reopen A12. Future changes to frozen authority/security/durability semantics use an ADR and, where necessary, explicit architecture re-acceptance.

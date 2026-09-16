@@ -1,0 +1,302 @@
+schema_version: 1
+registry_status: design
+authority_note: >
+  This manifest describes tool safety contracts. Runtime authorization remains
+  authoritative in PostgreSQL policy/Approval state and trusted enforcement code.
+
+operations:
+  - id: repo.read_file
+    capability: repo.read
+    risk: low
+    side_effect: PURE_READ
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: repository_adapter
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
+
+  - id: repo.search
+    capability: repo.read
+    risk: low
+    side_effect: PURE_READ
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: repository_intelligence
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
+
+  - id: repo.patch
+    capability: repo.mutate
+    risk: elevated
+    side_effect: LOCAL_MUTATION
+    approval: isolated_scope_none
+    journal: required_when_duplicate_matters
+    resume: VERIFY_THEN_RETRY
+    executor: isolated_worktree
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: true
+
+  - id: process.shell
+    capability: process.execute
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: policy
+    journal: optional
+    resume: RESTART
+    executor: fail_closed_sandbox
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: true
+
+  - id: process.build_or_test
+    capability: process.execute
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: fail_closed_sandbox
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: true
+
+  - id: dependency.change
+    capability: repo.mutate
+    risk: high
+    side_effect: LOCAL_MUTATION
+    approval: project_policy
+    journal: required
+    resume: REBUILD
+    executor: fail_closed_sandbox
+    network: PACKAGE_REGISTRY_RESTRICTED
+    secrets: [PACKAGE_REGISTRY]
+    mutation_scope: true
+
+  - id: git.create_worktree
+    capability: git.branch
+    risk: elevated
+    side_effect: LOCAL_MUTATION
+    approval: none
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    executor: trusted_git_adapter
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: true
+
+  - id: git.commit_run_branch
+    capability: git.commit
+    risk: elevated
+    side_effect: LOCAL_MUTATION
+    approval: none
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    executor: trusted_git_adapter
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: true
+
+  - id: git.push_run_branch
+    capability: git.push_run_branch
+    risk: high
+    side_effect: REMOTE_RECONCILABLE
+    approval: none
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: remote_ref_matches_expected_commit
+    executor: control_plane_git_adapter
+    network: GITHUB_ADAPTER_ONLY
+    secrets: [USER_GITHUB]
+    mutation_scope: true
+
+  - id: github.pr_create_or_update
+    capability: github.pr.write
+    risk: high
+    side_effect: REMOTE_RECONCILABLE
+    approval: none
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: query_pr_by_repository_head_base
+    executor: control_plane_github_adapter
+    network: GITHUB_ADAPTER_ONLY
+    secrets: [USER_GITHUB]
+    mutation_scope: true
+
+  - id: github.merge_pr
+    capability: git.protected_mutate
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: required
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: query_remote_target_and_merge_state
+    executor: control_plane_github_adapter
+    network: GITHUB_ADAPTER_ONLY
+    secrets: [USER_GITHUB]
+    mutation_scope: true
+
+  - id: github.force_push
+    capability: git.protected_mutate
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: elevated_required_normally_disabled
+    journal: required
+    resume: MANUAL_RECOVERY
+    executor: control_plane_github_adapter
+    network: GITHUB_ADAPTER_ONLY
+    secrets: [USER_GITHUB]
+    mutation_scope: true
+
+  - id: github.delete_remote_branch
+    capability: git.protected_mutate
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: required
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: query_remote_ref_absence
+    executor: control_plane_github_adapter
+    network: GITHUB_ADAPTER_ONLY
+    secrets: [USER_GITHUB]
+    mutation_scope: true
+
+  - id: github.repository_delete
+    capability: none
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: denied
+    journal: not_applicable
+    resume: not_applicable
+    executor: unavailable
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
+
+  - id: research.search
+    capability: network.search
+    risk: elevated
+    side_effect: PURE_READ
+    approval: network_policy
+    journal: optional
+    resume: RESTART
+    executor: restricted_research_worker
+    network: PUBLIC_SEARCH_ONLY
+    secrets: [SEARCH_PROVIDER_API]
+    mutation_scope: false
+
+  - id: research.fetch
+    capability: network.fetch
+    risk: elevated
+    side_effect: PURE_READ
+    approval: network_policy
+    journal: optional
+    resume: RESTART
+    executor: ssrf_hardened_fetch_worker
+    network: PUBLIC_FETCH_RESTRICTED
+    secrets: []
+    mutation_scope: false
+
+  - id: reference.retrieve
+    capability: reference.read
+    risk: low
+    side_effect: PURE_READ
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: reference_adapter
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
+
+  - id: model.infer
+    capability: compute.infer
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: eligible_model_worker
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: []
+    mutation_scope: false
+
+  - id: model.embed_or_rerank
+    capability: compute.embed
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: eligible_model_or_cpu_worker
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: []
+    mutation_scope: false
+
+  - id: provider.provision_or_start
+    capability: provider.lifecycle
+    risk: high
+    side_effect: REMOTE_RECONCILABLE
+    approval: capacity_policy
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: provider_inventory_by_action_intent_and_instance_id
+    executor: capacity_controller
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: [SYSTEM_RUNPOD]
+    mutation_scope: false
+
+  - id: provider.stop_or_terminate
+    capability: provider.lifecycle
+    risk: high
+    side_effect: REMOTE_RECONCILABLE
+    approval: safety_economic_policy
+    journal: required
+    resume: VERIFY_THEN_RETRY
+    reconciler: provider_inventory_and_billing_state
+    executor: capacity_controller
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: [SYSTEM_RUNPOD]
+    mutation_scope: false
+
+  - id: recovery.replicate
+    capability: recovery.write
+    risk: high
+    side_effect: REMOTE_RECONCILABLE
+    approval: system_policy
+    journal: required_system_action
+    resume: VERIFY_THEN_RETRY
+    reconciler: recovery_target_ack_by_generation_or_intent
+    executor: recovery_service
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: [RECOVERY_TARGET]
+    mutation_scope: false
+
+  - id: deployment.external_mutate
+    capability: deployment.external_mutate
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: required
+    journal: required
+    resume: MANUAL_RECOVERY
+    executor: typed_deployment_adapter_only
+    network: PROVIDER_ADAPTER_ONLY
+    secrets: [DEPLOYMENT_PROVIDER]
+    mutation_scope: false
+    enabled_by_default: false
+
+  - id: secret.export_plaintext
+    capability: none
+    risk: critical
+    side_effect: IRREVERSIBLE_OR_HIGH_RISK
+    approval: denied
+    journal: security_audit
+    resume: not_applicable
+    executor: unavailable_to_agents
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
