@@ -1619,3 +1619,28 @@ Persistent model cache is promoted only when measured savings exceed storage/com
 ReverendBench may compare 5/7/10-minute or adaptive idle policy, but default remains 420 seconds until evidence changes it.
 
 Scale-to-zero means provider-confirmed compute billing ends; optional storage charges remain visible separately.
+
+
+---
+
+## 60. Capability Cache Retention & Quotas
+
+Operational quotas distinguish:
+
+~~~text
+durable evidence Blob storage
+source acquisition cache
+repository derived index
+model cache
+browser cache
+build/package cache
+temporary workspace
+~~~
+
+GC priority removes reconstructible caches before durable evidence/recovery material.
+
+Metrics include cache bytes by class and eviction cause.
+
+A retained SourceSnapshot referenced by Evidence/Decision/Requirement is a durable Blob root and is never evicted by ordinary web-cache pressure.
+
+Optional warm provider volumes must not contain untracked authoritative workspace state or Secret material.
