@@ -1,0 +1,22 @@
+flowchart TB
+CN["ContextNeed"] --> CB["Context Broker"]
+CB --> AUTH["Authoritative Project state"]
+CB --> ART["Parent Artifacts"]
+CB --> REPO["Exact Repository Intelligence"]
+CB --> EV["Retained Evidence"]
+CB --> MEM["Project Memory"]
+CB --> HY["Lexical / Hybrid retrieval"]
+CB -->|missing or stale| RF["Research Fabric"]
+RF --> API["Structured providers / APIs"]
+RF --> SEARCH["Search Broker"]
+RF --> HTTP["Restricted HTTP / documents"]
+RF --> BROW["Browser Worker escalation"]
+API --> SNAP["SourceSnapshot"]
+SEARCH --> HTTP
+HTTP --> SNAP
+BROW --> SNAP
+SNAP --> CLAIM["EvidenceClaim"]
+CLAIM --> PACK["ResearchEvidencePack"]
+PACK --> CB
+CB --> CM["ContextManifest"]
+CM --> AG["Agent invocation"]
