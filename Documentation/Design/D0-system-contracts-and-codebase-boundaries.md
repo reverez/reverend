@@ -975,3 +975,33 @@ Key rules:
 - Model Router does not provision compute directly.
 - Browser/LSP processes do not run inside the authoritative API process.
 - Capability adapters return typed observations/Artifacts to the Control Plane.
+
+
+---
+
+## 31. Specification Ingestion Boundary
+
+SpecificationPackage is authoritative Project input, not an Agent prompt blob.
+
+Recommended logical boundary:
+
+~~~text
+specification/
+├── models.py
+├── manifests.py
+├── validator.py
+├── compiler.py
+├── amendments.py
+└── service.py
+~~~
+
+Responsibilities:
+
+- ingest bounded package/Artifact references;
+- validate manifest/schema;
+- preserve immutable package/hash/version;
+- normalize accepted package into Requirement/Decision/AcceptanceCriteria objects;
+- expose relevant slices to Context Broker;
+- generate explicit conflict/clarification state rather than silently rewriting design.
+
+The specification service does not own Run/Task lifecycle and does not execute implementation work.
