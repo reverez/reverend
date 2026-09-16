@@ -571,3 +571,38 @@ A file with matching name but wrong digest/profile is quarantined/deleted.
 A100 SXM 80 GB + Qwen3.8-27B + 64K is the accepted initial **target profile**, but C7 must measure real VRAM/runtime/context fit before production ELIGIBLE status.
 
 If the exact serving profile does not fit safely or has unacceptable throughput, ReverendBench selects a revised DeploymentProfile rather than weakening worker safety margins.
+
+
+---
+
+## 25. Recursive Capability Audit — Inference Confidentiality & Placement
+
+Model routing uses D1/D6 Project disclosure policy in addition to Worker trust class.
+
+A technically eligible Community A100 is not context-eligible if mandatory ContextItems exceed the Project's Community disclosure policy.
+
+The Router/Compute Scheduler then:
+
+- selects a stronger eligible DeploymentProfile/worker; or
+- blocks/escalates.
+
+It never silently strips mandatory private context.
+
+### Runtime logging
+
+Production model runtime configuration disables prompt/request-body logging by default.
+
+Worker logs may include:
+
+~~~text
+invocation ID
+DeploymentProfile
+token counts
+queue/inference timing
+GPU utilization
+bounded failure code
+~~~
+
+but not raw source-code prompt/context or hidden reasoning.
+
+Prefix/KV cache remains ephemeral worker memory and is destroyed/partitioned according to trust policy.
