@@ -1227,3 +1227,23 @@ Dependency-acquisition workers have a distinct allowlist from Research/browser w
 Build/test phase should return to network-off whenever feasible.
 
 Ephemeral TestEndpoint routes are task/lease scoped and are not public development-server exposure.
+
+
+---
+
+## 47. Authenticated Research Provider Policy
+
+Public Research Fabric and owner-scoped Git/GitHub authority are separate concerns.
+
+A Research Agent cannot infer:
+
+~~~text
+Run has GitHub credential
+therefore use it to search private GitHub content
+~~~
+
+Authenticated research requires an explicit typed provider capability whose credential scope, Project authorization and source sensitivity are configured and audited.
+
+Private-source output inherits at least PROJECT_PRIVATE sensitivity.
+
+Browser traces/screenshots/downloads containing authenticated/test material receive the same sensitivity and redaction rules as other Project Artifacts.
