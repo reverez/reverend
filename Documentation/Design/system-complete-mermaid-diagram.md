@@ -1,7 +1,7 @@
 # Reverend Cloud v1 — Complete System Mega-Diagram
 
 > **Status:** Design visualization  
-> **Source of truth:** A12 + D0–D9  
+> **Source of truth:** A12 + D0–D14  
 > **Purpose:** A single end-to-end decomposition of the Reverend system, including human authority, clients, API, persistence, orchestration, Agents, Teams, context, tools, verification, scheduling, compute, models, recovery, security, Git, secrets, billing, observability, deployment, compatibility and Development gates.
 
 This diagram is intentionally enormous. It is not a replacement for the individual Design specifications; it is a single visual map showing how those contracts fit together.
