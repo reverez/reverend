@@ -765,3 +765,39 @@ Authoritative Run/Workflow/Task/Job/Artifact/Approval/Action/Cost history is sof
 ### Pre-emption lineage
 
 MAX_PREEMPTION_DEPTH=1 must be represented by durable Run lineage, not inferred only from queue order. D1 defines the canonical `preempts_run_id` relationship.
+
+
+---
+
+## 25. Recursive Audit Cycle 6 — Leader Fencing and Typed Durable Events
+
+### Advisory-lock connection semantics
+
+PostgreSQL session advisory locks are held on **dedicated long-lived database connections** owned by each active controller.
+
+Rules:
+
+- do not acquire a leadership lock on a pooled connection that may be returned to the pool;
+- loss of the lock connection immediately cancels/stops that controller loop;
+- a controller re-enters active mode only after obtaining a fresh lock;
+- external effects initiated by controllers still use D5 Action Journal/provider reconciliation because an external call can race connection loss.
+
+LISTEN/NOTIFY uses a similarly restartable dedicated listener connection; on reconnect, consumers resume from durable Event sequence rather than trusting missed notifications.
+
+### Typed Event construction
+
+The generic `events.payload JSONB` column does not authorize arbitrary payload persistence.
+
+Every production Event type has a versioned presentation/audit schema.
+
+Event builders accept allowlisted structured fields and references, not raw:
+
+- model prompts/responses;
+- tool stdout/stderr;
+- environment maps;
+- request headers;
+- secret-bearing adapter responses.
+
+Redaction remains defence in depth; schema minimization is the primary control.
+
+SSE uses an additional presentation projection so an internal audit Event cannot become client-visible merely because it exists in the Event table.
