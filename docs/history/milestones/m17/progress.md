@@ -157,7 +157,7 @@ Repository support now includes:
 - a conservative seven-day post-filter for Reverend's semantic `week` window because the
   documented SearXNG API exposes only day/month/year provider ranges.
 
-See [Local SearXNG for Reverend](searxng-local.md).
+See [Local SearXNG for Reverend](../../../current/guides/searxng-local.md).
 
 Brave is optional and is not required for M17/M18 acceptance.
 

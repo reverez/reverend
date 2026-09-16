@@ -108,8 +108,8 @@ using the restricted bubblewrap worker. No query-to-web provider was added.
 The September 2026 M9 continuation authorized the official Kiwix English Wikipedia all-mini
 June 2026 archive and optional official `libzim==3.13.0` binding. The archive lives outside Git,
 with a recorded SHA-256 matching Kiwix's published digest and actual ZIM metadata/attribution.
-See [reference-provider.md](reference-provider.md) and
-[m9-reference-provenance.json](m9-reference-provenance.json).
+See [reference-provider.md](../guides/reference-provider.md) and
+[m9-reference-provenance.json](../../history/milestones/m09/reference-provenance.json).
 
 Configured REFERENCE requests use a typed provider seam with exact/title lookup followed by
 bounded indexed lexical queries, including generic single-token omission for typo recovery.

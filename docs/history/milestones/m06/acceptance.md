@@ -26,7 +26,7 @@ as their owning milestones implement them.
 
 ## Recorded local baseline
 
-Report: [M6 run](../benchmarks/results/vnext/m6/benchmarks/runs/20260914T091523332173Z-2a5ca7bf.json).
+Report: [M6 run](../../../../benchmarks/results/vnext/m6/benchmarks/runs/20260914T091523332173Z-2a5ca7bf.json).
 Code revision, case definitions/hash, model/digest, sources, responses and timings are in the report.
 The run used temporary Workstation state and the canonical knowledge database, with local
 Ollama/Qdrant. No paid inference or public web requests were used.

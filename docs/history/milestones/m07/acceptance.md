@@ -12,10 +12,10 @@ source/citation drawer safety, offline assets, Markdown/code/math, history, stre
 Stop, mobile navigation, XSS and outer-fence recovery. Desktop and mobile renders were
 inspected. `git diff --check` passed.
 
-[Local ReverendBench run](../benchmarks/results/vnext/m7/benchmarks/runs/20260914T092328891970Z-b44c7ef7.json):
+[Local ReverendBench run](../../../../benchmarks/results/vnext/m7/benchmarks/runs/20260914T092328891970Z-b44c7ef7.json):
 three expected failures, no errors/timeouts. Xavier remains 0/5 relevant sources; rocket
 remains 4/5. No M8/M9 intelligence improvement is claimed for this UX milestone. M6 reports
-are preserved unchanged. See `docs/workstation.md` for local-original and legacy-history
+are preserved unchanged. See `docs/current/architecture/workstation.md` for local-original and legacy-history
 limitations. No merge or release was performed.
 
 Next: M8 request understanding, budgeted adaptive routing, escalation and routing telemetry.

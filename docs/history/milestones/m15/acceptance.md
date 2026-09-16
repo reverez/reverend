@@ -155,9 +155,9 @@ M15 acceptance preserves the complete M6–M14 architecture:
 Release/operator documentation includes:
 
 - `README.md`;
-- `docs/release-0.4.0.md`;
-- `docs/vnext-architecture.md`;
-- `docs/safety.md`;
+- `docs/current/release/release-0.4.0.md`;
+- `docs/history/vnext-foundation/vnext-architecture.md`;
+- `docs/current/architecture/safety.md`;
 - milestone acceptance records under `docs/`.
 
 ## Final milestone state

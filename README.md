@@ -205,7 +205,7 @@ Portable final validation:
 
 Full live validation requires the supported local inference/search environment.
 
-See [docs/final-acceptance.md](docs/final-acceptance.md) for the accepted local baseline.
+See [docs/current/release/final-acceptance.md](docs/current/release/final-acceptance.md) for the accepted local baseline.
 
 ---
 
