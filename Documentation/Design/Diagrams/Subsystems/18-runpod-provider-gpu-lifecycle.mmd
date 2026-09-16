@@ -47,7 +47,8 @@ P_ABS["ABSENT"]:::compute
 P_PROV["PROVISIONING"]:::compute
 P_BOOT["BOOTING"]:::compute
 P_REG["REGISTERING"]:::compute
-P_LOAD["LOADING"]:::compute
+P_HYDRATE["MODEL RESOLVE / HYDRATE / VERIFY<br/>ephemeral upstream by default"]:::compute
+P_LOAD["MODEL LOAD / SMOKE"]:::compute
 P_READY["READY"]:::compute
 P_BUSY["BUSY"]:::compute
 P_IDLE["IDLE_GRACE<br/>default design target 420s"]:::compute
@@ -58,10 +59,12 @@ P_UNH["UNHEALTHY"]:::compute
 
 CAP --> RP_ADAPT
 RP_CRED --> RP_ADAPT
-RP_ADAPT --> P_ABS --> P_PROV --> P_BOOT --> P_REG --> P_LOAD --> P_READY --> P_BUSY --> P_IDLE --> P_DRAIN --> P_STOP --> P_TERM
+RP_ADAPT --> P_ABS --> P_PROV --> P_BOOT --> P_REG --> P_HYDRATE --> P_LOAD --> P_READY --> P_BUSY --> P_IDLE --> P_DRAIN --> P_STOP --> P_TERM
 P_PROV --> P_UNH
 P_BOOT --> P_UNH
 P_REG --> P_UNH
+P_HYDRATE --> P_UNH
+P_LOAD --> P_UNH
 P_BUSY --> P_UNH
 
 RP_ADAPT --> W_BOOT --> W_REG
