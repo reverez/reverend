@@ -39,8 +39,8 @@ The accepted Cloud v1 topology is:
                                                       │ provider API
                                                       ▼
                                       DISPOSABLE GPU COMPUTE
-                                      RunPod Secure Cloud Pod
-                                      A100 PCIe 80 GB baseline
+                                      RunPod Community Cloud Pod
+                                      A100 SXM 80 GB baseline
                                       ├── vLLM
                                       ├── Qwen3.8-27B baseline profile
                                       ├── temporary workspace/cache
@@ -52,7 +52,7 @@ Core decisions:
 2. GPU workers scale to zero when no GPU work is runnable;
 3. users never need provider credentials in ordinary clients;
 4. the Capacity Controller provisions/stops GPU workers;
-5. the initial production-quality baseline is **RunPod Secure Cloud + A100 PCIe 80 GB + vLLM + Qwen3.8-27B**;
+5. the initial production-quality baseline is **RunPod Community Cloud + A100 SXM 80 GB + vLLM + Qwen3.8-27B**;
 6. the initial serving context target is **64K**, with 128K enabled only after workload evidence shows value;
 7. 48 GB workers remain an explicit cost-down path, not the initial quality baseline;
 8. user cost attribution follows durable Run/resource lineage;
@@ -202,19 +202,29 @@ This does **not** require Redis. Redis remains optional until implementation evi
 
 Initial production provider:
 
-    RunPod Secure Cloud Pods
+    RunPod Community Cloud Pods
 
-Why Secure Cloud for the baseline:
+The baseline deliberately accepts Community Cloud's lower infrastructure-assurance / higher variability profile in exchange for lower cost.
 
-- Reverend workers may receive private source code and project artifacts;
-- the production baseline should not depend on the lower-trust/cost-optimised Community tier;
-- RunPod describes Secure Cloud as the appropriate tier for production/sensitive workloads;
-- Pods expose the lifecycle semantics required by A10;
-- expensive capacity can scale to zero.
+RunPod currently distinguishes Community Cloud from Secure Cloud as follows:
 
-Community Cloud remains allowed for explicitly non-sensitive benchmarks/evaluation when project policy permits it.
+- Community Cloud uses shared-host / peer-supplied capacity with software/container isolation;
+- Secure Cloud provides stronger dedicated/single-tenant infrastructure assurance and is the provider-recommended class for highly sensitive workloads.
 
-Provider credentials belong only to the Capacity Controller / ComputeProvider adapter, never the browser client, Agent, model prompt or untrusted sandbox.
+A8 therefore treats the selected Community worker as a lower-assurance disposable execution class rather than trusted infrastructure authority.
+
+This choice is acceptable for the normal two-user Reverend workload because:
+
+- the persistent Control Plane remains separate and authoritative;
+- Community workers receive only task-scoped repository/context material;
+- GitHub/provider/control-plane/master-key credentials are never placed on the worker;
+- worker credentials are short-lived and narrowly scoped;
+- worker loss is already handled by A7/A10 recovery semantics;
+- Jobs with stronger trust requirements are not eligible for Community placement.
+
+Highly sensitive, regulated or otherwise policy-restricted Projects may require Secure Cloud or another stronger dedicated deployment class.
+
+Provider lifecycle credentials belong only to the Capacity Controller / ComputeProvider adapter, never the browser client, Agent, model prompt or Community worker.
 
 ---
 
@@ -222,12 +232,12 @@ Provider credentials belong only to the Capacity Controller / ComputeProvider ad
 
 Selected baseline:
 
-    GPU: NVIDIA A100 PCIe
+    GPU: NVIDIA A100 SXM
     VRAM: 80 GB
-    Provider: RunPod Secure Cloud
-    Current rate: $1.59 / hour
+    Provider: RunPod Community Cloud
+    Current rate: $1.39 / hour
 
-A100 SXM 80 GB is currently listed at the same Secure Cloud rate; A100 PCIe remains the canonical baseline profile so implementation has one named initial target.
+A100 SXM 80 GB is the canonical initial GPU target. The choice keeps the 80 GB quality/reference memory tier selected by A10 while reducing the hourly rate relative to the previously selected Secure A100 profile.
 
 ### Why A100 80 GB
 
@@ -239,7 +249,7 @@ This avoids making Cloud v1 depend immediately on:
 - a 48 GB fit assumption;
 - unmeasured model-quality loss.
 
-At the Bank of England 14 Sep 2026 rate of £1 = $1.3476, $1.59/h is approximately **£1.18/GPU-hour**.
+At the Bank of England 14 Sep 2026 rate of £1 = $1.3476, $1.39/h is approximately **£1.03/GPU-hour**.
 
 ---
 
@@ -249,10 +259,10 @@ Initial Cloud v1 workhorse deployment profile:
 
     Model: Qwen/Qwen3.8-27B
     Runtime: vLLM
-    GPU: A100 PCIe 80 GB
+    GPU: A100 SXM 80 GB
     Serving context: 64K initial
     Modalities: text + image where required
-    Trust: private self-hosted worker
+    Trust: COMMUNITY_CLOUD_WORKER (lower-assurance shared-host execution class)
     Reasoning effort: selected per Job / ModelRequirement
 
 Why Qwen3.8-27B:
@@ -281,9 +291,9 @@ This keeps KV-cache cost visible and avoids using giant prompts as a substitute 
 
 First explicit optimisation target:
 
-    GPU: RTX A6000 48 GB Secure Cloud
-    Current rate: $0.53 / hour
-    Approx analysis-time GBP: £0.39 / hour
+    GPU: RTX A6000 48 GB Community Cloud
+    Current rate: $0.33 / hour
+    Approx analysis-time GBP: £0.24 / hour
 
 Candidate model profiles:
 
@@ -299,9 +309,9 @@ This profile is **not** automatically promoted to production. It becomes eligibl
 
 Optional premium profile:
 
-    GPU: RTX Pro 6000 96 GB Secure Cloud
-    Current rate: $2.09 / hour
-    Approx analysis-time GBP: £1.55 / hour
+    GPU: RTX Pro 6000 96 GB Community Cloud
+    Current rate: $1.69 / hour
+    Approx analysis-time GBP: £1.25 / hour
 
 Use only when measurements show value from larger context/KV headroom, Blackwell FP4/FP8 support, higher throughput, multimodal/asset flexibility or fewer model transitions.
 
@@ -537,9 +547,10 @@ The accounting layer therefore supports different charging rules per resource.
 | Profile | Native provider rate | Approx GBP at 14 Sep FX | A11 role |
 |---|---:|---:|---|
 | Hetzner CX33 Control Plane | €8.49/month max | ~£7.27/month | selected persistent control plane |
-| RunPod RTX A6000 48 GB Secure | $0.53/h | ~£0.39/h | cost-down candidate |
-| RunPod A100 PCIe 80 GB Secure | $1.59/h | ~£1.18/h | **selected baseline GPU** |
-| RunPod RTX Pro 6000 96 GB Secure | $2.09/h | ~£1.55/h | premium/headroom candidate |
+| RunPod RTX A6000 48 GB Community | $0.33/h | ~£0.24/h | cost-down candidate |
+| RunPod A100 SXM 80 GB Community | $1.39/h | ~£1.03/h | **selected baseline GPU** |
+| RunPod RTX Pro 6000 96 GB Community | $1.69/h | ~£1.25/h | premium/headroom candidate |
+| RunPod A100 SXM 80 GB Secure | $1.59/h | ~£1.18/h | stronger-infrastructure fallback |
 
 FX snapshot:
 
@@ -553,14 +564,14 @@ Prices exclude taxes and provider-specific optional charges.
 
 ## 20. Illustrative Monthly Cost
 
-Using the selected A100 Secure baseline and the analysis FX snapshot:
+Using the selected A100 SXM Community baseline and the analysis FX snapshot:
 
 | Monthly GPU worker billed time | Approx GPU cost | + control-plane baseline | Approx total before VAT/storage |
 |---:|---:|---:|---:|
-| 10 h | £11.80 | £7.27 | £19.07 |
-| 20 h | £23.60 | £7.27 | £30.87 |
-| 40 h | £47.20 | £7.27 | £54.47 |
-| 80 h | £94.39 | £7.27 | £101.66 |
+| 10 h | £10.31 | £7.27 | £17.58 |
+| 20 h | £20.63 | £7.27 | £27.90 |
+| 40 h | £41.26 | £7.27 | £48.53 |
+| 80 h | £82.52 | £7.27 | £89.79 |
 
 This excludes optional storage, IP/domain charges, external APIs and tax.
 
@@ -721,8 +732,8 @@ A more expensive profile may replace it only if improved success/latency lowers 
 
 The raw rate difference is large:
 
-    RTX A6000 Secure: $0.53/h
-    A100 80 GB Secure: $1.59/h
+    RTX A6000 Community: $0.33/h
+    A100 SXM 80 GB Community: $1.39/h
 
 However, A9/A10 do not contain ReverendBench evidence proving that the required Qwen3.8-27B quantised profile preserves long-horizon engineering quality.
 
@@ -730,13 +741,22 @@ A11 therefore starts from the safer native/reference-fit 80 GB tier and targets 
 
 ---
 
-## 29. Why Secure Cloud Is the Production Default
+## 29. Why Community Cloud Is the Baseline
 
-Reverend can process private repositories and unpublished project artifacts.
+The two-user Reverend deployment deliberately prioritises lower GPU cost while preserving a strict separation between durable authority and disposable execution.
 
-The baseline therefore uses the provider's production/sensitive-workload tier.
+Community Cloud is accepted as the normal GPU tier because Reverend's architecture already limits what a worker can own or see:
 
-Community Cloud may still be used for public repositories, synthetic benchmarks and non-sensitive bake-offs when A8 project policy allows it.
+- no long-lived GitHub credentials;
+- no provider lifecycle credentials;
+- no Control Plane database credentials;
+- no secret-store master keys;
+- no unrelated Project data;
+- only task-scoped workspace/context and short-lived worker authority.
+
+This does **not** make Community Cloud equivalent to dedicated infrastructure. Shared-host operation introduces greater infrastructure-assurance, noisy-neighbour and potential side-channel risk than Secure Cloud.
+
+Therefore deployment policy must allow a stronger trust class for highly sensitive, regulated or explicitly restricted workloads. In those cases a Secure Cloud A100 SXM or another dedicated/single-tenant profile is the fallback rather than silently weakening the Job's trust requirement.
 
 ---
 
@@ -791,8 +811,8 @@ A12 records this interpretation explicitly so A7's earlier "VPS shutdown" wordin
 
 ### GPU worker
 
-    Provider: RunPod Secure Cloud Pods
-    Baseline GPU: A100 PCIe 80 GB
+    Provider: RunPod Community Cloud Pods
+    Baseline GPU: A100 SXM 80 GB
     Runtime: vLLM
     Primary workhorse: Qwen/Qwen3.8-27B
     Initial serving context: 64K
@@ -801,12 +821,12 @@ A12 records this interpretation explicitly so A7's earlier "VPS shutdown" wordin
 
 ### First cost-down target
 
-    RunPod Secure RTX A6000 48 GB
+    RunPod Community RTX A6000 48 GB
     + validated lower-memory workhorse profile
 
 ### Premium target
 
-    RunPod Secure RTX Pro 6000 96 GB
+    RunPod Community RTX Pro 6000 96 GB
 
 only when workload evidence justifies the premium.
 
@@ -820,8 +840,8 @@ Current sources used in the A11 finalisation:
   https://www.runpod.io/pricing
 - RunPod GPU model catalogue  
   https://www.runpod.io/gpu-models
-- RunPod private/secure workload guidance  
-  https://www.runpod.io/articles/guides/private-ai-server
+- RunPod sensitive-data / Secure-vs-Community guidance  
+  https://www.runpod.io/articles/guides/keep-data-secure-cloud-gpus
 - Hetzner 15 Jun 2026 Cloud price adjustment  
   https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/
 - Hetzner cost-optimised instance specifications  
@@ -871,10 +891,10 @@ A11 is complete because the architecture now defines:
     PostgreSQL authoritative state
 
     GPU PROVIDER:
-    RunPod Secure Cloud Pods
+    RunPod Community Cloud Pods
 
     BASELINE GPU:
-    A100 PCIe 80 GB
+    A100 SXM 80 GB
 
     PRIMARY RUNTIME:
     vLLM
@@ -906,16 +926,17 @@ A11 is complete because the architecture now defines:
     £ per verified successful engineering task
 
     FIRST COST-DOWN TARGET:
-    RTX A6000 48 GB + validated lower-memory workhorse profile
+    Community RTX A6000 48 GB + validated lower-memory workhorse profile
 
     PREMIUM TARGET:
-    RTX Pro 6000 96 GB only when measured economics justify it
+    Community RTX Pro 6000 96 GB only when measured economics justify it
 
     REJECTED:
     - full-stack expensive GPU VPS as the Cloud v1 authority
     - client-held provider lifecycle credentials
     - always-on GPU
     - permanent frontier GPU/model baseline
+    - treating Community Cloud as equivalent to dedicated infrastructure
     - static 50/50 GPU partition
     - unverified quantisation as initial production assumption
     - Kubernetes as a v1 dependency
