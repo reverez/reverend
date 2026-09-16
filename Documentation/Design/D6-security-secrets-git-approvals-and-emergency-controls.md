@@ -1247,3 +1247,16 @@ Authenticated research requires an explicit typed provider capability whose cred
 Private-source output inherits at least PROJECT_PRIVATE sensitivity.
 
 Browser traces/screenshots/downloads containing authenticated/test material receive the same sensitivity and redaction rules as other Project Artifacts.
+
+
+---
+
+## 48. Credentialed Research & Language-Tool Configuration Security
+
+Credentialed search/research provider calls are Secret-bearing adapter operations.
+
+Provider credentials never enter generic browser/search model context.
+
+Repository language tooling additionally sanitizes configuration that could trigger compiler plugins, arbitrary language-service plugins, external executable discovery or host-path access.
+
+If analysis requires executing Project tooling, it uses a normal isolated CPU capability rather than expanding trusted LSP privileges.
