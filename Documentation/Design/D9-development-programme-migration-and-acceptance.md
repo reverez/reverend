@@ -1235,3 +1235,19 @@ Mandatory live/fake-provider tests:
 - provider rate above static ceiling → worker never admitted and paid resource is stopped/terminated;
 - Agent/Project policy cannot raise static provider cap;
 - daily provider circuit breaker prevents new provisioning while preserving safety cleanup.
+
+
+---
+
+## 48. Recursive Audit Cycle 14 — Supply-Chain Tests
+
+Mandatory tests/checks:
+
+- production baseline refuses model profile requiring unreviewed remote code;
+- unsafe/pickle model artifact format is rejected by baseline policy;
+- model revision/file digest mismatch prevents node READY;
+- poisoned/mismatched cache entry is rejected/quarantined;
+- worker image digest mismatch prevents profile validation;
+- image/model profile provenance identifies exact Reverend source/runtime/model revisions;
+- mutable `latest` image/model identity cannot become production ELIGIBLE;
+- worker image/config contains no seeded provider/GitHub/database/recovery credential.
