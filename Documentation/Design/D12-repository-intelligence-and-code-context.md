@@ -613,3 +613,31 @@ Every index/vector point includes RepositorySnapshot and Project scope.
 A query must supply the authorized Project/snapshot filter before ranking.
 
 Cross-Project index reuse is limited to explicitly public/common dependency indexes; Project source code is not globally deduplicated for convenience.
+
+
+---
+
+## 27. Recursive Capability Audit — Language-Service Configuration Sanitization
+
+Repository configuration may contain settings that cause language tooling to load code or escape the workspace.
+
+Adapters must sanitize/deny dangerous analysis configuration, including equivalent mechanisms for:
+
+- compiler/plugin loading flags;
+- clang/driver query execution outside an allowlisted pinned toolchain;
+- response/config paths escaping the workspace/toolchain root;
+- TypeScript language-service plugins;
+- repository-selected arbitrary language-server executable paths;
+- extension/plugin discovery;
+- shell command substitution/hooks;
+- arbitrary external include/search paths into Control Plane secret directories.
+
+When richer compile-time behavior genuinely requires executing Project tooling, move that operation into an explicit CPU build/analysis capability under normal sandbox/ToolPolicy rather than quietly granting the LSP broader authority.
+
+The sanitized effective configuration is recorded in Repository Intelligence provenance.
+
+### Reconstructible snapshot requirement
+
+A durable RepositoryContext/Localization Artifact that references uncommitted workspace state may cross a safe boundary only when the corresponding RepositorySnapshot is reconstructible from durable Git/patch/untracked Blob material.
+
+WorkerDurabilityGate prevents destroying the only filesystem copy of a snapshot that retained Artifacts still depend on.
