@@ -948,3 +948,24 @@ Checksum/profile mismatch deletes/quarantines the cache entry and prevents node 
 ### Profile admission after security update
 
 A runtime/base-image security change creates a new DeploymentProfile version and reruns the required ReverendBench/security smoke rather than silently mutating an accepted profile.
+
+
+---
+
+## 38. Model Fabric Modernization Reference
+
+D13 is the canonical server-era refinement of this model design.
+
+Additional frozen rules:
+
+- baseline Qwen3.8-27B/A100/vLLM is a benchmark baseline, not permanent Agent binding;
+- model weights are reconstructible worker cache by default;
+- only the selected DeploymentProfile is downloaded/loaded;
+- provider-local persistent model cache is optional and justified by measured cold-start economics;
+- vLLM prefix caching, structured tool calling, batching and context variants are benchmarked runtime optimizations rather than assumptions;
+- a coding-specialized/current alternative model may be admitted only as a separate ModelProfile/DeploymentProfile after ReverendBench;
+- missing evidence routes to Research Fabric, not a larger model;
+- missing repository facts route to Repository Intelligence, not a larger context dump;
+- AgentTeam parallelism may share one physical model runtime.
+
+D16 replaces “model benchmark only” thinking with whole-system ReverendBench v2 while retaining D7 production-profile admission gates.
