@@ -539,13 +539,18 @@ Production profile pins:
 - expected checksums where available;
 - license snapshot/reference.
 
-Worker boot:
+Worker boot follows D17:
 
-1. resolve pinned revision;
-2. fetch/cache weights;
-3. verify expected revision/checksums;
-4. refuse unpinned latest drift;
-5. expose loaded profile identity in health.
+1. resolve pinned ModelArtifactManifest;
+2. check verified worker-local ephemeral cache;
+3. otherwise hydrate exact pinned revision from an approved upstream source;
+4. verify expected revision/files/checksums;
+5. atomically publish the verified local snapshot;
+6. refuse unpinned latest drift;
+7. load model and run functional smoke health;
+8. expose loaded profile identity in health.
+
+A paid persistent model cache is optional and disabled by default.
 
 ---
 
@@ -1013,3 +1018,38 @@ Deterministic verification remains primary.
 Same-family LLM review is not described as independent model-family assurance.
 
 Different-family assurance is optional and benchmark/policy-driven; Cloud v1 acceptance does not require an external API verifier.
+
+
+### Hydration policy
+
+Each production DeploymentProfile references a D17 HydrationPolicy.
+
+Cloud v1 baseline:
+
+~~~text
+mode = EPHEMERAL_UPSTREAM
+persistent_cache_enabled = false
+client_seed_required = false
+~~~
+
+Model weights are reconstructible state and are not copied into the Control Plane recovery set.
+
+### Container/model separation
+
+Production worker images pin CUDA/runtime/Reverend code but do not embed large model weights by default.
+
+This keeps:
+
+~~~text
+worker image revision
+≠
+model artifact revision
+~~~
+
+and allows runtime/security updates without republishing tens of gigabytes of model data.
+
+### Cache economics gate
+
+A persistent model cache may be benchmarked later.
+
+It cannot become the baseline merely because it improves latency. D8/D17 must show material improvement in total verified-task economics after recurring storage, revision churn, cache invalidation and provider constraints are included.
