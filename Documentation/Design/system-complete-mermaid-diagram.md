@@ -1811,3 +1811,46 @@ ReverendBench = evidence for how the organization should improve
 The central constraint remains unchanged:
 
 > **No new capability is allowed to become a competing authority plane.**
+
+
+---
+
+# Specification-Driven Engineering Overlay
+
+~~~mermaid
+flowchart LR
+
+classDef human fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef spec fill:#eaf5ff,stroke:#3a78a8,stroke-width:1.4px,color:#111;
+classDef control fill:#f8f3ff,stroke:#8458aa,stroke-width:1.4px,color:#111;
+classDef eng fill:#efffe9,stroke:#4e8a3c,stroke-width:1.4px,color:#111;
+classDef evidence fill:#fff2e5,stroke:#a6642c,stroke-width:1.4px,color:#111;
+
+H["Human authority"]:::human
+DI["Design intelligence<br/>human • external frontier model • Reverend Architect"]:::human
+SP["SpecificationPackage<br/>version • hash • immutable accepted content"]:::spec
+SV["Specification validation"]:::spec
+PS["Project truth<br/>Requirements • Decisions • AcceptanceCriteria • contracts"]:::spec
+RUN["Run pinned to specification version"]:::control
+DAG["Workflow / Task DAG"]:::control
+AG["Agent / Team implementation"]:::eng
+REAL["Deterministic reality<br/>build • tests • benchmarks • simulations • Git/CI"]:::evidence
+VER["Independent verification"]:::evidence
+ESC["EscalationArtifact<br/>attempts • failures • evidence • exact decision needed"]:::spec
+AMEND["Decision / clarification / SpecificationPackage amendment"]:::spec
+
+H --> DI --> SP --> SV --> PS --> RUN --> DAG --> AG --> REAL --> VER
+
+AG -->|"architecture ambiguity / bounded failure"| ESC
+REAL -->|"contract conflict"| ESC
+ESC --> DI
+DI --> AMEND
+AMEND --> PS
+
+SP -. relevant slices only .-> AG
+PS -. Context Broker authority .-> AG
+~~~
+
+The key rule is:
+
+> **External design intelligence can propose the specification; only accepted Project state becomes Reverend authority, and deterministic evidence still decides whether the implementation is correct.**
