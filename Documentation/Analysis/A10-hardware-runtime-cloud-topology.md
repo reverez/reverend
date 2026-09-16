@@ -1629,9 +1629,21 @@ This is necessary for:
 
 ---
 
-## 55. Cache the Production Fleet, Not Every Candidate
+## 55. Cache by Measured Economics, Not Model Status
 
-A9 contains many frontier controls.
+A9 contains many model candidates.
+
+Provider-local cache policy is **not** determined simply by whether a model is “production”.
+
+Default:
+
+```text
+required model
+→ fetch/load on demand
+→ worker-local ephemeral cache
+```
+
+Optional persistent/warm cache is enabled only when measured cold-start/download savings justify provider storage cost and complexity.
 
 Do not permanently store:
 
@@ -1641,18 +1653,9 @@ every model ever benchmarked
 
 on paid provider storage.
 
-Suggested cache policy:
+Benchmark candidates/frontier comparisons are fetched only when required unless a measured cache policy explicitly promotes their storage behavior.
 
-```text
-production models
-→ persistent cache
-
-active benchmark candidate
-→ temporary cache
-
-frontier comparison
-→ fetch only when explicitly benchmarking
-```
+This section is superseded/refined by D18/D19.
 
 ---
 
@@ -2535,3 +2538,105 @@ REJECTED:
 - Kubernetes for v1
 - worker-local state as project authority
 ```
+
+
+---
+
+## Post-Analysis Refinement — Ephemeral-First GPU Storage & Bootstrap
+
+> **Refinement status:** Accepted by Design D19; does not change A10's persistent-Control-Plane + disposable-compute topology.
+
+A10's disposable GPU direction is now made explicit.
+
+### Default GPU worker class
+
+~~~text
+EPHEMERAL_GPU_WORKER
+
+authoritative state:
+  none
+
+runtime:
+  reconstructible
+
+model weights:
+  reconstructible / on-demand
+
+workspace:
+  temporary execution copy
+  durable externalization required
+
+provider-local persistent storage:
+  optional cache only
+~~~
+
+### Initial RunPod storage target
+
+~~~text
+temporary container disk:
+  approximately 200 GB target
+
+optional warm volume:
+  approximately 10 GB target
+
+correctness dependency on either:
+  none
+~~~
+
+These are deployment targets, not permanent architecture constants.
+
+### Model-cache policy refinement
+
+Any earlier wording that implies production models must live in persistent provider storage is superseded by:
+
+> **Model weights are reconstructible cache objects. Persistent provider-local model cache is optional and must be justified by measured economics.**
+
+Decision inputs include:
+
+- model bytes;
+- download/setup time;
+- provider storage cost;
+- bandwidth cost where relevant;
+- expected cold-start frequency;
+- cache hit probability;
+- responsiveness target.
+
+### Bootstrap
+
+A worker should start from a pinned Reverend worker image and BootstrapSpec rather than mutable ad-hoc installation.
+
+The bootstrap reconstructs:
+
+~~~text
+worker runtime
+required capability adapters
+only the selected DeploymentProfile/model
+health probes
+temporary workspace
+~~~
+
+It does not reconstruct PostgreSQL authority because PostgreSQL remains on the persistent Control Plane.
+
+### Destruction invariant
+
+~~~text
+worker has unique unrecoverable state
+→ stop/terminate forbidden
+~~~
+
+D19/D5 WorkerDurabilityGate defines the proof required before destructive provider lifecycle.
+
+### Zero-provider-loss requirement
+
+Deleting every RunPod resource including:
+
+~~~text
+Pod
+container
+optional volume
+model cache
+runtime cache
+temporary worktree
+~~~
+
+must still leave the Project/Run recoverable from persistent Control Plane + Git + BlobStore/checkpoint material.
