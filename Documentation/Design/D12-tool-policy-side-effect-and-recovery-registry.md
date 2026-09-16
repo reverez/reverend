@@ -357,3 +357,36 @@ Final outcome must be safe retry, verified completion, explicit failure or RECOV
 ## 19. Exit Condition
 
 D12 is satisfied when a developer adding a tool does not need to invent approval, secret, network, journal, resume, execution, reconciliation or cost semantics.
+
+
+---
+
+## 2026-09-16 Media and Upload Tool Extension
+
+D15/D16 introduce additional tool classes that must be registered under the same capability/side-effect/recovery rules.
+
+Minimum logical entries:
+
+~~~text
+artifact.upload
+media.generate_raster
+media.edit_raster
+media.remove_background
+media.resize
+media.optimize_web
+asset.generate_svg
+asset.generate_diagram
+asset.generate_chart
+browser.render_screenshot
+~~~
+
+Policy guidance:
+
+- `artifact.upload`: bounded user-origin ingest; scan/validate; durable BlobStore write;
+- media generation/edit: charge-bearing, Project-scoped, sensitivity-filtered, restartable before Artifact publication;
+- SVG/chart/diagram generation: deterministic/local tool execution where possible;
+- browser render: sandboxed; no authenticated-app-origin execution of untrusted content.
+
+A media generation result becomes durable only after successful Artifact/BlobStore publication. Worker-local files are not authoritative.
+
+Normal budgeted Project media generation may be low-risk/no-approval; external publication, budget override or sensitive-provider disclosure follows normal approval policy.
