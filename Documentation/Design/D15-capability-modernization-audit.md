@@ -1,4 +1,4 @@
-# __D20__ — Capability Modernization Audit
+# D15 — Capability Modernization Audit
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
 > **Research snapshot:** 2026-09-16  
@@ -392,7 +392,7 @@ C9
   whole-organization capability acceptance
 ~~~
 
-__D21__–D22 freeze the detailed designs.
+D16–D22 freeze the detailed designs.
 
 ---
 
