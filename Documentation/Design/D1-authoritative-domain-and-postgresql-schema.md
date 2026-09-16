@@ -2455,11 +2455,11 @@ It never causes blind re-execution.
 
 ### 34.6 Target policy
 
-Cloud v1 requires at least one ACTIVE durable target for `OFF_HOST_INTENT_ACK` operations.
+Cloud v1 requires at least one ACTIVE durable **cloud/off-host** target for OFF_HOST_INTENT_ACK operations.
 
-A connected recovery-enabled client may satisfy this.
+Developer clients cannot satisfy this production durability requirement.
 
-For unattended autonomous operation, an always-available encrypted object-store recovery target is strongly recommended so external actions do not depend on a laptop remaining online.
+The target must remain available independently of either user's laptop so unattended autonomous execution and protected external actions never depend on a GUI device remaining online.
 
 The target abstraction is provider-neutral.
 
