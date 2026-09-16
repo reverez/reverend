@@ -2118,3 +2118,113 @@ Use fixed precision suitable for provider billing, for example `NUMERIC(20,10)`,
 - billing durations/quantities non-negative.
 
 Credits/refunds are represented as explicit ADJUSTMENT semantics, not malformed negative source usage.
+
+
+---
+
+## 32. Recursive Audit Cycle 10 — Generalized Action Journal Scope
+
+The earlier `action_records(run_id NOT NULL, journal_sequence ...)` shape is superseded.
+
+Cloud v1 ActionRecord supports system, Project and Run effects.
+
+### Global action counter
+
+```sql
+action_global_sequence_state(
+  singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton),
+  last_sequence BIGINT NOT NULL
+)
+```
+
+### Revised ActionRecord identity
+
+Conceptual revised columns:
+
+```sql
+action_records(
+  action_id UUID PRIMARY KEY,
+  global_sequence BIGINT NOT NULL UNIQUE,
+
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('SYSTEM','PROJECT','RUN')),
+  project_id UUID REFERENCES projects(project_id),
+  run_id UUID REFERENCES runs(run_id),
+  run_sequence BIGINT,
+
+  job_id UUID REFERENCES jobs(job_id),
+  actor TEXT NOT NULL,
+  tool TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  arguments_digest TEXT NOT NULL,
+  idempotency_key TEXT,
+
+  state TEXT NOT NULL CHECK (
+    state IN ('PLANNED','STARTED','COMPLETED','FAILED','INTERRUPTED','UNKNOWN')
+  ),
+  resume_strategy TEXT NOT NULL CHECK (
+    resume_strategy IN ('RESTART','VERIFY_THEN_RETRY','REBUILD','MANUAL_RECOVERY')
+  ),
+
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  result_ref TEXT,
+  reconciliation_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  schema_version INTEGER NOT NULL DEFAULT 1
+)
+```
+
+Constraint rules:
+
+~~~text
+SYSTEM  → project_id NULL, run_id NULL, run_sequence NULL
+PROJECT → project_id NOT NULL, run_id NULL unless operation is deliberately Run scoped instead
+RUN     → run_id NOT NULL, run_sequence NOT NULL, project_id derived/matching Run.project_id
+```
+
+### Sequence allocation
+
+Every Action intent allocates `global_sequence` using the global counter row held to commit.
+
+A RUN-scoped Action also allocates `run_sequence` from `run_action_sequence_state(run_id)`.
+
+Lock order follows D0:
+
+~~~text
+Run/Project aggregate
+→ run action counter when applicable
+→ global action counter
+→ Event counter if an Event is emitted
+→ commit
+~~~
+
+### Watermarks
+
+`RunCheckpoint.journal_high_watermark` refers to `run_sequence`.
+
+`RecoveryGeneration` records `global_action_high_watermark`.
+
+System recovery scans all committed ActionRecords with global_sequence above the recovered generation watermark.
+
+### Idempotency scope
+
+Define canonical `scope_key` in trusted code:
+
+~~~text
+SYSTEM
+PROJECT:<project_id>
+RUN:<run_id>
+```
+
+Unique action idempotency becomes:
+
+~~~text
+(scope_key, tool, operation, idempotency_key)
+```
+
+for non-NULL idempotency keys.
+
+This works correctly for system-level provider/backup operations where `run_id` is NULL.
+
+### Shutdown inhibitors
+
+`shutdown_inhibitors.owner_action_id` can therefore reference both Run and system-level Actions without inventing a fake Run.
