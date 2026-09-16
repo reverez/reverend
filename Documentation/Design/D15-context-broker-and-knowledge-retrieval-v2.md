@@ -568,3 +568,32 @@ Sensitivity is inherited conservatively.
 Cached SourceSnapshot may be reused only through Evidence/Research eligibility checks.
 
 Context Broker never injects “top cached web pages” directly merely because they are semantically similar.
+
+
+---
+
+## 26. Recursive Capability Audit — Late Context Results
+
+Context acquisition can outlive the Task state that requested it.
+
+When a RepositoryQuery, ResearchRequest or derived-index query returns, Context Broker verifies the originating:
+
+~~~text
+Task
+Job/attempt
+RepositorySnapshot
+policy version
+ContextNeed
+~~~
+
+is still current.
+
+If not:
+
+- retain reusable PUBLIC/Project-safe cache data where policy permits;
+- retain typed historical Artifact/Evidence if valuable;
+- do not inject it into a newer invocation automatically;
+- do not promote it into Memory/Decision/Requirement;
+- require a new ContextNeed to reuse it.
+
+This prevents stale asynchronous search/index results from entering a replanned Agent context.
