@@ -796,3 +796,72 @@ Must prove:
 ## 35. Exit Condition
 
 D7/C7 is ready when one pinned Qwen/vLLM/A100 deployment profile can be registered, benchmarked, routed by capability, executed through D4, measured end-to-end, and later replaced by another profile without changing Agent or Task semantics.
+
+
+---
+
+## 36. Recursive Architecture Hardening — Registry Authority and Promotion Safety
+
+### Durable registry authority
+
+ModelProfile and DeploymentProfile production eligibility is persisted in the D1 PostgreSQL registry.
+
+Configuration files may seed candidate profiles, but runtime routing reads the authoritative registry state.
+
+A profile is routable only when both:
+
+~~~text
+ModelProfile.status = ELIGIBLE
+AND
+DeploymentProfile.status = ELIGIBLE
+~~~
+
+Historical Runs retain exact profile IDs, model revisions, runtime versions and image digests even after a profile is disabled or retired.
+
+### Promotion is privileged and audited
+
+A ReverendBench result can recommend promotion but can never autonomously promote itself.
+
+Promotion, disable and retirement require a privileged human/system-administration command that:
+
+1. references the BenchmarkResultSet;
+2. checks license/trust policy;
+3. records the actor;
+4. records the exact before/after profile state;
+5. emits a durable Event.
+
+This prevents a compromised benchmark/model path from making itself production-eligible.
+
+### Runtime identity attestation
+
+Before a Job uses a DeploymentProfile, the worker-reported runtime identity must match the profile:
+
+- model repository/name;
+- pinned model revision;
+- runtime implementation/version;
+- container digest;
+- quantization;
+- served context limit.
+
+Mismatch changes node/profile health to ineligible; it is not treated as a harmless metadata difference.
+
+### Benchmark contamination guard
+
+A candidate model must not receive hidden reference outputs, expected patches or verifier answers from ReverendBench fixtures through context, cache or Memory.
+
+Benchmark execution uses isolated Project/Run scope and a clean context/index namespace where required.
+
+### Routing reproducibility
+
+Every routing decision persists:
+
+~~~text
+ModelRequirement
+eligible profile set
+rejection reasons
+selected DeploymentProfile
+router policy version
+budget/trust inputs
+~~~
+
+This is bounded decision provenance, not hidden chain-of-thought.
