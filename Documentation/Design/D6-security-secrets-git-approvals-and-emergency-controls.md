@@ -1158,3 +1158,23 @@ A successful HTTP response is not enough: persist the returned remote commit/ref
 An earlier clone-access check does not guarantee later merge/force/delete permission.
 
 The trusted adapter relies on the actual Run-owner credential at execution time and treats provider denial as a typed policy/credential failure, never as permission to substitute another credential.
+
+
+---
+
+## 44. Recursive Audit Cycle 14 — Worker Supply-Chain Boundary
+
+Remote workers are treated as lower-trust execution even when the Reverend worker image is trusted.
+
+The worker image itself must be pinned by digest and originate from the D7 approved build/provenance path.
+
+Security rules:
+
+- no model repository remote code execution in the baseline profile;
+- no unsafe serialized weight loading in production baseline;
+- worker image contains no baked GitHub/RunPod/Control Plane secrets;
+- build CI scans configuration/history for accidental embedded credentials;
+- runtime does not mount a provider host Docker socket or unrelated host filesystem;
+- model/cache integrity is checked before health becomes READY.
+
+A Community provider remains capable of observing worker plaintext at the infrastructure layer; supply-chain hardening does not upgrade its trust classification.
