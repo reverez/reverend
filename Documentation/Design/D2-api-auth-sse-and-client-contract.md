@@ -962,3 +962,23 @@ The API enforces:
 - conflict when another RESUME_NEXT pre-emption chain already has priority unless emergency policy explicitly overrides.
 
 These controls prevent one client from indefinitely leapfrogging the other through repeated pre-emption commands.
+
+
+---
+
+## 32. Recursive Audit Cycle 6 — Long-Lived Stream Revocation
+
+SSE authentication is not checked only once at connection establishment.
+
+For a long-lived stream, the server periodically and on relevant authorization-change Events revalidates:
+
+- session unexpired/unrevoked;
+- user enabled;
+- Project membership still active;
+- Event visibility.
+
+If the session/user is revoked, the stream closes promptly.
+
+If membership for one Project is revoked, subsequent Events for that Project are filtered immediately.
+
+SSE heartbeat frames contain no sensitive payload and do not extend session expiry unless the explicit session policy says so.
