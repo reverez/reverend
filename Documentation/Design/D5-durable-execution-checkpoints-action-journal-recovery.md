@@ -1193,3 +1193,55 @@ Durability policy is fail-closed.
 The same barrier applies to SYSTEM-scoped provider/deployment side effects when duplicate provisioning or forgotten paid resources could survive host loss.
 
 Provider-side idempotency/tags are additional reconciliation evidence, not a substitute unless the Tool Recovery Registry explicitly proves the restored system can deterministically derive and query the same operation identity.
+
+
+---
+
+## 2026-09-16 Cloud-Only Recovery and Priority Yield Extension
+
+ADR-001 replaces the Cloud v1 production preference for client-device RecoveryGeneration replicas.
+
+### Off-host recovery target
+
+Cloud v1 requires an authenticated encrypted **cloud/off-host recovery target** behind the recovery/BlobStore abstraction.
+
+Developer laptops are not required recovery peers.
+
+A valid production RecoveryGeneration is healthy only when:
+
+~~~text
+local authoritative generation complete
++
+encrypted off-host object copy complete
++
+manifest/hash verification complete
++
+durable recovery-target ACK recorded
+~~~
+
+Client availability is irrelevant to this condition.
+
+The system must support authoritative-host restore while every user client is offline.
+
+### Priority yield checkpoint
+
+ADR-002/D15 reuses the existing safe-pre-emption lifecycle.
+
+Before yielding the globally active Run to a higher-priority queued Run:
+
+1. stop admitting new nonessential Jobs for the yielding Run;
+2. allow unsafe/non-interruptible ActionRecord operations to settle/reconcile;
+3. persist valuable repository/workspace state;
+4. publish required Artifacts;
+5. create a complete RunCheckpoint;
+6. release charge-bearing leases where safe;
+7. transition the Run to `RESUME_QUEUED`;
+8. allow the selected queued Run to start.
+
+Unvalidated workspace progress may be persisted on a Run-owned worktree/branch or patch Artifact. Priority handoff never requires merging or pushing unverified work to a protected branch.
+
+### Restore semantics
+
+Conversation/Message/BuildSpecification/MediaAsset records are included in normal PostgreSQL/BlobStore recovery according to retention policy.
+
+No recovery procedure may require reconstructing authoritative data from a browser cache.
