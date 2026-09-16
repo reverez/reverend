@@ -1,8 +1,8 @@
-# __D21__ — Research Fabric & Web Context Acquisition
+# D16 — Research Fabric & Web Context Acquisition
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
 > **Research snapshot:** 2026-09-16  
-> **Depends on:** A5, A8, A12, D3, D6, __D20__  
+> **Depends on:** A5, A8, A12, D3, D6, D15  
 > **Purpose:** Turn the accepted local SearXNG/Brave + restricted-fetch research path into a persistent, provenance-preserving, cloud-capable Research Fabric.
 
 ---
