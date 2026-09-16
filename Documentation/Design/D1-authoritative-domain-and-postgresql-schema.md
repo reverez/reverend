@@ -1184,9 +1184,27 @@ model_profiles(
   UNIQUE(model_name,revision)
 );
 
+model_artifact_manifests(
+  model_artifact_manifest_id UUID PRIMARY KEY,
+  model_profile_id UUID NOT NULL REFERENCES model_profiles(model_profile_id),
+  repository TEXT NOT NULL,
+  immutable_revision TEXT NOT NULL,
+  required_files JSONB NOT NULL,
+  weight_format TEXT NOT NULL,
+  expected_file_identities JSONB NOT NULL,
+  tokenizer_config_files JSONB NOT NULL DEFAULT '[]'::jsonb,
+  license_ref TEXT NOT NULL,
+  remote_code_required BOOLEAN NOT NULL DEFAULT FALSE,
+  expected_logical_size_bytes BIGINT,
+  validated_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(model_profile_id,immutable_revision)
+);
+
 deployment_profiles(
   deployment_profile_id UUID PRIMARY KEY,
   model_profile_id UUID NOT NULL REFERENCES model_profiles(model_profile_id),
+  model_artifact_manifest_id UUID NOT NULL REFERENCES model_artifact_manifests(model_artifact_manifest_id),
   profile_name TEXT NOT NULL UNIQUE,
   runtime TEXT NOT NULL,
   runtime_version TEXT NOT NULL,
@@ -1198,6 +1216,7 @@ deployment_profiles(
   trust_class TEXT NOT NULL,
   concurrency_policy JSONB NOT NULL,
   batching_policy JSONB NOT NULL,
+  hydration_policy JSONB NOT NULL,
   cost_profile JSONB NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('BENCHMARKING','ELIGIBLE','DISABLED','RETIRED')),
   created_at TIMESTAMPTZ NOT NULL,
@@ -1216,6 +1235,10 @@ benchmark_result_sets(
 ```
 
 Promotion/disable/retire is an audited privileged operation. Benchmark completion alone does not automatically promote a profile.
+
+HydrationPolicy must include enough durable configuration to reproduce D17 admission semantics, including approved source identity, ephemeral/persistent mode, bounded retry/timeout, disk-headroom policy and integrity/failure behavior. Cloud v1 baseline persists persistent_cache_enabled=false.
+
+Model artifact manifests contain metadata/identities only; model weight bytes remain reconstructible worker/cache state and are not stored in PostgreSQL.
 
 ### 24.10 Cost-event deduplication
 
