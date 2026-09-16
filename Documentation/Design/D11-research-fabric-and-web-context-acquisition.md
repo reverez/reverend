@@ -895,3 +895,64 @@ Full source bytes/text retention follows:
 - minimum necessary excerpt/snapshot strategy when indefinite full-copy retention is inappropriate.
 
 Reverend does not use the Source Cache as an unbounded mirror of the web.
+
+
+---
+
+## 31. Recursive Capability Audit — Credentialed Search, Rate Control & Evidence Validation
+
+### Credential-bearing SearchProviders
+
+A paid/credentialed SearchProvider is a trusted adapter operation.
+
+Its API key is resolved by Secret Broker / credential-execution boundary and is never:
+
+- placed in an Agent prompt;
+- persisted in ResearchPlan;
+- sent to a generic Browser Worker;
+- returned in provider error/log output.
+
+Uncredentialed self-hosted SearXNG may be invoked through the restricted research path, but a credentialed provider request remains origin-pinned like other Secret-bearing adapters.
+
+### Research API economics
+
+Paid search/provider calls emit attributable external-service usage/cost events under the requesting Run/Task.
+
+Research budget admission occurs before the paid request.
+
+Rate-limit metadata/backoff is provider-specific but bounded and observable.
+
+### Per-origin concurrency
+
+Fetch Broker applies per-provider/per-origin request concurrency and rate policy.
+
+A Research Team may fan out across independent sources, but cannot create an accidental denial-of-service burst against one domain.
+
+### Published/updated metadata is evidence, not authority
+
+Dates extracted from HTML/search snippets are source-provided metadata and may be wrong.
+
+Reverend records how the date was obtained:
+
+~~~text
+provider_metadata
+document_metadata
+HTTP metadata
+inferred/unknown
+~~~
+
+Freshness-sensitive claims rely on corroborated source/version identity where required rather than trusting an arbitrary page date string.
+
+### EvidenceClaim structural validation
+
+When an EvidenceClaim references a direct quote/span:
+
+- the referenced snapshot must exist;
+- the locator must resolve inside that exact snapshot;
+- quoted text must be present after the declared extraction normalization;
+- extractor/model may not invent quotation text;
+- validation records extractor/version.
+
+This validates source membership/provenance, not semantic entailment.
+
+A model-generated claim remains generated analysis even when attached to a valid source span until the consuming workflow applies its evidence/verification policy.
