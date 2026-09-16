@@ -982,3 +982,45 @@ If the session/user is revoked, the stream closes promptly.
 If membership for one Project is revoked, subsequent Events for that Project are filtered immediately.
 
 SSE heartbeat frames contain no sensitive payload and do not extend session expiry unless the explicit session policy says so.
+
+
+---
+
+## 33. Recursive Audit Cycle 7 — Administrative and Policy Control Surface
+
+Cloud v1 administrative endpoints are explicit and narrowly authorized.
+
+Conceptual minimum:
+
+~~~text
+GET  /api/v1/projects/{project_id}/policy
+PUT  /api/v1/projects/{project_id}/policy
+
+GET  /api/v1/system/controls
+POST /api/v1/system/emergency/stop-global
+POST /api/v1/system/emergency/clear-global
+
+POST /api/v1/projects/{project_id}/emergency/stop
+POST /api/v1/projects/{project_id}/emergency/clear
+
+POST /api/v1/runs/{run_id}/emergency/stop
+~~~
+
+Policy update requires:
+
+- Project owner or stronger configured authority;
+- optimistic concurrency / expected active policy version;
+- creation of a new immutable policy version;
+- durable audit Event.
+
+Global emergency clear requires SYSTEM_ADMIN.
+
+A viewer cannot clear an emergency control merely because they can read the affected Project.
+
+### Disaster-restore session behavior
+
+After restoring the authoritative database from an off-host RecoveryGeneration, all restored human `auth_sessions` are revoked before public API readiness.
+
+Users reauthenticate.
+
+This prevents a stale pre-disaster session token from regaining authority after a rollback to an older recovery point.
