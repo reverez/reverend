@@ -55,7 +55,7 @@ RECALG["Run recovery<br/>newest complete valid checkpoint<br/>→ verify blobs/w
 RBLOCK["RecoveryIssue / RECOVERY_BLOCKED<br/>show ambiguous action • evidence • last checkpoint • safe human choices"]:::durable
 
 RECGEN["RecoveryGeneration<br/>generation number • PostgreSQL backup ref • checkpoints • journal<br/>repository refs • Artifact refs • encrypted Secret backup • hashes • complete"]:::durable
-RECACK["RecoveryReplicaAck<br/>device • generation • hash • ACK only after fsync + verification"]:::durable
+RECACK["OffHostRecoveryAck<br/>cloud/object-store target • generation • hash<br/>ACK only after durable write + verification"]:::durable
 CLEAN["CleanShutdownRecord<br/>runtime_epoch • final generation • completed_at • reason"]:::durable
 
 SAFELOOP --> ACTION
@@ -74,5 +74,3 @@ end
 RN --> SAFELOOP
 PRQ --> PAUSE
 RCV --> RECCTRL
-A_REC --> RECACK
-B_REC --> RECACK
