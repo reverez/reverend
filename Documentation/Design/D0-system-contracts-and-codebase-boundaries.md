@@ -706,3 +706,62 @@ D0 is satisfied when Development can implement C0 without asking:
 - which state is authoritative;
 - how large blobs are stored;
 - how local compatibility remains available.
+
+
+---
+
+## 24. Recursive Architecture Hardening — Privilege Separation and Referential Integrity
+
+The pre-development architecture audit found two boundaries that were too implicit. The following rules are **mandatory Cloud v1 constraints** and supersede any looser interpretation elsewhere in D0–D9.
+
+### Secret Broker is a privilege boundary
+
+The Control Plane remains a modular monolith for normal application logic, but the **secret-encryption master key must not be readable by the general Reverend application process**.
+
+Cloud v1 therefore uses a minimal local privilege-separated Secret Broker helper:
+
+~~~text
+Reverend application process
+        ↓ authenticated local IPC
+Secret Broker helper
+        ↓
+protected master-key material
+~~~
+
+Requirements:
+
+- run under a distinct OS identity or equivalently isolated credential boundary;
+- communicate over a root-owned Unix-domain socket or equivalent local authenticated IPC;
+- expose only bounded operations such as resolve-for-action/create/rotate/revoke/metadata;
+- never expose the master key;
+- return plaintext secret material only to an explicitly authorized trusted adapter invocation and only for the lifetime of that bounded action;
+- never expose the socket to sandboxes, workers, models, browser clients or GPU containers.
+
+This is a deliberate exception to the modular-monolith-first rule because Python module boundaries are not security boundaries.
+
+### Database integrity must back application integrity
+
+Where two identifiers must describe the same Project/Run/Task/owner, Development must enforce that relationship with one of:
+
+1. an explicit foreign/composite key;
+2. a PostgreSQL constraint trigger;
+3. a transaction-scoped validation performed while all relevant rows are locked.
+
+Application convention alone is insufficient for cross-authority security invariants.
+
+Examples include:
+
+- Run owner must be a Project member;
+- Run GitHubIdentity must belong to the immutable Run owner;
+- Task dependencies must stay in the same Workflow;
+- Agent/Team membership must stay in the same Run;
+- Artifact-parent relationships must satisfy Project isolation;
+- active ResourceLeases must be unique and capacity-safe.
+
+### Hard-delete policy
+
+Authoritative Run/Workflow/Task/Job/Artifact/Approval/Action/Cost history is soft-retained. The normal application database role receives no general-purpose DELETE privilege over audit-critical lineage tables. Retention/GC runs through explicit maintenance procedures that first prove no active recovery, provenance or audit reference depends on the rows or blobs.
+
+### Pre-emption lineage
+
+MAX_PREEMPTION_DEPTH=1 must be represented by durable Run lineage, not inferred only from queue order. D1 defines the canonical `preempts_run_id` relationship.
