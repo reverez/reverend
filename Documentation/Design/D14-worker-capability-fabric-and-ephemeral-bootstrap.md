@@ -851,3 +851,40 @@ Control Plane validates:
 - retention policy.
 
 Raw browser profiles, cookies and caches are destroyed with the worker/job unless a specific test Artifact contract retains sanitized output.
+
+
+---
+
+## 31. Recursive Capability Audit — Large Artifact Data Plane
+
+Large simulation/media/browser/build Artifacts must not require buffering through the Control Plane API process or fitting on its local 80 GB disk.
+
+BlobStore therefore supports two implementation classes behind one authority contract:
+
+~~~text
+LocalBlobStore
+  suitable for small/initial durable objects
+
+ObjectBlobStore
+  suitable for large durable artifacts / scale
+~~~
+
+For a remote worker, upload capability may resolve to:
+
+~~~text
+Control-Plane streaming endpoint
+or
+short-lived, object-scoped direct upload capability
+~~~
+
+Rules:
+
+- capability authorizes one expected object/size/media scope;
+- worker never receives general BlobStore credentials;
+- content hash/size verified before Artifact publication;
+- incomplete multipart/temp upload is not a durable Artifact;
+- Artifact metadata becomes authoritative only after Blob publication succeeds;
+- quotas/budgets checked before accepting very large output;
+- abandoned uploads are GC-able after safe grace period.
+
+This allows future CFD/media outputs to be large without turning the Control Plane filesystem into a hidden scaling limit.
