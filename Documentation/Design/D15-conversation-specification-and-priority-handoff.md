@@ -623,3 +623,13 @@ Must prove:
 ## 25. Exit Condition
 
 D15 is satisfied when a browser client can provide a natural ChatGPT-like experience while all engineering authority remains server-side, accepted specifications become durable implementation contracts, and two users can safely reprioritize the single global Run without losing project progress.
+
+
+### Model storage is not a client responsibility
+
+ADR-004/D17 clarify the Cloud-only boundary:
+
+- production cold starts hydrate pinned models directly from approved upstream repositories;
+- the GUI is not required to upload model weights;
+- developers may keep personal archival copies independently, but those copies are not part of scheduler availability or normal startup;
+- closing both clients does not affect hydration, inference or Run continuation.
