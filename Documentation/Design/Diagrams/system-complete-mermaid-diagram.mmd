@@ -60,31 +60,27 @@ U_B["Developer B<br/>authenticated human"]:::human
 
 subgraph CL_A["Developer A devices"]
 direction LR
-A_GUI["Browser GUI"]:::client
+A_GUI["ChatGPT-style Browser GUI<br/>CHAT • PROJECT • RUN • ARTIFACTS • STUDIO"]:::client
 A_CLI["CLI"]:::client
 A_IDE["IDE integration"]:::client
-A_REC["Recovery-enabled client<br/>encrypted recovery peer"]:::client
 end
 
 subgraph CL_B["Developer B devices"]
 direction LR
-B_GUI["Browser GUI"]:::client
+B_GUI["ChatGPT-style Browser GUI<br/>CHAT • PROJECT • RUN • ARTIFACTS • STUDIO"]:::client
 B_CLI["CLI"]:::client
 B_IDE["IDE integration"]:::client
-B_REC["Recovery-enabled client<br/>encrypted recovery peer"]:::client
 end
 
 U_A --> A_GUI
 U_A --> A_CLI
 U_A --> A_IDE
-U_A --> A_REC
 
 U_B --> B_GUI
 U_B --> B_CLI
 U_B --> B_IDE
-U_B --> B_REC
 
-CLIENT_RULE["Client responsibility<br/>presentation • auth session • submit commands • approvals • display state<br/><b>never authoritative for Run/workflow/queue/secrets</b>"]:::client
+CLIENT_RULE["Cloud-only client responsibility<br/>presentation • auth session • chat/uploads • approvals • display state<br/><b>no required inference/build/index/media/recovery compute; never authoritative</b>"]:::client
 
 A_GUI --> CLIENT_RULE
 B_GUI --> CLIENT_RULE
@@ -135,10 +131,13 @@ subgraph ROUTES["Versioned /api/v1 routes"]
 direction LR
 R_AUTH["/auth/login<br/>/auth/logout<br/>/me"]:::api
 R_PROJECTS["/projects<br/>/projects/{id}<br/>/projects/{id}/runs"]:::api
-R_RUNS["/runs<br/>/runs/{id}<br/>pause • resume • run-now • cancel"]:::api
+R_CHAT["/projects/{id}/conversations<br/>/conversations/{id}/messages<br/>/uploads"]:::api
+R_SPEC["/projects/{id}/specifications<br/>accept specification"]:::api
+R_RUNS["/runs<br/>/runs/{id}<br/>pause • resume • priority/run-now • cancel"]:::api
 R_QUEUE["/queue"]:::api
 R_APPROVALS["/approvals<br/>approve • reject"]:::api
 R_ART["/runs/{id}/artifacts<br/>/artifacts/{id}"]:::api
+R_MEDIA["/projects/{id}/media<br/>generate • edit • accept"]:::api
 R_WF["/runs/{id}/workflow<br/>/runs/{id}/agents"]:::api
 R_COST["/runs/{id}/costs<br/>/costs/me<br/>/system/rates"]:::api
 R_SYS["/system/status<br/>/system/compute<br/>emergency controls"]:::api
@@ -820,8 +819,8 @@ MR_ASSURE["ASSURANCE"]:::model
 MR_VISION["VISION"]:::model
 MR_EMBED["EMBEDDING"]:::model
 MR_RERANK["RERANKING"]:::model
-MR_MEDIA["MEDIA_GENERATION"]:::model
-MR_MAX["MAX_QUALITY_ESCALATION"]:::model
+MR_MEDIA["MEDIA_GENERATION / MEDIA_EDIT"]:::model
+MR_MAX["FUTURE_EXTERNAL_ESCALATION<br/>not configured in Cloud v1"]:::external
 end
 
 MREQ --> MREG --> MPROF --> DPROF --> MROUTER
@@ -830,7 +829,8 @@ MREQ --> MREG --> MPROF --> DPROF --> MROUTER
 BASEMODEL["Cloud v1 baseline profile<br/>Qwen/Qwen3.8-27B<br/>vLLM • A100 SXM 80 GB • 64K context<br/>RunPod Community Cloud"]:::model
 COSTDOWN["Cost-down benchmark profile<br/>RTX A6000 48 GB + validated quantized Qwen<br/>or North Mini Code / Nemotron candidate"]:::model
 PREMIUM["Premium/headroom profile<br/>RTX Pro 6000 96 GB when benchmarked value exists"]:::model
-EXTMODEL["Optional external API profile<br/>EXTERNAL_API trust<br/>policy-permitted non-sensitive context only"]:::external
+MEDIAMODEL["Media candidate profile<br/>FLUX.2 klein 4B-class<br/>benchmark before eligibility"]:::model
+EXTMODEL["External API DeploymentProfile<br/>future extension only<br/><b>Cloud v1: none configured / no automatic routing</b>"]:::external
 
 
 VLLM["InferenceRuntime: vLLM<br/>worker-local/private<br/>health • profiles • ensure_loaded • generate • stream • cancel • metrics"]:::model
@@ -840,6 +840,7 @@ SGLANG["InferenceRuntime: SGLang<br/>future interchangeable adapter"]:::model
 BASEMODEL --> VLLM
 COSTDOWN --> VLLM
 PREMIUM --> VLLM
+MEDIAMODEL --> MEDIAWORK["Elastic media GPU worker<br/>independent scale-to-zero"]:::compute
 MPROF --> OLLAMA
 MPROF --> SGLANG
 
@@ -911,7 +912,7 @@ RECALG["Run recovery<br/>newest complete valid checkpoint<br/>→ verify blobs/w
 RBLOCK["RecoveryIssue / RECOVERY_BLOCKED<br/>show ambiguous action • evidence • last checkpoint • safe human choices"]:::durable
 
 RECGEN["RecoveryGeneration<br/>generation number • PostgreSQL backup ref • checkpoints • journal<br/>repository refs • Artifact refs • encrypted Secret backup • hashes • complete"]:::durable
-RECACK["RecoveryReplicaAck<br/>device • generation • hash • ACK only after fsync + verification"]:::durable
+RECACK["OffHostRecoveryAck<br/>cloud/object-store target • generation • hash<br/>ACK only after durable write + verification"]:::durable
 CLEAN["CleanShutdownRecord<br/>runtime_epoch • final generation • completed_at • reason"]:::durable
 
 SAFELOOP --> ACTION
@@ -930,8 +931,6 @@ end
 RN --> SAFELOOP
 PRQ --> PAUSE
 RCV --> RECCTRL
-A_REC --> RECACK
-B_REC --> RECACK
 
 %% =========================================================
 %% 22. STORAGE / DATABASE / BLOB / WORKSPACE / INDEXES
@@ -1130,6 +1129,7 @@ DISK["Host storage layout<br/>/var/lib/reverend objects/workspaces/backups/state
 REVPROC["Reverend modular-monolith process<br/>API + orchestration + schedulers + context + policy + cost + recovery coordination"]:::authority
 PGHOST["Local/private PostgreSQL"]:::data
 RPROXY["Caddy/nginx reverse proxy"]:::security
+OFFHOST["Encrypted off-host cloud/object-store recovery target"]:::data
 
 HETZ --> SYSTEMD
 SYSTEMD --> REVPROC
@@ -1139,6 +1139,7 @@ HETZ --> RPROXY
 RPROXY --> REVPROC
 REVPROC --> PGHOST
 REVPROC --> CPROOT
+REVPROC --> OFFHOST
 end
 
 RP --> RPROXY
@@ -1156,7 +1157,8 @@ EXT_HETZ["Hetzner Cloud<br/>persistent Control Plane host"]:::external
 EXT_TS["Tailscale<br/>private network"]:::external
 EXT_WEB["Public web / SearXNG"]:::external
 EXT_HF["Model repositories / Hugging Face<br/>pinned revisions / weights / licenses"]:::external
-EXT_API["Optional paid external APIs<br/>policy/trust/budget gated"]:::external
+EXT_OBJ["Off-host cloud/object storage<br/>encrypted RecoveryGeneration target"]:::external
+EXT_API["Future external model APIs<br/><b>not used automatically in Cloud v1</b>"]:::external
 
 T_PUSH --> EXT_GH
 T_PR --> EXT_GH
@@ -1332,3 +1334,12 @@ OUTCOME["SYSTEM OUTCOME<br/>High-level human objective<br/>→ researched + plan
 
 PROMO --> OUTCOME
 FULL --> OUTCOME
+
+
+%% D15/D16 accepted extension wiring
+R_CHAT --> CPROOT
+R_SPEC --> CPROOT
+R_MEDIA --> CPROOT
+MEDIAMODEL --> MEDIAWORK
+MEDIAWORK --> ART
+OFFHOST --> EXT_OBJ
