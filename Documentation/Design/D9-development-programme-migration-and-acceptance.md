@@ -363,7 +363,7 @@ Make execution independent of process/worker lifetime before paid GPU execution 
 - RECOVERING / RECOVERY_BLOCKED;
 - Git workspace recovery;
 - RecoveryGeneration;
-- client recovery peer protocol;
+- off-host cloud/object-store recovery target protocol;
 - clean shutdown marker;
 - fault-injection framework.
 
@@ -924,7 +924,7 @@ Until then, README must describe Cloud v1 as Design/Development target, not impl
 
 Before opening C0 branch:
 
-- [x] Design docs D0–D14 plus ADR framework merged to main.
+- [x] Design docs D0–D16 plus ADR framework merged to main.
 - [x] README points to Design index.
 - [ ] main is clean/stable.
 - [ ] current Python suite run and result recorded.
