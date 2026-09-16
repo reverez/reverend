@@ -2,7 +2,7 @@
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
 > **Research snapshot:** 2026-09-16  
-> **Depends on:** A9, A10, D4, D7, __D20__  
+> **Depends on:** A9, A10, D4, D7, D15  
 > **Purpose:** Modernize Reverend from a laptop-era fixed local model set into a benchmarked elastic model fleet while keeping Agents independent of checkpoint/provider identity.
 
 ---
