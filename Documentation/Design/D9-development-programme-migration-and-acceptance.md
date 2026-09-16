@@ -1351,3 +1351,18 @@ Full acceptance must include:
 - capability benchmark/promotion controls.
 
 D17 is the final documentation gate before C0 begins.
+
+
+---
+
+## 50. Capability Async/Browser Isolation Tests
+
+Mandatory tests:
+
+- research result returned after Task cancellation is retained only as permitted historical/cache data and cannot complete the Task;
+- repository query for snapshot X cannot enter a newer snapshot Y context without explicit revalidation;
+- stale model/browser/build result cannot overwrite newer Job attempt;
+- private TestEndpoint rejects an unbound Browser Worker;
+- TestEndpoint credential becomes invalid when either lease ends;
+- Browser Worker cannot use TestEndpoint route to scan unrelated producer-worker ports;
+- real user browser session/cookie is not copied into frontend-test worker by default.
