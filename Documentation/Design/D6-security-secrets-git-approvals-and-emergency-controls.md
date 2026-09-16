@@ -1090,3 +1090,71 @@ A session token from an older backup is never accepted as proof that the human i
 Initial two-user/SystemAdmin creation is an explicit local operator bootstrap step performed before remote service exposure.
 
 Bootstrap credentials are not accepted from arbitrary remote request bodies and are removed/disabled after initial provisioning.
+
+
+---
+
+## 43. Recursive Audit Cycle 11 — Remote-State TOCTOU and Credential-Destination Pinning
+
+### Git remote-state preconditions
+
+Approval of a protected Git action is bound not only to the requested branch name, but to the **expected remote state**.
+
+For push/merge/protected mutation, fingerprint or Action intent includes as applicable:
+
+~~~text
+canonical repository identity
+source commit SHA
+destination ref
+expected destination HEAD SHA
+PR number / expected PR head/base SHA
+merge method
+force/lease semantics
+~~~
+
+Immediately before the external effect, the trusted Git/GitHub adapter re-reads remote state.
+
+If expected state changed:
+
+- do not reuse the old Approval;
+- mark/reconcile the Action as stale/conflicted;
+- return a typed ConflictNotice;
+- replan/reverify/reapprove as policy requires.
+
+When a force-like operation is ever permitted, use a lease/precondition equivalent rather than an unconstrained force push.
+
+### Credential destination pinning
+
+Credential-bearing adapters have hard-coded/configured approved destinations independent of model/repository content.
+
+Examples:
+
+~~~text
+GitHub credential
+  → configured github.com / api.github.com endpoints for the selected GitHub provider
+
+RunPod provider key
+  → official configured RunPod API endpoint
+~~~
+
+Rules:
+
+- do not forward Authorization/credential material across redirects to a different origin;
+- unexpected redirect/origin change fails closed;
+- DNS/IP SSRF checks still apply;
+- proxy configuration cannot silently redirect credential-bearing traffic through an unapproved credential-observing endpoint;
+- TLS certificate verification remains enabled.
+
+The generic web-fetch tool never receives these credentials.
+
+### Protected Git operation race handling
+
+PR merge/default-branch action should prefer provider-side conditional operations that fail when the expected head/base moved.
+
+A successful HTTP response is not enough: persist the returned remote commit/ref identity as Action result evidence.
+
+### External repository permissions are rechecked for high-risk action
+
+An earlier clone-access check does not guarantee later merge/force/delete permission.
+
+The trusted adapter relies on the actual Run-owner credential at execution time and treats provider denial as a typed policy/credential failure, never as permission to substitute another credential.
