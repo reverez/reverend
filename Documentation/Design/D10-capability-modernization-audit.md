@@ -432,3 +432,34 @@ build/test processes
 may run as separate CPU services/workers when measurements show they threaten authority-host liveness.
 
 Cloud architecture optimizes derived-service placement independently from authoritative state.
+
+
+---
+
+## 13. Recursive Capability Audit — Background Work Boundary
+
+Persistent servers make it tempting to create autonomous background Agents, crawlers and re-indexers. Cloud v1 deliberately does **not** create a second background cognitive authority plane.
+
+Rules:
+
+- Project-specific research is on-demand and attached to a Run/Task.
+- Repository index refresh needed by a Run is attached to that Run's Job/capability execution.
+- stale Project knowledge is refreshed when requested/needed, not by continuous autonomous crawling.
+- no background Agent may mutate Requirements/Decisions/Memory outside normal Run authority.
+
+Allowed system background work is operational/derived housekeeping only:
+
+~~~text
+backup
+recovery replication
+provider reconciliation
+health checks
+cache GC
+index-cache maintenance that does not create new Project facts
+security/key/session cleanup
+cost reconciliation
+~~~
+
+Such work uses trusted system controllers/Action Journal as already defined, not a hidden Agent swarm.
+
+This preserves the one-active-top-level-Run invariant and clear cost attribution.
