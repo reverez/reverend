@@ -786,3 +786,85 @@ Must prove:
 ## 33. Exit Condition
 
 C6 is complete when deliberate process/worker faults cannot silently lose completed work or duplicate privileged side effects, pause/resume works through durable states, and the persistent Control Plane can be restored from a complete RecoveryGeneration.
+
+
+---
+
+## 34. Recursive Architecture Hardening — Recovery Authenticity and Bootstrap Recovery
+
+The recursive review identified three durability gaps: recovery without a prior checkpoint, recovery-package authenticity, and approval/action atomicity.
+
+### Recovery does not require a pre-existing checkpoint
+
+A checkpoint is a recovery accelerator and consistency anchor, not a second source of truth.
+
+If a non-terminal Run has no complete checkpoint — for example, a crash immediately after Run creation — Recovery Controller reconstructs from:
+
+~~~text
+PostgreSQL authoritative Run/Workflow/Task/Job state
++
+Action Journal
++
+durable Artifact/Blob references
++
+Git/workspace state that has already been journaled
+~~~
+
+It then writes the first recovery checkpoint before resuming charge-bearing work.
+
+If neither a valid checkpoint nor sufficient canonical durable state exists, the Run enters `RECOVERY_BLOCKED`; it is never guessed forward.
+
+### Approval consumption and Action intent are atomic
+
+For any action that consumes a single-use Approval:
+
+~~~text
+lock Approval
+→ revalidate fingerprint / owner / identity / policy / expiry
+→ create ActionRecord PLANNED
+→ bind Approval.used_action_id
+→ transition Approval APPROVED → USED
+→ commit
+→ perform external effect
+~~~
+
+The external effect occurs only after this transaction commits.
+
+After a crash:
+
+- `USED + PLANNED/STARTED` is recovered through the ActionRecord;
+- a second executor cannot consume the same Approval;
+- a changed action requires a new Approval.
+
+### RecoveryGeneration authenticity
+
+A SHA-256 manifest hash detects corruption but does not by itself prove authenticity.
+
+Every complete RecoveryGeneration therefore contains:
+
+~~~text
+generation_number
+manifest_hash
+integrity_key_id
+manifest_authenticator
+~~~
+
+where `manifest_authenticator` is a MAC/signature produced by dedicated recovery-integrity key material not writable by recovery clients.
+
+Restore procedure must verify:
+
+1. generation completeness;
+2. object hashes;
+3. manifest authenticator;
+4. key identity;
+5. generation monotonicity across available replicas.
+
+A client storing an encrypted replica cannot forge an accepted recovery generation.
+
+### Recovery replication freshness
+
+D8 defines the operational replication interval. A recovery health alert fires when no off-host acknowledged generation exists inside the configured recovery-point target. A stale replica is explicitly reported as degraded recovery health rather than treated as current.
+
+### Action idempotency
+
+Where a tool supplies a stable idempotency key, the Action Journal enforces uniqueness in the action scope defined by D1. Retrying a recoverable effect reuses the existing ActionRecord whenever possible instead of creating parallel intents.
