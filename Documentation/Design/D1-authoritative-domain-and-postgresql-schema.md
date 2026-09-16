@@ -2496,12 +2496,13 @@ source_records(
   source_id UUID PRIMARY KEY,
   canonical_locator TEXT NOT NULL,
   source_type TEXT NOT NULL,
+  access_partition TEXT NOT NULL DEFAULT 'PUBLIC',
   publisher TEXT,
   authority_class TEXT NOT NULL,
   default_freshness_policy TEXT NOT NULL,
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL,
-  UNIQUE(source_type,canonical_locator)
+  UNIQUE(source_type,access_partition,canonical_locator)
 );
 
 source_snapshots(
@@ -2649,3 +2650,31 @@ capability-specific indexes/constraints
 ~~~
 
 Exact migration filenames are a C0/C1 implementation detail; these entities are not optional once their corresponding capability is enabled.
+
+
+### 35.10 Source access partition refinement
+
+The research cache is not globally reusable solely by URL.
+
+Interpret access_partition as:
+
+~~~text
+PUBLIC
+PROJECT:<project_id>:<credential-scope-version>
+or another explicit policy-owned partition
+~~~
+
+Rules:
+
+- anonymous public sources may deduplicate under PUBLIC;
+- authenticated/private provider results are isolated by Project/credential scope;
+- SourceSnapshot retrieval always checks the Evidence/Project authorization path;
+- a cache hit never grants new access authority.
+
+### 35.11 Capability index isolation
+
+Derived repository/vector/search index records must include Project/snapshot scope in their key/filter model.
+
+Authorization/scope filtering occurs before semantic ranking.
+
+A future shared public-dependency index is a distinct explicitly public corpus, not implicit cross-Project reuse.
