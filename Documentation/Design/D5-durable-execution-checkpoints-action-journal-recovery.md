@@ -868,3 +868,64 @@ D8 defines the operational replication interval. A recovery health alert fires w
 ### Action idempotency
 
 Where a tool supplies a stable idempotency key, the Action Journal enforces uniqueness in the action scope defined by D1. Retrying a recoverable effect reuses the existing ActionRecord whenever possible instead of creating parallel intents.
+
+
+---
+
+## 35. Recursive Audit Cycle 2 — Cancellation and Aggregate Waiting Semantics
+
+### Safe cancellation lifecycle
+
+For an active Run:
+
+~~~text
+RUNNING / PAUSE_REQUESTED / STARTING
+→ CANCEL_REQUESTED
+→ stop admitting new work
+→ settle or safely interrupt current actions
+→ CANCELLING
+→ journal/reconcile effects
+→ release leases
+→ checkpoint/finalize
+→ CANCELLED
+~~~
+
+The system must not expose `CANCELLED` while a non-interruptible external action or active paid lease still requires settlement.
+
+Queued or already-safe zero-compute Runs may cancel directly after invariant checks.
+
+### Approval and human input are Task-local first
+
+An Approval or ClarificationRequest blocks the affected Task through `task_blockers`.
+
+The entire Run enters:
+
+~~~text
+AWAITING_APPROVAL
+or
+AWAITING_INPUT
+~~~
+
+only when no useful independent Task can proceed and no active action remains.
+
+This preserves internal parallelism without holding compute unnecessarily.
+
+### Provider operations are recoverable actions
+
+Action Journal coverage includes not only model-requested tools but also trusted control services that create external effects:
+
+- provider provision/start/stop/terminate;
+- billing-affecting external API calls;
+- backup uploads;
+- deployment mutations.
+
+No subsystem is exempt from write-ahead recovery semantics merely because it is “internal control logic”.
+
+### Recovery of a surviving worker
+
+After Control Plane restart:
+
+- prior-epoch leases remain invalid;
+- worker may reconnect using D4 worker identity;
+- scheduler may grant a fresh lease after Run/Job recovery;
+- old in-flight result can never be retroactively accepted as current success unless explicit reconciliation proves it corresponds to the recovered attempt.
