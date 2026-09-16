@@ -545,3 +545,54 @@ A sixth pass closed confidentiality ambiguity around the selected Community GPU 
 5. **Derived indexes remain sensitive even when reconstructible.**
 
 This makes the economic Community baseline compatible with an explicit, auditable confidentiality decision rather than a silent assumption.
+
+
+---
+
+## 20. Specification-Driven Operating Model Review
+
+The proposed “frontier intelligence designs, Reverend builds” workflow is accepted with one refinement:
+
+> It is a **primary usage mode**, not a hard dependency on GPT/OpenAI and not a reduction of Reverend to a dumb code generator.
+
+Canonical model:
+
+~~~text
+L0  Human intent / authority
+        ↓
+L1  Design intelligence
+    human, external frontier model, or Reverend Architect
+        ↓
+    ACCEPTED SpecificationPackage
+        ↓
+L2  Reverend autonomous engineering
+    decompose • implement • build • test • debug • repair • verify
+        ↓
+L3  Deterministic reality
+    compiler • tests • benchmarks • simulations • Git/CI
+~~~
+
+Trust ordering:
+
+~~~text
+Human / Project policy
+> accepted SpecificationPackage
+> normalized Requirements / Decisions / AcceptanceCriteria
+> Reverend orchestration
+> Agent/model proposals
+> deterministic evidence decides implementation correctness
+~~~
+
+### Accepted design changes
+
+- BuildSpecification concept is formalized as versioned SpecificationPackage in D1.
+- Run can be specification-driven or objective-driven.
+- SpecificationPackage is compiled into Requirements/Decisions/AcceptanceCriteria and Task inputs rather than injected as one enormous prompt.
+- Runs pin exact specification version/hash.
+- architectural ambiguity creates EscalationArtifact instead of silent design drift.
+- external frontier models are optional escalation/design providers, subject to normal trust/cost policy.
+- objective-only Reverend autonomy remains supported.
+
+### Why this is stronger than a pure “GPT → Qwen” split
+
+It preserves the economic/product insight — use expensive intelligence where it has highest leverage and use persistent self-hosted inference for many implementation/debugging iterations — while avoiding vendor lock-in and keeping deterministic verification, Project authority and Reverend autonomy intact.
