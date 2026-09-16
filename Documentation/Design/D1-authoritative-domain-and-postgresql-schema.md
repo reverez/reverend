@@ -1791,3 +1791,129 @@ Trusted Git adapter constructs the transport per action from canonical identity 
 `human_input_requests` may declare an expected sensitivity ceiling.
 
 Accepted answers become sensitivity-labelled Artifacts. A human input containing sensitive material therefore participates in the same Context Broker trust filtering rather than bypassing it.
+
+
+---
+
+## 29. Recursive Audit Cycle 7 — Policy, Administrative Authority and Durable Control State
+
+### 29.1 System administrator roles
+
+Cloud v1 persists administrative authority explicitly:
+
+```sql
+system_roles(
+  user_id UUID NOT NULL REFERENCES users(user_id),
+  role TEXT NOT NULL CHECK (role IN ('SYSTEM_ADMIN')),
+  created_at TIMESTAMPTZ NOT NULL,
+  created_by UUID REFERENCES users(user_id),
+  revoked_at TIMESTAMPTZ,
+  PRIMARY KEY(user_id,role)
+)
+```
+
+At least one enabled SYSTEM_ADMIN must remain configured. Project ownership does not automatically imply SYSTEM_ADMIN.
+
+Administrative role changes are audited privileged actions.
+
+### 29.2 Versioned Project policy
+
+Add:
+
+```sql
+project_policies(
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  version BIGINT NOT NULL,
+  policy JSONB NOT NULL,
+  created_by UUID NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  superseded_at TIMESTAMPTZ,
+  PRIMARY KEY(project_id,version)
+)
+```
+
+Add to `projects`:
+
+```sql
+active_policy_version BIGINT NOT NULL
+```
+
+with a composite FK to `project_policies(project_id,version)` after bootstrap creation.
+
+Policy updates create a new immutable version and atomically move `active_policy_version`.
+
+Approval fingerprints reference the exact security-relevant policy version.
+
+### 29.3 Durable emergency and maintenance controls
+
+Add:
+
+```sql
+execution_controls(
+  control_id UUID PRIMARY KEY,
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('SYSTEM','PROJECT','RUN')),
+  scope_id UUID,
+  control_type TEXT NOT NULL CHECK (control_type IN ('STOP','MAINTENANCE')),
+  state TEXT NOT NULL CHECK (state IN ('ACTIVE','CLEARED')),
+  reason TEXT NOT NULL,
+  created_by UUID NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  cleared_by UUID REFERENCES users(user_id),
+  cleared_at TIMESTAMPTZ,
+  schema_version INTEGER NOT NULL DEFAULT 1
+)
+```
+
+Active controls survive process restart and are evaluated by Workflow Scheduler, Tool Broker, Secret Broker and Capacity Controller.
+
+### 29.4 Shutdown/drain inhibitors
+
+Add:
+
+```sql
+shutdown_inhibitors(
+  inhibitor_id UUID PRIMARY KEY,
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('CONTROL_HOST','COMPUTE_NODE')),
+  node_id UUID REFERENCES compute_nodes(node_id),
+  reason_code TEXT NOT NULL,
+  owner_action_id UUID REFERENCES action_records(action_id),
+  owner_job_id UUID REFERENCES jobs(job_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ,
+  cleared_at TIMESTAMPTZ,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+)
+```
+
+Examples:
+
+~~~text
+CHECKPOINT_PUBLISH
+RECOVERY_REPLICATION
+GIT_PUSH_RECONCILIATION
+DATABASE_BACKUP
+ARTIFACT_SYNC
+MODEL_DOWNLOAD
+MIGRATION
+PROVIDER_RECONCILIATION
+~~~
+
+Inhibitors are bounded and must have either an owning durable Action/Job or an expiry/watchdog path so a crash cannot permanently prevent draining.
+
+### 29.5 Run policy provenance
+
+At Run creation record:
+
+```sql
+policy_version_at_creation BIGINT NOT NULL
+```
+
+on `runs`.
+
+Runtime privileged actions still re-evaluate the current Project policy; the creation version is historical provenance, not a frozen bypass.
+
+### 29.6 RUN_EPHEMERAL secret lifecycle
+
+Secrets scoped to `RUN_EPHEMERAL` are revoked automatically when the Run reaches a terminal state, after required recovery/action reconciliation no longer depends on them.
+
+They are excluded from long-lived backups once retention no longer requires them.
