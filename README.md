@@ -7,7 +7,7 @@ Reverend is a persistent autonomous software-engineering system designed to turn
 The project is evolving from a proven local AI engineering workstation into a private two-user Cloud platform with durable project intelligence, bounded Agent Teams, elastic model compute, repository-scale context, research/browser capabilities and explicit security, recovery and cost control.
 
 > **Cloud v1 is a design target, not yet the current production implementation.**  
-> The accepted local baseline is Reverend 0.4.0. The Design phase is complete; Cloud Development begins with C0 after Design closure PR #54 lands on `main`.
+> The accepted local baseline is Reverend 0.4.0. The Cloud v1 Design phase is complete and merged; **C0 — Contract Package & Migration Skeleton** is the next Development milestone.
 
 ---
 
