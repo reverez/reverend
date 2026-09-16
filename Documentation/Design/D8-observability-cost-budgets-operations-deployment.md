@@ -1417,3 +1417,41 @@ The API reports the period start/end alongside totals so clients do not infer lo
 Token/model invocation telemetry on self-hosted GPU is observability used for optimization and attribution.
 
 It is not added as a second payable cost on top of provider PowerSession/lease charges unless a distinct paid API actually invoices by usage.
+
+
+---
+
+## 56. Recursive Audit Cycle 12 — Recovery Intent Target Operations
+
+Operational recovery health now has two independent dimensions:
+
+~~~text
+full RecoveryGeneration freshness
+external-action write-ahead availability
+~~~
+
+Status must show:
+
+- latest full off-host generation/age;
+- ACTIVE recovery targets;
+- whether at least one target can currently ACK `OFF_HOST_INTENT_ACK` actions;
+- count/age of intent deltas not yet subsumed by a later full RecoveryGeneration.
+
+An old full generation may be DEGRADED while external mutation safety remains available through current ActionIntent ACKs.
+
+Conversely, a fresh generation does not authorize a new high-risk external effect when no current durable target can ACK its intent.
+
+### Object-store recovery target
+
+The recovery-target interface supports a small encrypted object-store backend in addition to client peers.
+
+Requirements:
+
+- credentials resolved only at trusted enforcement boundary;
+- content encrypted/authenticated before upload;
+- immutable/content-addressed object naming where practical;
+- write success verified before ACK;
+- no public bucket/container;
+- lifecycle/retention must preserve objects referenced by retained generations/intents.
+
+Selecting a concrete object-store provider is an operational deployment choice, not a new authority model.
