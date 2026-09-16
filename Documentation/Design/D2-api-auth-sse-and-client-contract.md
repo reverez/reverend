@@ -1062,3 +1062,86 @@ A client timeout after request admission can safely retry the same key.
 The server does not execute the mutation twice merely because the first HTTP response was lost.
 
 Idempotency records are retained at least through the maximum supported client retry/recovery horizon for the operation class.
+
+
+---
+
+## 36. Specification Package API & Run Creation
+
+### Specification package endpoints
+
+Conceptual Cloud v1 API:
+
+~~~text
+POST /api/v1/projects/{project_id}/specifications
+GET  /api/v1/projects/{project_id}/specifications
+GET  /api/v1/specifications/{specification_id}
+POST /api/v1/specifications/{specification_id}/validate
+POST /api/v1/specifications/{specification_id}/accept
+POST /api/v1/specifications/{specification_id}/supersede
+~~~
+
+Large package content is uploaded as Artifact/Blob content rather than embedded unbounded in JSON.
+
+### Run creation
+
+POST /api/v1/runs accepts either:
+
+#### Specification-driven mode
+
+~~~json
+{
+  "project_id": "...",
+  "specification_id": "...",
+  "resource_policy": {
+    "max_run_cost_gbp": 10.0,
+    "max_run_runtime_seconds": 14400
+  }
+}
+~~~
+
+The server derives the immutable Run objective from the accepted specification and pins its exact version/hash.
+
+#### Objective-driven mode
+
+~~~json
+{
+  "project_id": "...",
+  "objective": "...",
+  "resource_policy": {
+    "max_run_cost_gbp": 10.0,
+    "max_run_runtime_seconds": 14400
+  }
+}
+~~~
+
+Objective-driven mode may first create research/design Tasks before implementation.
+
+The request may not provide both a conflicting objective and specification.
+
+### Specification acceptance
+
+Only authorized Project humans may move a package into ACCEPTED.
+
+Model/Agent output may create a DRAFT package and validation report, but cannot self-accept it.
+
+Acceptance requires:
+
+- schema/manifest validity;
+- referenced package content present;
+- no unresolved critical validation error;
+- actor authorization;
+- package hash persisted;
+- acceptance Event emitted.
+
+### Specification amendments
+
+Changing an accepted package never mutates it in place.
+
+Create a new version and preserve supersession lineage.
+
+A live Run pinned to the old version is not silently updated. A human decides whether to:
+
+- finish/cancel the current Run;
+- create a new Run on the new specification;
+- invoke an explicit scoped amendment workflow.
