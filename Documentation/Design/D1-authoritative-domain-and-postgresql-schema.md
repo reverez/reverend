@@ -926,3 +926,392 @@ At minimum Development must prove:
 ## 25. D1 Acceptance Gate
 
 D1 is implementable when C0/C1 can create PostgreSQL from empty state, run all migrations, seed two users, perform lifecycle transactions, and restore from backup without relying on current SQLite process state.
+
+
+---
+
+## 24. Recursive Architecture Hardening — Missing Tables, Keys and Cross-Object Invariants
+
+The recursive pre-development review found that several objects referenced by D2/D4/D5/D6/D7/D8 were not yet frozen in the authoritative schema. This section closes those gaps and is mandatory for Cloud v1.
+
+### 24.1 Human authentication credentials
+
+```sql
+auth_credentials(
+  credential_id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(user_id),
+  login_name TEXT NOT NULL UNIQUE,
+  credential_type TEXT NOT NULL CHECK (credential_type IN ('PASSWORD')),
+  secret_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  rotated_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  failed_attempt_count INTEGER NOT NULL DEFAULT 0,
+  locked_until TIMESTAMPTZ
+)
+```
+
+Rules:
+
+- `login_name` is normalized before uniqueness checks;
+- `secret_hash` stores Argon2id encoded output, not plaintext;
+- password credentials are never stored in the generic Secret Broker table;
+- user disable/revocation invalidates authentication regardless of credential row state.
+
+### 24.2 GitHub external identity
+
+```sql
+github_identities(
+  identity_id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(user_id),
+  github_login TEXT NOT NULL,
+  git_author_name TEXT NOT NULL,
+  git_author_email TEXT NOT NULL,
+  credential_secret_id UUID NOT NULL,
+  repository_scope JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  UNIQUE(identity_id,user_id)
+)
+```
+
+After `secrets` exists, `credential_secret_id` references `secrets(secret_id)`.
+
+The Run binding is ownership-safe:
+
+```sql
+ALTER TABLE runs
+  ADD CONSTRAINT runs_owner_membership_fk
+  FOREIGN KEY(project_id,owner_user_id)
+  REFERENCES project_members(project_id,user_id);
+
+ALTER TABLE runs
+  ADD CONSTRAINT runs_github_identity_owner_fk
+  FOREIGN KEY(github_identity_ref,owner_user_id)
+  REFERENCES github_identities(identity_id,user_id);
+```
+
+`github_identity_ref` may be NULL until an external Git action is required.
+
+### 24.3 Secret metadata and ciphertext
+
+```sql
+secrets(
+  secret_id UUID PRIMARY KEY,
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('SYSTEM','USER','PROJECT','RUN_EPHEMERAL')),
+  scope_id UUID,
+  secret_type TEXT NOT NULL,
+  encrypted_value BYTEA NOT NULL,
+  key_version INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  rotated_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+)
+```
+
+Scope ownership is validated by Secret Broker policy and explicit constraint triggers where the scope maps directly to an authoritative UUID.
+
+### 24.4 Worker bootstrap and worker sessions
+
+```sql
+worker_bootstrap_credentials(
+  bootstrap_id UUID PRIMARY KEY,
+  token_hash BYTEA NOT NULL UNIQUE,
+  provider TEXT NOT NULL,
+  expected_provider_instance_id TEXT NOT NULL,
+  intended_profile_id TEXT NOT NULL,
+  intended_trust_class TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ
+);
+
+worker_sessions(
+  worker_session_id UUID PRIMARY KEY,
+  node_id UUID NOT NULL REFERENCES compute_nodes(node_id),
+  runtime_epoch_id UUID NOT NULL,
+  token_hash BYTEA NOT NULL UNIQUE,
+  allowed_endpoints JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ
+)
+```
+
+Bootstrap token plaintext is never persisted.
+
+### 24.5 Runtime epochs and clean shutdown
+
+```sql
+runtime_epochs(
+  runtime_epoch_id UUID PRIMARY KEY,
+  started_at TIMESTAMPTZ NOT NULL,
+  ended_at TIMESTAMPTZ,
+  clean_shutdown BOOLEAN NOT NULL DEFAULT FALSE,
+  final_recovery_generation BIGINT,
+  shutdown_reason TEXT
+)
+```
+
+A new authoritative backend boot inserts a new epoch before scheduler/worker authority is granted.
+
+### 24.6 Durable pre-emption lineage
+
+Add to `runs`:
+
+```sql
+preempts_run_id UUID REFERENCES runs(run_id)
+```
+
+Rules:
+
+- a Run never pre-empts itself;
+- a Run with non-NULL `preempts_run_id` cannot itself be pre-empted in Cloud v1;
+- the pre-empted Run is placed in `RESUME_NEXT`;
+- the relation is retained after terminal completion for audit;
+- creating this relationship, pausing the old active Run and admitting the new Run is one serialized RunService operation.
+
+This is the durable backstop for `MAX_PREEMPTION_DEPTH = 1`.
+
+### 24.7 Power-session accounting
+
+```sql
+power_sessions(
+  power_session_id UUID PRIMARY KEY,
+  provider TEXT NOT NULL,
+  provider_instance_id TEXT NOT NULL,
+  node_id UUID REFERENCES compute_nodes(node_id),
+  deployment_profile_id UUID,
+  requested_start_at TIMESTAMPTZ NOT NULL,
+  provider_running_at TIMESTAMPTZ,
+  stop_requested_at TIMESTAMPTZ,
+  provider_stopped_at TIMESTAMPTZ,
+  billing_start_at TIMESTAMPTZ,
+  billing_end_at TIMESTAMPTZ,
+  rate_snapshot_id UUID REFERENCES rate_snapshots(rate_snapshot_id),
+  estimated_cost_gbp NUMERIC,
+  actual_cost_gbp NUMERIC,
+  reconciliation_state TEXT NOT NULL,
+  UNIQUE(provider,provider_instance_id,requested_start_at)
+);
+
+compute_lease_usage(
+  lease_id UUID PRIMARY KEY REFERENCES resource_leases(lease_id),
+  user_id UUID NOT NULL REFERENCES users(user_id),
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  run_id UUID NOT NULL REFERENCES runs(run_id),
+  job_id UUID NOT NULL REFERENCES jobs(job_id),
+  node_id UUID NOT NULL REFERENCES compute_nodes(node_id),
+  deployment_profile_id UUID,
+  acquired_at TIMESTAMPTZ NOT NULL,
+  released_at TIMESTAMPTZ,
+  duration_seconds NUMERIC,
+  rate_snapshot_id UUID REFERENCES rate_snapshots(rate_snapshot_id),
+  estimated_cost_gbp NUMERIC
+)
+```
+
+### 24.8 Budget reservations
+
+```sql
+budget_reservations(
+  reservation_id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(user_id),
+  run_id UUID REFERENCES runs(run_id),
+  team_id UUID,
+  task_id UUID,
+  agent_instance_id UUID,
+  job_id UUID,
+  operation_key TEXT NOT NULL,
+  reserved_gbp NUMERIC NOT NULL CHECK (reserved_gbp >= 0),
+  state TEXT NOT NULL CHECK (state IN ('ACTIVE','SETTLED','RELEASED','EXPIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  settled_cost_event_id UUID REFERENCES cost_events(cost_event_id)
+)
+```
+
+Reservation admission and parent-budget remaining balance are checked under transaction-level locking.
+
+### 24.9 Model and deployment registry
+
+Production model eligibility is durable and auditable.
+
+```sql
+model_profiles(
+  model_profile_id UUID PRIMARY KEY,
+  family TEXT NOT NULL,
+  model_name TEXT NOT NULL,
+  revision TEXT NOT NULL,
+  license_id TEXT NOT NULL,
+  capabilities JSONB NOT NULL,
+  max_advertised_context_tokens INTEGER,
+  validated_context_profiles JSONB NOT NULL DEFAULT '[]'::jsonb,
+  runtime_compatibility JSONB NOT NULL,
+  trust_eligibility JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('DISCOVERED','BENCHMARKING','ELIGIBLE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(model_name,revision)
+);
+
+deployment_profiles(
+  deployment_profile_id UUID PRIMARY KEY,
+  model_profile_id UUID NOT NULL REFERENCES model_profiles(model_profile_id),
+  profile_name TEXT NOT NULL UNIQUE,
+  runtime TEXT NOT NULL,
+  runtime_version TEXT NOT NULL,
+  quantization TEXT,
+  container_digest TEXT NOT NULL,
+  max_context_tokens INTEGER NOT NULL,
+  reasoning_policy JSONB NOT NULL,
+  hardware_requirements JSONB NOT NULL,
+  trust_class TEXT NOT NULL,
+  concurrency_policy JSONB NOT NULL,
+  batching_policy JSONB NOT NULL,
+  cost_profile JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('BENCHMARKING','ELIGIBLE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+benchmark_result_sets(
+  benchmark_result_set_id UUID PRIMARY KEY,
+  deployment_profile_id UUID NOT NULL REFERENCES deployment_profiles(deployment_profile_id),
+  reverend_revision TEXT NOT NULL,
+  specialist_versions JSONB NOT NULL,
+  context_compiler_version TEXT NOT NULL,
+  result_manifest_ref TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+)
+```
+
+Promotion/disable/retire is an audited privileged operation. Benchmark completion alone does not automatically promote a profile.
+
+### 24.10 Cost-event deduplication
+
+Add:
+
+```sql
+external_event_key TEXT
+```
+
+to `cost_events`, with a partial unique constraint over `(source, external_event_key)` where the key is non-NULL.
+
+Provider reconciliation must supply a stable external key or a deterministic locally derived reconciliation key so repeated polling cannot double-charge the ledger.
+
+### 24.11 Approval-to-Action binding
+
+Add to `approvals`:
+
+```sql
+used_action_id UUID UNIQUE
+```
+
+After `action_records` is created:
+
+```sql
+ALTER TABLE approvals
+  ADD CONSTRAINT approvals_used_action_fk
+  FOREIGN KEY(used_action_id)
+  REFERENCES action_records(action_id);
+```
+
+Approval `APPROVED → USED` and creation of the corresponding `PLANNED` ActionRecord occur in one transaction.
+
+### 24.12 Action idempotency uniqueness
+
+For non-NULL action idempotency keys:
+
+```sql
+CREATE UNIQUE INDEX action_idempotency_scope_v1
+ON action_records(run_id,tool,operation,idempotency_key)
+WHERE idempotency_key IS NOT NULL;
+```
+
+A retry reuses/reconciles the same intent rather than creating a competing one.
+
+### 24.13 Resource uniqueness and provider identity
+
+```sql
+CREATE UNIQUE INDEX resource_leases_one_active_per_job_v1
+ON resource_leases(job_id)
+WHERE state='ACTIVE';
+
+CREATE UNIQUE INDEX resource_leases_one_active_per_request_v1
+ON resource_leases(request_id)
+WHERE state='ACTIVE';
+
+CREATE UNIQUE INDEX compute_nodes_provider_instance_v1
+ON compute_nodes(provider,provider_instance_id)
+WHERE provider_instance_id IS NOT NULL;
+```
+
+Granting capacity still requires scheduler transaction locking because these indexes do not by themselves prevent aggregate CPU/RAM/VRAM overcommit.
+
+### 24.14 Artifact content exclusivity
+
+Replace the loose Artifact content check with:
+
+```sql
+CHECK (
+  (content_ref IS NOT NULL AND inline_content IS NULL)
+  OR
+  (content_ref IS NULL AND inline_content IS NOT NULL)
+)
+```
+
+An Artifact has exactly one canonical content representation.
+
+### 24.15 Same-scope relational integrity
+
+The following are mandatory DB-backed invariants:
+
+- TaskDependency endpoints belong to the same Workflow;
+- AgentInstance Task belongs to the same Run as AgentInstance;
+- AgentInstance Team, when present, belongs to the same Run;
+- Team parent Task and leader Agent, when present, belong to the same Run;
+- Artifact parent relation never crosses Project unless a future explicit import relation is introduced;
+- Job assigned_node_id, when non-NULL, references `compute_nodes(node_id)`;
+- `runs.active_checkpoint_id`, when non-NULL, references a complete checkpoint belonging to that same Run.
+
+Because several relationships are circular or tables are created later, implement these with post-create `ALTER TABLE` foreign keys and DEFERRABLE constraint triggers where necessary.
+
+### 24.16 Immutable lineage and deletion policy
+
+Normal application roles may not hard-delete:
+
+~~~text
+runs
+workflows
+tasks
+jobs
+events
+artifacts
+approvals
+action_records
+cost_events
+recovery_generations
+```
+
+Project/user lifecycle uses disable/archive state. Explicit retention maintenance may purge only after proving no active recovery, audit, provenance or BlobStore reachability depends on the records.
+
+### 24.17 Revised migration set
+
+The migration programme must now include the hardening objects:
+
+~~~text
+0001_cloud_identity.sql
+0002_projects_runs.sql
+0003_controlplane.sql
+0004_artifacts_agents.sql
+0005_security_approvals_recovery.sql
+0006_compute_worker_identity.sql
+0007_models_and_benchmarks.sql
+0008_costs_and_budget_reservations.sql
+0009_integrity_constraints.sql
+0010_indexes_and_delete_policies.sql
+```
+
+Exact file boundaries may vary, but none of the entities or invariants in this section are optional.
