@@ -1644,3 +1644,31 @@ Metrics include cache bytes by class and eviction cause.
 A retained SourceSnapshot referenced by Evidence/Decision/Requirement is a durable Blob root and is never evicted by ordinary web-cache pressure.
 
 Optional warm provider volumes must not contain untracked authoritative workspace state or Secret material.
+
+
+---
+
+## 61. Derived-Service Placement & Control-Host Sizing
+
+The original Hetzner CX33-class 4-vCPU/8-GB host remains a starting baseline, not a proof that every modernized capability fits there.
+
+Measure separately:
+
+~~~text
+PostgreSQL/WAL
+API/SSE
+scheduler/recovery
+Secret Broker
+Blob metadata
+SearXNG
+Qdrant
+repository indexes
+language servers
+research/document parsing
+~~~
+
+Authority services have reserved headroom.
+
+If derived/reconstructible services pressure that reserve, move them to a CPU service/worker before upsizing or co-locating further workload.
+
+Operational acceptance includes a sustained-load test proving API/PostgreSQL/recovery remain responsive during research/index/build activity.
