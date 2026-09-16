@@ -659,7 +659,7 @@ Initial alert-worthy conditions:
 - PostgreSQL unavailable;
 - scheduler leader absent too long;
 - RecoveryGeneration too old;
-- no recovery replica ACK beyond threshold;
+- no off-host recovery-target ACK beyond threshold;
 - repeated worker registration failure;
 - provider provisioning timeout;
 - cost reconciliation delta exceeds threshold;
@@ -718,18 +718,21 @@ Test secret restoration on an isolated replacement environment.
 
 ---
 
-## 30. Recovery Replica Monitoring
+## 30. Off-Host Recovery Monitoring
 
 Track:
 
 ~~~text
 latest complete RecoveryGeneration
-latest ACK per recovery-enabled device
+latest ACK from configured cloud/object-store recovery target
 age since acknowledged generation
-device revoked/offline state
+target credential/health state
+integrity verification state
 ~~~
 
 Planned authoritative-host shutdown gate consumes these metrics.
+
+Developer client availability is not part of recovery health.
 
 ---
 
@@ -1106,7 +1109,7 @@ immediate generation after a high-value safe boundary when practical:
 
 Implementation may optimize with incremental/WAL-aware techniques later, but user-visible recovery health is measured against the effective off-host acknowledged generation age.
 
-If no authorized recovery peer/object target acknowledges within the target:
+If the configured authorized off-host recovery target does not acknowledge within the target:
 
 - system remains operational;
 - recovery health becomes DEGRADED;
