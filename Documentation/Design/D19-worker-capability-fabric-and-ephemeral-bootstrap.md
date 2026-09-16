@@ -1,7 +1,7 @@
 # D19 — Worker Capability Fabric & Ephemeral Bootstrap
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
-> **Depends on:** A6, A10, A11, A12, D4, D5, D6, __D20__, D18  
+> **Depends on:** A6, A10, A11, A12, D4, D5, D6, D15, D18  
 > **Purpose:** Generalize compute from “CPU vs GPU inference” into capability-scoped disposable workers, and freeze the ephemeral-first RunPod bootstrap/storage model.
 
 ---
@@ -833,7 +833,7 @@ They do not wake independently to:
 - modify repositories;
 - spawn Agent Teams.
 
-Operational controllers may run housekeeping defined by __D20__/D5, but cognitive/project work remains Run-owned.
+Operational controllers may run housekeeping defined by D15/D5, but cognitive/project work remains Run-owned.
 
 ### Browser output handling
 
