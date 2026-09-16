@@ -8,7 +8,7 @@ This directory contains the Mermaid views for the Reverend Cloud v1 architecture
 - [`system-complete-mermaid-diagram.mmd`](./system-complete-mermaid-diagram.mmd) — complete render-compatible architecture map. This remains the canonical Mermaid mega-diagram.
 - [`Subsystems/`](./Subsystems/) — focused views extracted from the complete diagram so individual areas can be inspected without extreme zoom.
 
-The prose design specifications D0–D14 and accepted A12 architecture remain the semantic source of truth. D10–D14 close research/retrieval, migration, tool recovery, client UX and development-entry details without creating a second architectural authority. These diagrams are visual projections of the system contracts.
+The prose Design specifications D0–D22 and accepted A12 architecture remain the semantic source of truth. D15–D21 refine the server-era capability architecture and D22 records final pre-development closure. These diagrams are visual projections of those contracts.
 
 ## Focused subsystem views
 
@@ -51,10 +51,15 @@ Each focused file contains one numbered subsystem from the complete diagram. Cro
 | 32 | TEST / CI / ACCEPTANCE | [`32-test-ci-acceptance.mmd`](./Subsystems/32-test-ci-acceptance.mmd) |
 | 33 | A12 END-TO-END ACCEPTANCE SCENARIOS | [`33-a12-end-to-end-acceptance-scenarios.mmd`](./Subsystems/33-a12-end-to-end-acceptance-scenarios.mmd) |
 | 34 | OPERATIONAL RUNBOOKS | [`34-operational-runbooks.mmd`](./Subsystems/34-operational-runbooks.mmd) |
+| 35 | CAPABILITY FABRIC | [`35-capability-fabric.mmd`](./Subsystems/35-capability-fabric.mmd) |
+| 36 | SPECIFICATION-DRIVEN ENGINEERING | [`36-specification-driven-engineering.mmd`](./Subsystems/36-specification-driven-engineering.mmd) |
+| 37 | RESEARCH / CONTEXT INTELLIGENCE | [`37-research-context-intelligence.mmd`](./Subsystems/37-research-context-intelligence.mmd) |
 
 ## Regenerating the focused views
 
-If the complete Mermaid source changes, regenerate the subsystem projections from the repository root with:
+Subsystems 00–34 are generated from the complete Mermaid source. Subsystems 35–37 are capability-modernization overlays maintained alongside D15–D22.
+
+If the complete core Mermaid source changes, regenerate the generated subsystem projections from the repository root with:
 
 ```bash
 python3 Documentation/Design/Diagrams/generate_subsystem_diagrams.py
