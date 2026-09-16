@@ -597,3 +597,47 @@ If not:
 - require a new ContextNeed to reuse it.
 
 This prevents stale asynchronous search/index results from entering a replanned Agent context.
+
+
+---
+
+## 27. Recursive Capability Audit — Sensitivity vs Disclosure
+
+Sensitivity classification and execution disclosure are distinct.
+
+Example:
+
+~~~text
+Artifact.sensitivity = PROJECT_PRIVATE
+Project policy:
+  allow COMMUNITY_CLOUD_WORKER = true
+  allow EXTERNAL_API = false
+~~~
+
+This means Project-private material may be sent to the explicitly accepted Community worker but not to an external model API.
+
+Context Broker computes:
+
+~~~text
+item sensitivity
++ current versioned Project disclosure policy
++ requested capability
++ Worker/Deployment trust class
+→ transmission eligibility
+~~~
+
+No hard-coded assumption such as “PROJECT_PRIVATE always means Community allowed” is permitted.
+
+### Derived index confidentiality
+
+Qdrant/lexical/parser/LSP derived stores can contain private Project material.
+
+They must:
+
+- bind only to trusted local/private interfaces;
+- use Project/snapshot access filters;
+- inherit host storage protection;
+- avoid embedding Secret values where Secret Broker should be used instead;
+- support Project/archive retention cleanup/rebuild.
+
+Reconstructible does not mean non-sensitive.
