@@ -1535,3 +1535,87 @@ Operations should periodically review:
 - model repository revision/license changes.
 
 Production never auto-upgrades a model/runtime dependency merely because a newer mutable tag/revision exists.
+
+
+---
+
+## 59. Capability Fabric Observability & Economics
+
+D10–D16 add required telemetry.
+
+### Research
+
+~~~text
+search_provider_calls
+source_fetch_attempts
+browser_fetches
+source_cache_hit/miss
+source_refresh_count
+download_bytes
+evidence_claims_accepted/rejected
+research_wall_seconds
+research_cost_gbp
+~~~
+
+### Repository Intelligence
+
+~~~text
+repository_index_seconds
+files/symbols/graph_edges
+incremental_files_reindexed
+lsp_health
+repo_query_latency by strategy
+semantic_index_hit/miss
+stale_result_rejections
+~~~
+
+### Browser / CPU worker
+
+~~~text
+worker_boot_seconds
+browser_start_seconds
+build/test_seconds
+worker CPU/RAM peak
+worker billed seconds/cost
+~~~
+
+### Model cold start
+
+~~~text
+model_cache_hit/miss
+model_download_bytes
+model_download_seconds
+artifact_verification_seconds
+model_load_seconds
+runtime_warmup_seconds
+cold_start_total_seconds
+~~~
+
+### Context
+
+~~~text
+context_tokens_selected
+exact/lexical/semantic/research retrieval counts
+context_refresh_count
+omitted optional items
+compression count
+ContextManifest build latency
+~~~
+
+### Storage economics
+
+Track separately:
+
+- temporary provider disk;
+- optional persistent warm cache/volume;
+- durable Control Plane BlobStore;
+- model/download egress if billed;
+- cache benefit measured as saved startup/billable time.
+
+Persistent model cache is promoted only when measured savings exceed storage/complexity cost.
+
+### Idle/termination optimization
+
+ReverendBench may compare 5/7/10-minute or adaptive idle policy, but default remains 420 seconds until evidence changes it.
+
+Scale-to-zero means provider-confirmed compute billing ends; optional storage charges remain visible separately.
