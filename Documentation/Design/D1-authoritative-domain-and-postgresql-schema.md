@@ -1660,3 +1660,74 @@ The original schema examples used several `ON DELETE CASCADE` clauses for conven
 CASCADE remains appropriate only for non-authoritative join/cache rows whose parent deletion has already passed explicit retention maintenance.
 
 The normal application role cannot use hard deletes on authoritative lineage.
+
+
+---
+
+## 27. Recursive Audit Cycle 5 — Database Roles, Queue Fairness and Safety Accounting
+
+### Database-role separation
+
+Cloud v1 uses distinct PostgreSQL roles:
+
+~~~text
+reverend_migrator
+  DDL / migration authority
+  not used by normal application runtime
+
+reverend_app
+  bounded DML on application tables
+  no schema alteration
+  no general hard-delete on audit lineage
+
+reverend_secret_reader
+  optional minimal read-only authority required by privilege-separated Secret Broker
+  no workflow mutation
+
+reverend_backup
+  backup/read permissions only as required by backup tooling
+~~~
+
+The application runtime must not connect with owner/superuser/migration credentials.
+
+Event, CostEvent, ActionRecord and immutable catalog protections use both application services and database grants/triggers where practical.
+
+### Queue priority authority
+
+`queue_priority` is server/policy assigned.
+
+Ordinary clients cannot submit arbitrary numeric priority.
+
+Any privileged priority override is audited.
+
+### Queue starvation prevention
+
+Queue selection additionally enforces:
+
+- an existing `RESUME_NEXT` chain is serviced before a new ordinary `run-now` request may create another pre-emption;
+- a Run that itself pre-empts another Run cannot be pre-empted under Cloud v1;
+- repeated run-now requests are rate-limited/idempotent;
+- NORMAL Runs with equal policy priority retain FIFO ordering;
+- per-user queued-Run quotas prevent unbounded queue flooding.
+
+Emergency/system-administrator stop actions are not queue priority operations.
+
+### Safety recovery overrun
+
+Add CostEvent metadata/category support for:
+
+~~~text
+SAFETY_RECOVERY_OVERRUN
+~~~
+
+A hard user budget may stop new productive work, but mandatory cleanup/reconciliation needed to prevent duplicated external effects, leaked paid resources or corrupted durable state may consume a bounded configured safety reserve.
+
+Such spend is:
+
+- strictly limited;
+- separately classified;
+- auditable;
+- surfaced to operators;
+- reconciled to actual provider cost.
+
+It is never used to continue ordinary engineering work after a hard limit.
