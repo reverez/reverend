@@ -452,21 +452,17 @@ A higher hourly rate is acceptable only when total verified-task cost or mandato
 
 ---
 
-## 19. Frontier Escalation
+## 19. Frontier / External Model Extension Point
 
-Frontier-scale open models remain optional benchmark/escalation resources.
+Cloud v1 has no automatic external frontier-model API integration.
 
-Potential external API models are represented as DeploymentProfiles with:
+Frontier-scale **Reverend-controlled/open-weight** models may be benchmarked as optional local/cloud-owned escalation resources when infrastructure permits.
 
-~~~text
-trust_class = EXTERNAL_API
-~~~
+The type system may retain `EXTERNAL_API` as a future extension point, but Cloud v1 ships no required external API DeploymentProfile and Model Router does not automatically call one.
 
-Context Broker filters sensitive material before routing.
+Specifications produced manually with ChatGPT or another external reasoning tool enter through D15 user ingestion and explicit acceptance.
 
-External API escalation must never occur merely because local capacity is unavailable.
-
-Trust policy and Project policy must explicitly allow it.
+Any future external API integration requires a new accepted architecture decision, trust/cost policy, explicit credentials and ReverendBench admission.
 
 ---
 
