@@ -785,3 +785,33 @@ Do not expose development servers publicly merely so Playwright can reach them.
 The persistent host baseline is protected for authority work.
 
 If PostgreSQL/API/scheduler/recovery headroom would be violated, repository indexing, search engines, Qdrant-heavy work, browser activity and builds must move to separate CPU capacity or remain queued.
+
+
+---
+
+## 29. Recursive Capability Audit — Task-Scoped TestEndpoint Authentication
+
+An opaque route reference alone is not authorization.
+
+TestEndpoint activation creates a short-lived, lease-bound connection capability containing:
+
+~~~text
+test_endpoint_id
+producer Job / ResourceLease
+consumer Browser Job / ResourceLease
+allowed protocol/port/path scope
+expiry
+random connection credential or mutually authenticated channel identity
+~~~
+
+Rules:
+
+- route is private/non-public;
+- endpoint accepts only the bound Browser Worker identity/credential;
+- Browser Worker can reach only the declared test service, not arbitrary producer-worker ports;
+- credential is not embedded in browser-visible page source or durable logs;
+- producer/consumer lease revocation immediately invalidates access;
+- redirects from the test app to non-allowlisted private endpoints are blocked;
+- TestEndpoint cannot outlive the creating Run/Jobs.
+
+Frontend tests requiring user login use explicit test-only accounts/secrets scoped to the ephemeral test environment. Real user sessions are not copied into the Browser Worker by default.
