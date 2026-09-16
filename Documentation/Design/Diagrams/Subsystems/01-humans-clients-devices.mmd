@@ -45,31 +45,27 @@ U_B["Developer B<br/>authenticated human"]:::human
 
 subgraph CL_A["Developer A devices"]
 direction LR
-A_GUI["Browser GUI"]:::client
+A_GUI["ChatGPT-style Browser GUI<br/>CHAT • PROJECT • RUN • ARTIFACTS • STUDIO"]:::client
 A_CLI["CLI"]:::client
 A_IDE["IDE integration"]:::client
-A_REC["Recovery-enabled client<br/>encrypted recovery peer"]:::client
 end
 
 subgraph CL_B["Developer B devices"]
 direction LR
-B_GUI["Browser GUI"]:::client
+B_GUI["ChatGPT-style Browser GUI<br/>CHAT • PROJECT • RUN • ARTIFACTS • STUDIO"]:::client
 B_CLI["CLI"]:::client
 B_IDE["IDE integration"]:::client
-B_REC["Recovery-enabled client<br/>encrypted recovery peer"]:::client
 end
 
 U_A --> A_GUI
 U_A --> A_CLI
 U_A --> A_IDE
-U_A --> A_REC
 
 U_B --> B_GUI
 U_B --> B_CLI
 U_B --> B_IDE
-U_B --> B_REC
 
-CLIENT_RULE["Client responsibility<br/>presentation • auth session • submit commands • approvals • display state<br/><b>never authoritative for Run/workflow/queue/secrets</b>"]:::client
+CLIENT_RULE["Cloud-only client responsibility<br/>presentation • auth session • chat/uploads • approvals • display state<br/><b>no required inference/build/index/media/recovery compute; never authoritative</b>"]:::client
 
 A_GUI --> CLIENT_RULE
 B_GUI --> CLIENT_RULE
