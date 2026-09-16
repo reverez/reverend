@@ -1179,3 +1179,20 @@ Mandatory tests:
 - Run checkpoint uses per-Run cursor and ignores unrelated system Actions;
 - RecoveryGeneration global watermark detects an unresolved post-backup provider Action;
 - system UNKNOWN action that risks duplicate paid resource blocks productive readiness until reconciled.
+
+
+---
+
+## 45. Recursive Audit Cycle 11 — Bootstrap and Git-TOCTOU Tests
+
+Mandatory tests:
+
+- Project creation commits creator membership + initial ProjectPolicy + active-policy FK atomically;
+- failed policy bootstrap leaves no visible partial Project;
+- invalid SYSTEM/PROJECT/RUN execution-control scope is rejected;
+- invalid Secret polymorphic scope is rejected;
+- CONTROL_HOST/COMPUTE_NODE inhibitor scope mismatch is rejected;
+- protected Git approval becomes stale if remote target HEAD moves before execution;
+- force-like operation without expected-head lease/precondition is rejected;
+- credential-bearing Git/RunPod request never follows authorization across an unexpected origin redirect;
+- crash/recovery after protected Git action reconciles exact remote commit/ref before retry.
