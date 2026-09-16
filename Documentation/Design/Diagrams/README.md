@@ -8,7 +8,7 @@ This directory contains the Mermaid views for the Reverend Cloud v1 architecture
 - [`system-complete-mermaid-diagram.mmd`](./system-complete-mermaid-diagram.mmd) — complete render-compatible architecture map. This remains the canonical Mermaid mega-diagram.
 - [`Subsystems/`](./Subsystems/) — focused views extracted from the complete diagram so individual areas can be inspected without extreme zoom.
 
-The prose design specifications D0–D9 and accepted A12 architecture remain the semantic source of truth. These diagrams are visual projections of those contracts.
+The prose design specifications D0–D14 and accepted A12 architecture remain the semantic source of truth. D10–D14 close research/retrieval, migration, tool recovery, client UX and development-entry details without creating a second architectural authority. These diagrams are visual projections of the system contracts.
 
 ## Focused subsystem views
 
