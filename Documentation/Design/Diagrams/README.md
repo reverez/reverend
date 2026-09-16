@@ -8,7 +8,7 @@ This directory contains the Mermaid views for the Reverend Cloud v1 architecture
 - [`system-complete-mermaid-diagram.mmd`](./system-complete-mermaid-diagram.mmd) — complete render-compatible architecture map. This remains the canonical Mermaid mega-diagram.
 - [`Subsystems/`](./Subsystems/) — focused views extracted from the complete diagram so individual areas can be inspected without extreme zoom.
 
-The prose design specifications D0–D14 and accepted A12 architecture remain the semantic source of truth. D10–D14 close research/retrieval, migration, tool recovery, client UX and development-entry details without creating a second architectural authority. These diagrams are visual projections of the system contracts.
+The prose design specifications D0–D16 and accepted A12 architecture remain the semantic source of truth. D10–D14 close research/retrieval, migration, tool recovery, client UX and development-entry details without creating a second architectural authority. These diagrams are visual projections of the system contracts.
 
 ## Focused subsystem views
 
@@ -65,3 +65,13 @@ Then review the generated diff before committing.
 ## Viewing
 
 Open any `.mmd` file in a Mermaid-capable editor/viewer. For normal architecture work, start with `00-system-overview.mmd` and open only the subsystem you need. Use the complete diagram when checking cross-system relationships.
+
+
+## Product-extension views
+
+The following hand-maintained focused views capture D15/D16 additions that were accepted after the original generated D0–D14 subsystem set:
+
+- [Conversation, Specification & Priority Handoff](./Subsystems/35-conversation-specification-priority-handoff.mmd)
+- [Developer Media & Asset Studio](./Subsystems/36-developer-media-asset-studio.mmd)
+
+These are semantic projections of D15/D16 and ADR-001..003. The generator for the original numbered subsystem projections does not currently synthesize these two extension views.
