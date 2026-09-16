@@ -910,3 +910,49 @@ This repository identity is included in Approval/action fingerprints where the t
 A bounded local sandbox is a separate execution boundary, not an excuse to expose Control Plane credentials.
 
 It receives neither PostgreSQL credentials nor the Secret Broker socket/key and runs under the D4 CPU-execution limits.
+
+
+---
+
+## 39. Recursive Audit Cycle 4 — Recoverable Keys and Independent Secret Authorization
+
+### Key envelopes
+
+Secret Broker's S-DEK and recovery-integrity private material are backed up only as encrypted key envelopes addressed to authorized recovery recipient public keys (and optionally an operator offline recovery key).
+
+Recovery clients store encrypted envelopes; they never receive a plaintext copy merely because they are replica targets.
+
+Private recovery credentials should use OS-protected key storage where available.
+
+### Secret Broker revalidates authoritative scope
+
+For credential-bearing operations, the privilege-separated helper does not trust a caller-supplied “owner/project approved” boolean.
+
+For each supported typed operation it independently validates the minimum authoritative facts needed, using a narrowly scoped read path/service assertion:
+
+- secret exists and is not revoked;
+- secret type/scope matches the adapter operation;
+- Run owner matches USER-scoped secret owner;
+- Project/Run target matches scope;
+- required Approval is present/valid when applicable;
+- emergency/global policy does not prohibit the operation.
+
+The general app supplies identifiers; the helper derives/revalidates authority.
+
+### No generic secret-export API
+
+Cloud v1 exposes no generic “give me plaintext for secret ID” operation to ordinary application modules.
+
+Any exceptional raw resolution path is:
+
+- allowlisted by adapter type;
+- non-model/non-sandbox;
+- metadata-audited;
+- short-lived in memory;
+- covered by a specific architecture/security test.
+
+### Recovery credential revocation
+
+Revoking a recovery Device stops future RecoveryGeneration envelopes/replication to that device.
+
+Previously stored generations cannot be cryptographically recalled, so device-loss response includes rotating recovery recipient sets and producing a new generation under the new set. Security documentation must state this residual risk explicitly.
