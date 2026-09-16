@@ -924,7 +924,7 @@ Until then, README must describe Cloud v1 as Design/Development target, not impl
 
 Before opening C0 branch:
 
-- [x] Design docs D0–D16 plus ADR framework merged to main.
+- [x] Design docs D0–D17 plus ADR framework merged to main.
 - [x] README points to Design index.
 - [ ] main is clean/stable.
 - [ ] current Python suite run and result recorded.
@@ -1373,3 +1373,48 @@ E2E-30 no automatic external frontier API dependency
 ~~~
 
 Media support must not delay the Control Plane/security/recovery foundation. The engineering system remains the primary product.
+
+
+---
+
+## 2026-09-16 D17 Programme Extension
+
+### C0 additions
+
+- ModelArtifactManifest contract;
+- HydrationPolicy contract;
+- model startup/failure enums;
+- hydration metrics/cost fields.
+
+### C7 model hydration additions
+
+Implement before declaring the Qwen/vLLM production profile ready:
+
+1. empty-worker cold hydration fixture;
+2. exact upstream pinned-revision download;
+3. staged transfer + integrity verification + atomic verified snapshot;
+4. bounded hydration retry/timeout;
+5. vLLM load + smoke health;
+6. resident model reuse on compatible live worker;
+7. worker termination and full reconstruction on replacement worker;
+8. hydration cost/latency measurement;
+9. persistent-cache economics observation.
+
+Persistent paid model storage is **not** required for C7 baseline acceptance.
+
+### C8 additions
+
+- show provisioning/hydration/loading progress;
+- expose cold-start cost;
+- expose persistent-cache recommendation only when supported by measured evidence.
+
+### C9 additions
+
+Acceptance must prove:
+
+- no connected client is required to hydrate a model;
+- no model weights are required on the Control Plane host;
+- source/revision/hash failure blocks READY;
+- failed hydration releases expensive capacity within bounded policy;
+- worker loss is recoverable by rehydration;
+- cache remains disabled until explicit operator enablement.
