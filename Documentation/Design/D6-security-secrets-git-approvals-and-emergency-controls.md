@@ -1046,3 +1046,47 @@ A scanner match may raise sensitivity/block transmission; scanner absence may ne
 Audit/Event/SSE construction uses typed allowlists from D0.
 
 Redaction alone is not considered sufficient protection for arbitrary model/tool output.
+
+
+---
+
+## 42. Recursive Audit Cycle 7 — Administrative Authority and Durable Policy
+
+### SYSTEM_ADMIN is explicit
+
+SYSTEM_ADMIN comes from D1 `system_roles`, not from:
+
+- being the first configured user;
+- being a Project owner;
+- environment-variable username matching;
+- client claims.
+
+At least one active admin must remain to avoid administrative lockout.
+
+### Project policy is versioned
+
+Security-relevant Project rules are immutable versions in `project_policies`.
+
+Tool/Secret/Approval decisions read the current version at execution time.
+
+Approval fingerprints include the relevant version so a policy change can invalidate stale authority rather than silently grandfather it.
+
+### Emergency controls persist
+
+STOP_RUN / STOP_PROJECT / STOP_GLOBAL and maintenance state are D1 durable `execution_controls`.
+
+Restarting Reverend does not clear them.
+
+Clearing a control is a separate authenticated audited action.
+
+### Recovery-safe session policy
+
+After full disaster recovery, restored human sessions are revoked before service readiness.
+
+A session token from an older backup is never accepted as proof that the human is still authorized.
+
+### Admin bootstrap
+
+Initial two-user/SystemAdmin creation is an explicit local operator bootstrap step performed before remote service exposure.
+
+Bootstrap credentials are not accepted from arbitrary remote request bodies and are removed/disabled after initial provisioning.
