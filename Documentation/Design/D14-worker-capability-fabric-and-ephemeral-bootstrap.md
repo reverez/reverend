@@ -658,3 +658,66 @@ MODEL_GPU Task cannot land on browser/CPU-only worker.
 ## 26. Exit Condition
 
 The worker fabric is ready when Reverend can reconstruct the exact admitted environment on an empty compatible worker, execute a typed capability, externalize all unique progress and safely destroy the worker with no correctness dependency on provider-local disk.
+
+
+---
+
+## 27. Recursive Capability Audit — Capability Attestation & Artifact Delivery
+
+### Capability advertisement is not self-authority
+
+Effective worker capability is the intersection of:
+
+~~~text
+trusted WorkerProfile expected capability
+provider metadata
+worker probes
+functional capability smoke
+policy/trust class
+~~~
+
+A worker cannot gain a capability by advertising a string.
+
+### Capability-specific health
+
+READY is capability-relative.
+
+Examples:
+
+~~~text
+MODEL_GPU
+  runtime health + exact DeploymentProfile loaded + inference smoke
+
+CPU_BUILD
+  sandbox + toolchain health + resource limits
+
+BROWSER
+  pinned browser/runtime + network interception + DOM/screenshot smoke
+
+REPOSITORY_LSP
+  pinned language server + workspace isolation + protocol smoke
+~~~
+
+Scheduler only places a Job against the capability whose health passed.
+
+### Artifact delivery
+
+Workers receive Job-scoped Blob capabilities, not durable storage paths.
+
+Large input/output transfer is hash-verified and bounded.
+
+A Browser or CPU worker cannot enumerate unrelated BlobStore content.
+
+### Warm-volume contamination
+
+Optional provider warm volumes are cache only and may survive between worker instances.
+
+Before reuse:
+
+- identify expected cache namespace/profile;
+- never store plaintext Secret material;
+- never trust workspace/project files from a previous Run as authority;
+- validate cached model/runtime artifacts by digest;
+- clear/quarantine unknown content.
+
+Project workspace data should default to ephemeral container/worktree state rather than shared warm cache.
