@@ -946,3 +946,93 @@ A11 is complete because the architecture now defines:
 ## Frozen A11 Invariant
 
 > Reverend's durable authority stays on inexpensive persistent infrastructure; expensive compute is disposable, attributable and present only when admitted work justifies it. Every material charge is explainable through immutable provider/resource events and explicit shared-cost policy, and deployment profiles are promoted by verified engineering value per pound rather than by GPU prestige or headline benchmark score.
+
+
+---
+
+## Post-Analysis Refinement — Ephemeral Storage Economics
+
+> **Refinement status:** Accepted by Design D18/D19/D21.
+
+The A100 baseline remains the quality/reference starting profile.
+
+The economic model is refined so provider-local persistent storage is never assumed to be free or required.
+
+### Default lifecycle economics
+
+~~~text
+no GPU work
+→ GPU worker ABSENT
+→ GPU compute charge = 0
+
+GPU work arrives
+→ provision ephemeral worker
+→ reconstruct runtime/model
+→ execute
+
+work ends
+→ idle grace
+→ durability gate
+→ terminate by default
+~~~
+
+A stopped/warm worker or retained volume may still cost money; those charges are separately visible.
+
+### Storage classes
+
+~~~text
+Control Plane durable storage
+  shared fixed cost
+
+BlobStore / backups
+  durable cost
+
+ephemeral worker disk
+  PowerSession/provider lifecycle cost
+
+optional warm volume/model cache
+  storage optimization cost
+
+model download/egress
+  recorded when provider bills it
+~~~
+
+### Cache promotion criterion
+
+Persistent cache is adopted only when measured:
+
+~~~text
+saved startup + download + billable runtime value
+>
+persistent storage + operational complexity
+~~~
+
+ReverendBench D21 evaluates this from real cold-start/cache-hit data.
+
+### PowerSession refinement
+
+PowerSession should span:
+
+~~~text
+provision request
+→ provider billing start
+→ boot
+→ runtime/model load
+→ attributable leases
+→ idle grace
+→ drain
+→ provider billing end
+~~~
+
+This allows startup/load/idle overhead to be distinguished from useful lease time.
+
+### Baseline storage target
+
+The first RunPod A100 profile may start with approximately:
+
+~~~text
+200 GB temporary container disk
+optional 10 GB warm cache volume
+~~~
+
+but these are configurable deployment values and do not affect correctness.

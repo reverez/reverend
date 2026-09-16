@@ -1,0 +1,679 @@
+# D22 — Pre-Development Architecture Closure
+
+> **Status:** DESIGN COMPLETE — APPROVED FOR C0 CONTRACT DEVELOPMENT  
+> **Date:** 2026-09-16  
+> **Depends on:** A12, D0–D21  
+> **Purpose:** Reconcile the recursive hardening audit, ephemeral-worker refinement and capability modernization into one final pre-development gate.
+
+---
+
+## 1. Closure Statement
+
+Reverend's pre-development architecture has now undergone three layers:
+
+~~~text
+A0–A12
+Architecture Analysis
+
+D0–D9
+Concrete Cloud Design
+
+recursive hardening + D15–D21
+failure/safety/capability modernization
+~~~
+
+The implementation target is no longer “the local Reverend running on a bigger computer”.
+
+It is:
+
+> **a persistent autonomous engineering organization with server-authoritative durable state, Project intelligence, bounded dynamic Agent Teams and replaceable capability workers.**
+
+---
+
+## 2. Final Logical Architecture
+
+~~~text
+Users
+  │
+Thin clients
+  │
+Authenticated API/SSE
+  │
+Persistent Control Plane
+  ├── PostgreSQL authority
+  ├── Artifact / Blob / Git durability
+  ├── Project / Run / Workflow / Task / Job
+  ├── Executive Orchestrator
+  ├── Agent / Team runtime
+  ├── Context Broker
+  ├── Research Fabric
+  ├── Repository Intelligence
+  ├── Memory / Evidence
+  ├── Tool / Policy / Secret Brokers
+  ├── Workflow Scheduler
+  ├── Compute Scheduler
+  ├── Capacity Controller
+  ├── Model Registry / Router
+  ├── Cost / Observability
+  └── Recovery
+       │
+       ▼
+Replaceable Capability Workers
+  ├── CPU build/test/index
+  ├── Browser research/test
+  ├── Model GPU
+  ├── accelerated scientific compute
+  └── media/asset GPU
+~~~
+
+---
+
+## 3. Persistent Authority vs Derived Capability
+
+### Persistent authority
+
+~~~text
+PostgreSQL
+Git authoritative/recovery refs
+durable BlobStore Artifacts
+Action Journal
+RunCheckpoints / RecoveryGeneration
+Requirements / Decisions / Memory
+Evidence snapshots referenced by retained Evidence
+cost/audit state
+~~~
+
+### Replaceable / derived
+
+~~~text
+Agent process state
+models
+workers
+browser profiles
+Qdrant indexes
+Tree-sitter indexes
+LSP sessions
+model weights
+KV/prefix cache
+build caches
+temporary worktrees
+web cache
+provider instances
+~~~
+
+Deleting all workers/caches must not delete the Project.
+
+---
+
+## 4. Capability Modernization Decisions
+
+### Research
+
+Accepted:
+
+~~~text
+SearchProvider
++ structured provider APIs
++ restricted HTTP
++ browser escalation
++ SourceRegistry/SourceSnapshot
++ EvidenceClaim/EvidencePack
+~~~
+
+Current SearXNG/Brave/fetch implementation is migrated, not discarded.
+
+### Repository intelligence
+
+Accepted:
+
+~~~text
+current Python codeintel
++ versioned RepositorySnapshot
++ Tree-sitter multi-language structural layer
++ LSP/type-service adapters
++ dependency/test/interface graph
++ semantic fallback
+~~~
+
+### Model fabric
+
+Accepted:
+
+~~~text
+one baseline workhorse first
+dynamic ModelRequirement routing
+ephemeral on-demand weights
+vLLM optimization only after measurement
+coding/small/verifier profiles added by benchmark evidence
+~~~
+
+### Worker fabric
+
+Accepted mandatory core profiles:
+
+~~~text
+bounded control-host sandbox
+CPU build/test worker path
+Browser Worker
+Model GPU worker
+~~~
+
+Interfaces reserved for:
+
+~~~text
+accelerated scientific compute
+media/asset GPU
+~~~
+
+### Context
+
+Accepted:
+
+~~~text
+authority/exact first
+semantic later
+web only for missing/stale information
+iterative ContextRequest
+typed ContextManifest
+~~~
+
+### Optimization
+
+Accepted:
+
+~~~text
+ReverendBench v2
+whole-organization comparisons
+GBP / verified successful engineering Task
+~~~
+
+---
+
+## 5. Ephemeral GPU Freeze
+
+Default model GPU worker:
+
+~~~text
+provider:
+  RunPod Community baseline
+
+GPU:
+  A100 SXM 80 GB baseline
+
+runtime:
+  vLLM
+
+workhorse:
+  Qwen3.8-27B baseline
+
+context:
+  64K Reverend profile
+
+storage:
+  approximately 200 GB temporary container target
+  optional approximately 10 GB warm cache target
+  no authoritative provider-local state
+
+lifecycle:
+  zero → provision → bootstrap → load → READY
+  → work → idle grace → drain → durability gate → terminate
+~~~
+
+Exact capacities/prices remain deployment configuration.
+
+Correctness must not depend on persistent RunPod storage.
+
+---
+
+## 6. Canonical Knowledge Acquisition
+
+When an Agent needs context:
+
+~~~text
+Context Broker
+│
+├── PostgreSQL authoritative Project state
+├── Git / Repository Intelligence
+├── retained Artifacts/Evidence
+├── Project Memory
+├── derived lexical/vector indexes
+└── Research Fabric
+     ├── search
+     ├── structured APIs
+     ├── restricted HTTP
+     └── browser
+~~~
+
+Reverend therefore uses both persistent/local Project intelligence and on-demand external acquisition.
+
+It does not continuously scrape the internet into one giant database.
+
+---
+
+## 7. Revised Development Mapping
+
+The original C0–C9 programme remains the outer sequence.
+
+### C0 — Contracts
+
+Add:
+
+~~~text
+CapabilitySpec
+WorkerProfile
+StorageProfile
+BootstrapSpec
+ResearchRequest/SourceSnapshot/EvidenceClaim
+RepositorySnapshot/RepositoryQuery
+ContextNeed
+benchmark capability metadata
+~~~
+
+### C1 — Persistence
+
+Add source/evidence/repository-index metadata and durable BlobStore retention rules.
+
+### C2 — API
+
+Expose bounded research/repository/capability status only where UI needs it.
+
+### C3 — Run convergence
+
+No material change.
+
+### C4 — Cognitive + Knowledge Runtime
+
+Implement:
+
+~~~text
+Agent/Team
+Context Broker
+Repository Intelligence facade
+Research Fabric facade
+Memory/Evidence integration
+typed ContextRequest
+~~~
+
+### C5 — Security
+
+Apply:
+
+~~~text
+network/SSRF policy
+browser policy
+repository index isolation
+source prompt-injection boundary
+sensitivity-aware placement
+~~~
+
+### C6 — Durability
+
+Ensure retained Evidence/workspace/capability outputs survive worker loss.
+
+### C7 — Capability Execution Fabric
+
+Sub-order:
+
+~~~text
+C7A fake provider/worker protocol
+C7B CPU worker
+C7C Browser Worker
+C7D RunPod ephemeral Model GPU
+C7E vLLM + baseline model
+C7F cold-start/cache/drain/termination
+C7G capability-worker loss/replacement
+~~~
+
+CPU/browser order may move around GPU integration if contracts remain stable.
+
+### C8 — Economics / Operations / Optimization
+
+Add:
+
+- source/cache/storage accounting;
+- cold-start/download metrics;
+- Research/Browser cost;
+- ReverendBench v2 registry/reporting;
+- idle/cache optimization.
+
+### C9 — Full Acceptance
+
+Exercise:
+
+- two-user authority;
+- Research Fabric;
+- repository intelligence;
+- context integrity;
+- browser worker;
+- CPU worker;
+- zero-to-GPU-to-zero lifecycle;
+- worker loss/recovery;
+- benchmark/verification gates.
+
+---
+
+## 8. Development Non-Goals
+
+Do not block Cloud v1 core on:
+
+- Kubernetes;
+- many simultaneous top-level Runs;
+- permanent multi-GPU cluster;
+- every simulation engine;
+- every media generator;
+- dozens of production LLMs;
+- a learned scheduler/router;
+- indiscriminate open-web crawling;
+- a universal knowledge-graph database.
+
+Interfaces should allow these later.
+
+---
+
+## 9. Remaining Non-Blocking Choices
+
+Development/benchmark evidence may choose:
+
+- exact CPU worker hosting/provider;
+- Qdrant deployment mode;
+- first Tree-sitter language set;
+- exact LSP versions/adapters;
+- exact browser worker hosting profile;
+- optional object-store vendor;
+- model-cache persistence economics;
+- secondary/coding/verifier model winners;
+- 48 GB cost-down winner;
+- final idle-grace policy;
+- exact source freshness TTLs.
+
+Interfaces and safety constraints are frozen.
+
+---
+
+## 10. Architecture Blocker Definition
+
+A blocker is a known issue that forces Development to invent or contradict architecture around:
+
+- authority;
+- identity;
+- security/trust;
+- durability/recovery;
+- side effects;
+- worker/provider lifecycle;
+- Project knowledge/provenance;
+- model/context semantics;
+- cost attribution.
+
+Implementation details that vary behind frozen interfaces are not blockers.
+
+---
+
+## 11. Required Pre-C0 Checklist
+
+Design-closure disposition:
+
+- [x] D0–D22 complete and staged for merge through Design-closure PR #54;
+- [x] Design index rebuilt around the final D0–D22 authority order;
+- [x] A10–A12 reconciled with persistent-Control-Plane / disposable-worker execution;
+- [x] D4/D7/D8/D9 reference the final capability documents;
+- [x] system overview and focused diagrams include Specification, Research, Repository and Worker Capability Fabrics;
+- [x] README reflects the final architecture and current-vs-future implementation boundary;
+- [x] Development issue #55 references the canonical Design inputs for C0;
+- [x] no secret-like provider/GitHub/Hugging-Face credential material was found in the changed Design/README set during closure scan;
+- [x] canonical local Markdown links across README, D0–D22 and Design support indexes resolve to repository targets;
+- [x] Design PR #54 is mergeable against current main.
+
+CI infrastructure note:
+
+- GitHub Actions workflow run `35093540967` was attempted twice for PR #54.
+- Both attempts failed **before any workflow step executed**.
+- The GitHub job payload reported `runner_id = 0`, an empty runner name and `steps = []`.
+- This is treated as runner/account/infrastructure unavailability, not a repository test failure.
+- Issue #56 tracks restoration of CI runner availability.
+- **No runtime-changing C0 branch may merge until the normal Python unit workflow is again allocated a runner and passes.**
+
+The Design phase is therefore allowed to close under this narrow documentation-only CI infrastructure waiver. The waiver does not carry into Development code.
+
+---
+
+## 12. Final Pre-Development Invariants
+
+1. one authoritative workflow state;
+2. immutable human/Run ownership;
+3. models propose, trusted code executes;
+4. durable state outlives compute;
+5. zero GPU is healthy;
+6. worker caches are never authority;
+7. external evidence is provenance-bound and untrusted;
+8. repository intelligence is snapshot-bound and derived;
+9. exact/authority retrieval precedes fuzzy retrieval;
+10. context is selected, not dumped;
+11. Teams use minimum sufficient parallelism;
+12. privileged side effects are journalled/recoverable;
+13. secrets remain at privilege boundaries;
+14. Community compute is lower trust;
+15. deterministic verification outranks model claims;
+16. costs derive from durable resource/provider lineage;
+17. optimization is benchmark-driven;
+18. new capabilities fit common worker/tool/artifact contracts instead of creating new authority planes.
+
+---
+
+## 13. Exit Condition
+
+Development may enter C0 when documentation reflects D15–D22 consistently and a final documentation/CI pass finds no known unresolved Cloud-v1-blocking architecture contradiction.
+
+This means **zero known blockers after repeated review**, not a claim that implementation can never reveal another defect.
+
+
+---
+
+## 14. Capability Modernization Recursive Audit Findings
+
+A fresh pass over D15–D21 identified and closed the following design gaps before Development:
+
+1. **Search-query exfiltration:** private repository facts could leak through externally submitted queries. D16/D20 now require QueryDisclosurePolicy.
+2. **Browser subresource SSRF:** protecting only top-level URLs is insufficient. Browser policy now covers every subresource, redirect, WebSocket and service worker.
+3. **Private source-cache cross-scope reuse:** canonical URL alone is not a safe cache key for future authenticated providers. Source cache now has access partitions.
+4. **Tree-sitter/LSP supply chain:** repository-defined parser/server plugins could become code execution. Only pinned Reverend-approved adapters are permitted.
+5. **Vector index isolation:** filtering unauthorized Project results after global ranking is insufficient. Project scope is applied before ranking.
+6. **Community-worker model credentials:** private model registry tokens must not be placed on lower-trust workers. Use public artifacts, pre-stage, short-lived object capabilities or stronger trust.
+7. **Warm-volume contamination:** provider-local cache reuse may carry stale Project data. Warm storage is cache-only, validated and not a workspace authority.
+8. **Model baseline fit assumption:** the accepted A100/Qwen/64K profile remains a target until C7 live fit/throughput validation promotes it.
+9. **Evidence/cache retention confusion:** durable source snapshots referenced by evidence are protected from ordinary cache GC.
+
+After these patches, these issues are no longer open architecture blockers.
+
+
+---
+
+## 15. Capability Modernization Recursive Audit — Cycle 2
+
+A second pass found and closed additional laptop-to-server gaps:
+
+1. **Unreproducible build environment:** workers can no longer assume developer-laptop toolchains; D19 adds ExecutionEnvironmentSpec and bounded dependency acquisition.
+2. **Browser policy only at application layer:** D16/D6 now require OS/network egress enforcement as a second boundary.
+3. **Frontend browser connectivity:** D19 defines task-scoped private TestEndpoint instead of publicly exposing development servers.
+4. **Control host overload:** 4-vCPU/8-GB remains a baseline, but derived services must move off-host/queue when authority-service reserves would be violated.
+
+These are now part of the C7/C8 acceptance surface.
+
+
+---
+
+## 16. Capability Modernization Recursive Audit — Cycle 3
+
+A third pass closed asynchronous/distributed capability races:
+
+1. **Late capability results:** D3/D20 now require Job-attempt + snapshot/policy revalidation before current-state use.
+2. **Browser TestEndpoint authorization:** D19/D1 now require lease-bound authenticated private routes; opaque routing alone is not authority.
+3. **Frontend credential bleed:** browser tests use explicit test-only credentials by default rather than copying real human sessions.
+
+These prevent stale research/index/browser/model results from mutating newer execution state.
+
+
+---
+
+## 17. Capability Modernization Recursive Audit — Cycle 4
+
+A fourth pass closed persistent-server behavior that could otherwise create hidden authority or data exposure:
+
+1. **Background autonomous work:** D15/D19/D8 now forbid unowned background research/Agents; only operational housekeeping runs outside normal Run authority.
+2. **Private research credential confusion:** D16/D6 separate authenticated research capabilities from Run-owner Git credentials.
+3. **Browser Artifact confidentiality:** screenshots/traces/downloads inherit Project/source sensitivity and use sanitized bounded retention.
+4. **Unbounded web mirroring:** source retention is policy/evidence driven; cache is not a permanent mirror.
+
+No new Project truth is created merely because the Control Plane is always online.
+
+
+---
+
+## 18. Capability Modernization Recursive Audit — Cycle 5
+
+A fifth pass closed additional production-scale and tool-boundary gaps:
+
+1. **Credentialed SearchProvider secrets:** credential-bearing search is now a trusted Secret-Broker-backed adapter operation.
+2. **Research fanout abuse:** per-origin/provider rate/concurrency policy is explicit.
+3. **Evidence quote fabrication:** EvidenceClaim spans/quotes must structurally resolve against the exact retained SourceSnapshot.
+4. **LSP configuration escape:** compiler/plugin/driver/plugin settings are sanitized; richer execution moves to explicit CPU capability.
+5. **Uncommitted repository snapshot durability:** retained repository context cannot outlive the only reconstructible copy of its source state.
+6. **Large Artifact bottleneck:** BlobStore now permits object-backed, object-scoped direct upload so future simulation/media output does not depend on Control Plane RAM/local disk.
+7. **Internal resource cost confusion:** measured CPU usage is distinguished from actual payable provider cost.
+
+These close the main remaining capability-layer architecture gaps found in the fifth pass.
+
+
+---
+
+## 19. Capability Modernization Recursive Audit — Cycle 6
+
+A sixth pass closed confidentiality ambiguity around the selected Community GPU baseline:
+
+1. **Sensitivity was not enough to determine placement.** D1/D6/D20 now separate data sensitivity from versioned Project disclosure policy.
+2. **Community use is explicit.** Safe default rejects PROJECT_PRIVATE until Project owner opts in; ordinary engineering deployments can use an explicit Community preset.
+3. **External API remains separate.** Community opt-in never implies permission to send the same data to an external model API.
+4. **Inference logging:** model runtime prompt/body logging is disabled by default.
+5. **Derived indexes remain sensitive even when reconstructible.**
+
+This makes the economic Community baseline compatible with an explicit, auditable confidentiality decision rather than a silent assumption.
+
+
+---
+
+## 20. Specification-Driven Operating Model Review
+
+The proposed “frontier intelligence designs, Reverend builds” workflow is accepted with one refinement:
+
+> It is a **primary usage mode**, not a hard dependency on GPT/OpenAI and not a reduction of Reverend to a dumb code generator.
+
+Canonical model:
+
+~~~text
+L0  Human intent / authority
+        ↓
+L1  Design intelligence
+    human, external frontier model, or Reverend Architect
+        ↓
+    ACCEPTED SpecificationPackage
+        ↓
+L2  Reverend autonomous engineering
+    decompose • implement • build • test • debug • repair • verify
+        ↓
+L3  Deterministic reality
+    compiler • tests • benchmarks • simulations • Git/CI
+~~~
+
+Trust ordering:
+
+~~~text
+Human / Project policy
+> accepted SpecificationPackage
+> normalized Requirements / Decisions / AcceptanceCriteria
+> Reverend orchestration
+> Agent/model proposals
+> deterministic evidence decides implementation correctness
+~~~
+
+### Accepted design changes
+
+- BuildSpecification concept is formalized as versioned SpecificationPackage in D1.
+- Run can be specification-driven or objective-driven.
+- SpecificationPackage is compiled into Requirements/Decisions/AcceptanceCriteria and Task inputs rather than injected as one enormous prompt.
+- Runs pin exact specification version/hash.
+- architectural ambiguity creates EscalationArtifact instead of silent design drift.
+- external frontier models are optional escalation/design providers, subject to normal trust/cost policy.
+- objective-only Reverend autonomy remains supported.
+
+### Why this is stronger than a pure “GPT → Qwen” split
+
+It preserves the economic/product insight — use expensive intelligence where it has highest leverage and use persistent self-hosted inference for many implementation/debugging iterations — while avoiding vendor lock-in and keeping deterministic verification, Project authority and Reverend autonomy intact.
+
+
+---
+
+## 21. Final Closure Audit — 2026-09-16
+
+### Audit scope
+
+The final closure pass reviewed the complete accepted path:
+
+~~~text
+A0–A12
+→ D0–D14
+→ D15–D21 capability refinements
+→ D22 closure
+→ README
+→ Design index
+→ tool/recovery registry
+→ system + subsystem diagrams
+~~~
+
+The pass specifically checked for stale topology assumptions, duplicate authority, specification drift, private-data disclosure, browser/network escape, repository-intelligence staleness, worker durability, model/profile coupling, side-effect ambiguity, billing lineage and Development sequencing.
+
+### Static repository checks completed
+
+The closure pass established:
+
+1. **No broken canonical local Markdown links** in README, D0–D22, Design index, diagram index, ADR index or baseline index.
+2. **No runtime source-code changes** are included in PR #54; the Design closure changes documentation, the Design registry YAML and Mermaid projections only.
+3. **No obvious secret-like credential material** was found in the changed Design/README set using provider/GitHub/Hugging-Face/OpenAI token-pattern checks.
+4. **Tool Policy Registry coverage** includes repository intelligence, dependency acquisition, public research/search/fetch, browser research, frontend browser tests, model inference/embedding, provider lifecycle, recovery replication and large Artifact upload.
+5. **Specification-driven and objective-driven Run modes** share one Control Plane authority and do not create parallel product/workflow state.
+6. **D10 and D16 are reconciled rather than competing:** D10 owns foundational Evidence/retrieval semantics; D16 owns the Cloud Research Fabric execution/acquisition refinement.
+7. **D7 and D18 are reconciled:** D7 owns ModelProfile/DeploymentProfile admission semantics; D18 owns server-era serving/cache/fleet optimization.
+8. **D4 and D19 are reconciled:** D4 owns generic scheduling/worker/provider protocol; D19 owns capability-worker/bootstrap/storage refinement.
+9. **D3/D20 preserve Context authority:** exact Project/specification/repository/evidence facts precede fuzzy semantic retrieval or web acquisition.
+10. **D5/D12 preserve side-effect recoverability:** new capability workers do not bypass Action Journal/recovery policy.
+
+### Final invariant traceability
+
+| Invariant | Primary Design authority | Development proof |
+|---|---|---|
+| one authoritative workflow state | D0, D1, D3 | C1/C3 concurrency + transition tests |
+| immutable Run owner | D1, D2, D6 | C1/C2/C5 authorization tests |
+| models propose; trusted code executes | D3, D6, D12 | C4/C5 adversarial tool tests |
+| durable state outlives compute | D5, D19 | C6/C7 worker-loss tests |
+| zero GPU is healthy | A10–A12, D4, D19 | C7 zero→GPU→zero lifecycle |
+| worker caches are never authority | D1, D18, D19 | C7 cache-loss reconstruction |
+| external evidence is provenance-bound | D10, D16 | C4/C9 evidence tests |
+| repository intelligence is snapshot-bound | D17, D20 | C4 stale-snapshot tests |
+| exact retrieval precedes fuzzy retrieval | D17, D20 | C4 retrieval benchmarks |
+| context is selected, not dumped | D3, D20 | C4 ContextManifest tests |
+| minimum sufficient parallelism | D3, D21 | C4/C8 Team benchmarks |
+| privileged effects are recoverable | D5, D6, D12 | C5/C6 crash/reconciliation tests |
+| secrets stay at enforcement boundaries | D6, D12 | C5 seeded-secret tests |
+| Community compute is lower trust | D6, D18, D19, D20 | C5/C7 placement tests |
+| verification outranks model confidence | D3, D7, D21 | C4/C9 deterministic acceptance |
+| costs follow durable lineage | D1, D8 | C8 reconciliation tests |
+| optimization is benchmark-driven | D7, D21 | C7/C8 promotion tests |
+| capabilities do not create authority planes | D15, D19, D20 | C4/C7 integration tests |
+
+### Final blocker disposition
+
+No known **Cloud-v1-blocking Design contradiction** remains after the recursive architecture audit, capability-modernization audit, specification-driven review and this final closure pass.
+
+The remaining choices listed in Section 9 are deliberately implementation/benchmark decisions behind frozen interfaces.
+
+The next phase is Development **C0 — Contract Package & Migration Skeleton**.
+
+Design changes discovered during Development must use the ADR/change-control process rather than reopening architecture informally.

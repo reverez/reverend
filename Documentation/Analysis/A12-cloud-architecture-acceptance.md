@@ -1657,3 +1657,121 @@ Community Cloud workers receive only task-scoped data and short-lived execution 
 ## Final Acceptance Invariant
 
 > Reverend Cloud v1 is accepted only as the architecture defined across A0–A12 after this reconciliation: one durable server-side authority, authenticated immutable human/Run identity, bounded cognitive agents, selective typed context, policy-mediated tools/secrets, recoverable application state, schedulable replaceable compute and auditable economics. No client, model, worker, cache, provider or recovery replica may create a competing source of truth for ownership, workflow state, authority, completed work, external side effects or cost.
+
+
+---
+
+## Post-Acceptance Refinement — Capability & Ephemeral Worker Freeze
+
+> **Status:** Accepted Design refinement. It preserves A12 authority, security, durability and economics invariants.
+
+A12 now explicitly freezes the default Cloud v1 execution posture:
+
+~~~text
+PERSISTENT:
+  Control Plane
+  PostgreSQL
+  Git/recovery refs
+  durable BlobStore Artifacts
+  Action Journal
+  Project intelligence metadata
+
+DISPOSABLE / RECONSTRUCTIBLE:
+  model GPU workers
+  CPU workers
+  browser workers
+  model weights
+  runtime caches
+  repository indexes
+  browser caches
+  temporary worktrees
+~~~
+
+### Default model GPU
+
+~~~text
+class:
+  EPHEMERAL_GPU_WORKER
+
+provider baseline:
+  RunPod Community
+
+GPU baseline:
+  A100 SXM 80 GB
+
+runtime baseline:
+  vLLM
+
+workhorse baseline:
+  Qwen3.8-27B
+
+serving profile:
+  64K initial
+
+provider-local persistent state:
+  optional cache only
+~~~
+
+### New accepted capability fabrics
+
+Cloud v1 Design includes:
+
+~~~text
+Research Fabric
+Repository Intelligence Service
+Context Broker v2
+Model Fabric
+Worker Capability Fabric
+ReverendBench v2
+~~~
+
+These are subordinate to the existing Control Plane authority.
+
+### Knowledge acquisition
+
+Reverend does not choose between “local database” and “web scraping”.
+
+It uses an authority-first hierarchy:
+
+~~~text
+authoritative Project state
+→ explicit Artifacts
+→ Repository Intelligence
+→ retained Evidence
+→ Memory
+→ derived lexical/vector retrieval
+→ Research Fabric acquisition
+~~~
+
+Research Fabric may use structured APIs, search, restricted HTTP and a disposable browser worker.
+
+### Worker taxonomy
+
+Core Design distinguishes:
+
+~~~text
+bounded Control-host sandbox
+CPU build/test/index worker
+Browser research/test worker
+Model GPU worker
+accelerated scientific GPU profile
+media/asset GPU profile
+~~~
+
+The last two are extensibility contracts and need not block core C9 unless a selected v1 acceptance workload requires them.
+
+### Final acceptance principle
+
+Cloud v1 is not accepted merely because remote Qwen inference works.
+
+Acceptance must prove the organization can:
+
+- gather/retain evidence;
+- understand repositories;
+- compile bounded context;
+- use isolated browser/CPU/model workers;
+- recover from worker/cache loss;
+- scale model GPU from zero back to zero;
+- verify outputs;
+- attribute cost;
+- preserve all A12 authority/security invariants.

@@ -445,3 +445,31 @@ Otherwise use narrow ADRs during Development.
 D14 closes Design when no known Cloud-v1-blocking design gap remains and Development has precise migration, tool safety, research, UX, PostgreSQL testing and decision-control contracts.
 
 The only remaining C0 prerequisite after this document is real baseline execution evidence.
+
+
+---
+
+## 21. Final-Closure Relationship to D15–D22
+
+D14 closed the first Design-completion audit and remains authoritative for:
+
+- fresh C0 baseline evidence;
+- PostgreSQL integration/concurrency testing;
+- database-role testing;
+- ADR/change control;
+- Development-entry evidence discipline.
+
+Subsequent capability modernization and specification-driven refinement are captured in D15–D22.
+
+Therefore the final Development-entry chain is:
+
+~~~text
+D14 baseline/testing discipline
++ D15–D21 capability specifications
++ D22 final architecture closure
+→ C0 entry
+~~~
+
+The sentence in Section 1 that no known blocker remained after D10–D13 should be read as the status of that earlier closure pass, not as the final Design-phase verdict.
+
+D22 is the final design-level closure authority.

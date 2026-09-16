@@ -463,3 +463,66 @@ Must prove:
 ## 27. Exit Condition
 
 D13 is satisfied when client developers can implement Cloud UI without inventing state meanings, pause/cancel behavior, approval semantics, recovery presentation, cost/compute semantics, SSE reconnection, Artifact security or emergency behavior.
+
+
+---
+
+## 28. Specification & Capability UX Addendum
+
+Cloud UI/CLI must surface the specification-driven operating model introduced by D1–D3.
+
+### Project specification view
+
+Display:
+
+- SpecificationPackage versions;
+- DRAFT / VALIDATING / ACCEPTED / SUPERSEDED / REJECTED;
+- exact accepted hash/version;
+- validation findings;
+- acceptance actor/time;
+- supersession lineage;
+- linked Requirements / Decisions / AcceptanceCriteria.
+
+Only authorized humans can accept/supersede a package.
+
+### Run creation
+
+Run creation explicitly chooses:
+
+~~~text
+Specification-driven Run
+or
+Objective-driven Run
+~~~
+
+For specification-driven mode, UI shows the exact pinned package version before submission.
+
+### Run detail
+
+Display the pinned SpecificationPackage/version alongside immutable Run owner.
+
+A later Project specification update must not visually imply that the active Run changed specification.
+
+### Escalation
+
+EscalationArtifact gets a first-class operator view containing:
+
+- Task/Run;
+- relevant requirement/contract refs;
+- attempts/failures;
+- deterministic evidence;
+- exact question/decision required;
+- cost consumed;
+- allowed response actions.
+
+### Capability / disclosure state
+
+Where relevant, UI exposes:
+
+- Community Cloud disclosure policy;
+- whether a Job is blocked because mandatory context cannot be sent to an available worker;
+- research/browser/network wait/failure;
+- CPU/browser/model-worker lifecycle;
+- recovery/degraded state.
+
+The client explains state; it never becomes the source of policy truth.

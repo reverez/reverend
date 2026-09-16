@@ -946,3 +946,229 @@ Rules:
 7. If mandatory context is too sensitive for an otherwise eligible DeploymentProfile/worker, the Router/Compute Scheduler rejects that destination rather than silently omitting mandatory context.
 
 External/untrusted content trust labels and confidentiality sensitivity are separate dimensions and both are preserved.
+
+
+---
+
+## 41. Capability Modernization Integration
+
+D20 is the canonical Context Broker refinement for Cloud v1.
+
+Agent runtime changes:
+
+- Agent asks for ContextNeed/ContextRequest, not physical database/vector/browser operations;
+- Research Fabric and Repository Intelligence are deterministic/capability services beneath the Agent;
+- Team strategies may partition Research/Repository work, but member Tasks remain canonical Control Plane Tasks;
+- Context acquisition does not create a new Agent merely because a provider/index query exists;
+- browser/search/LSP/index operations are tools/capabilities and consume delegated budgets;
+- model escalation is not used to compensate for missing evidence or missing repository facts.
+
+New typed output families may include:
+
+~~~text
+ResearchEvidencePack
+SourceSnapshotReference
+RepositoryMap
+RepositoryLocalization
+SymbolContext
+DiagnosticContext
+ChangeImpactReport
+BrowserTestReport
+CapabilityExecutionReport
+~~~
+
+These remain normal D3 Artifacts with provenance/validation/promotion semantics.
+
+
+---
+
+## 42. Capability Result Validity & Late-Result Semantics
+
+Cloud capabilities are asynchronous and may finish after the originating Task was cancelled, replanned, retried or superseded.
+
+Every capability execution result therefore carries:
+
+~~~text
+run_id
+task_id
+job_id
+attempt_number
+agent_instance_id?
+input snapshot/version refs
+capability id/version
+result digest
+completed_at
+~~~
+
+Before any result can affect current Task/Run state, trusted orchestration revalidates:
+
+- the Job attempt is still current/eligible;
+- required RepositorySnapshot/SourceSnapshot/policy versions still match;
+- Task has not been cancelled/superseded;
+- result scope matches Run/Project;
+- result Artifact passed schema/policy validation.
+
+A late valid result may be retained as historical evidence/cache material, but **cannot silently complete or promote a newer Task attempt**.
+
+This applies equally to:
+
+- web research;
+- browser tests;
+- repository indexing/LSP queries;
+- build/test workers;
+- model inference;
+- simulations/media workers.
+
+
+---
+
+## 43. Specification-Driven Engineering Mode
+
+The preferred high-reliability workflow is:
+
+~~~text
+Human / external design intelligence
+        ↓
+SpecificationPackage
+        ↓
+Specification validation + normalization
+        ↓
+Requirements / Decisions / AcceptanceCriteria
+        ↓
+Run
+        ↓
+Task DAG
+        ↓
+Agent / Team implementation
+        ↓
+build / test / diagnose / repair
+        ↓
+independent verification
+        ↓
+integration / documented result
+~~~
+
+This formalizes the useful separation between **design intelligence** and **implementation throughput** without making Reverend dependent on any specific external model vendor.
+
+### 43.1 SpecificationCompiler
+
+A deterministic/trusted orchestration service compiles an ACCEPTED SpecificationPackage into implementation inputs.
+
+It may use model assistance for extraction, but trusted code validates output.
+
+Outputs include:
+
+~~~text
+Requirement set
+AcceptanceCriteria set
+Architecture/Interface Artifacts
+Constraint set
+initial Task DAG proposal
+unresolved ambiguity list
+Context seed references
+~~~
+
+The compiler does not execute implementation work.
+
+### 43.2 Specification validation
+
+Validation checks:
+
+- manifest/schema;
+- duplicate/conflicting requirements;
+- missing required sections for the selected Project policy;
+- acceptance criteria coverage;
+- interface/data-contract references;
+- security/failure-semantics presence when required;
+- impossible/inconsistent constraints where deterministically detectable;
+- unresolved ambiguity.
+
+The system does not claim that structural validation proves the architecture itself is good.
+
+### 43.3 Run behavior from specification
+
+For a specification-driven Run:
+
+- pinned specification version is mandatory context authority;
+- Tasks derive acceptance and constraints from normalized Project objects;
+- implementation Agents receive only relevant specification slices;
+- whole package is not dumped into every prompt;
+- Repository Intelligence and Research Fabric fill implementation facts, not rewrite accepted design authority.
+
+### 43.4 EscalationArtifact
+
+When Reverend is stuck after bounded attempts or discovers an architectural ambiguity, it emits a typed escalation:
+
+~~~text
+EscalationArtifact
+├── Run / Task
+├── pinned SpecificationPackage/version
+├── relevant contract/requirement refs
+├── attempts made
+├── deterministic failures/evidence
+├── candidate explanations
+├── exact decision/question required
+├── cost/budget consumed
+└── recommended next action
+~~~
+
+The consumer may be:
+
+- the human;
+- an optional frontier/external design model;
+- a designated Architect Specialist.
+
+The response becomes an explicit amendment/Decision/clarification Artifact and is validated before use.
+
+### 43.5 External frontier model is optional, not in-loop authority
+
+A workflow such as:
+
+~~~text
+human + frontier model
+→ design
+→ accepted SpecificationPackage
+→ Reverend implementation
+~~~
+
+is a first-class usage pattern.
+
+However:
+
+- Reverend does not require OpenAI/GPT/Codex to operate;
+- external design models are replaceable adapters/tools;
+- their output is not authority until accepted/promoted;
+- routine implementation/debugging stays within Reverend unless escalation is warranted;
+- external API use follows Project disclosure/cost policy.
+
+### 43.6 Deterministic reality remains the final gate
+
+Even a perfect specification does not make model output correct.
+
+The implementation loop remains:
+
+~~~text
+inspect
+→ implement
+→ compile/build
+→ test
+→ observe
+→ diagnose
+→ repair
+→ verify
+→ integrate
+~~~
+
+Compilers, tests, benchmarks, simulations, linters and integration checks outrank Agent confidence.
+
+### 43.7 Specification drift
+
+If implementation discovers that satisfying one requirement would violate another or the accepted architecture cannot be implemented as written:
+
+- do not silently reinterpret the specification;
+- emit ConflictNotice/EscalationArtifact;
+- block the affected Task;
+- continue unrelated safe work if possible;
+- require a durable Decision/specification amendment.
+
+This prevents “helpful” autonomous drift from changing the Project design.

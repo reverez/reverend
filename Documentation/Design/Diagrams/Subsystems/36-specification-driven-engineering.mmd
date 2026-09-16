@@ -1,0 +1,14 @@
+flowchart LR
+H["Human authority"] --> DI["Design intelligence<br/>human • external frontier model • Reverend Architect"]
+DI --> SP["SpecificationPackage<br/>versioned • hashed • human accepted"]
+SP --> V["Validation / normalization"]
+V --> PT["Requirements • Decisions • AcceptanceCriteria • contracts"]
+PT --> R["Run pinned to exact specification version"]
+R --> DAG["Task DAG"]
+DAG --> A["Agent / Team implementation"]
+A --> DET["Build • tests • benchmarks • simulations • Git/CI"]
+DET --> VER["Independent verification"]
+A -->|architecture ambiguity| ESC["EscalationArtifact"]
+DET -->|contract conflict| ESC
+ESC --> DI
+DI -->|approved amendment / clarification| PT

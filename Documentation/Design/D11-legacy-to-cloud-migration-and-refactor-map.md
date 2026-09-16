@@ -469,3 +469,29 @@ Rejected:
 D11 is satisfied when every major existing subsystem has explicit disposition, target owner, migration phase, authority cutover and retirement condition.
 
 Development should therefore adapt proven Reverend components deliberately rather than rediscover or duplicate them.
+
+
+---
+
+## 25. Capability-Modernization Migration Addendum
+
+D15–D22 extend this migration map without changing its safe-cutover rules.
+
+Additional migrations:
+
+| Existing/local capability | Cloud target |
+|---|---|
+| research/search.py + service.py | D10/D16 Research Fabric adapters |
+| codeintel Python AST/graph/retrieval | D17 Repository Intelligence adapters |
+| local Context Compiler | D20 Context Broker v2 |
+| fixed logical model roles | D18 ModelRequirement / ModelProfile / DeploymentProfile |
+| local resource worker assumptions | D19 capability-scoped WorkerProfiles |
+| local/browser acceptance fixtures | D19 Browser Worker capability |
+| model-only benchmark emphasis | D21 ReverendBench v2 |
+| informal objective/prompt input | D1/D2/D3 SpecificationPackage + objective-driven modes |
+
+Migration rule:
+
+> **Wrap proven local semantics behind the new contract before replacing them.**
+
+Do not delete accepted local research/codeintel/workstation behavior until the corresponding Cloud path has equivalent deterministic acceptance evidence.

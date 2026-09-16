@@ -1114,3 +1114,97 @@ If actual rate exceeds the configured/provider-cost ceiling:
 On controller startup/failover, query provider inventory and reconcile every Reverend-tagged instance before provisioning anything new.
 
 Local absence of a ComputeNode row is not proof that no billable provider resource exists.
+
+
+---
+
+## 42. Capability Worker & Ephemeral Storage Refinement
+
+D19 generalizes D4. The following additions are mandatory.
+
+### WorkerProfile is distinct from DeploymentProfile
+
+~~~text
+WorkerProfile
+  physical execution capability/environment
+
+DeploymentProfile
+  model-serving configuration
+~~~
+
+A Model GPU worker may host a DeploymentProfile; CPU/Browser workers normally do not.
+
+### ComputeProvider provision input
+
+Canonical provision request becomes conceptually:
+
+~~~text
+provision(
+  WorkerProfile,
+  BootstrapSpec,
+  StorageProfile,
+  provider constraints,
+  RateSnapshot
+)
+~~~
+
+RunPod-specific fields stay behind RunPodComputeProvider.
+
+### StorageProfile
+
+The initial A100 profile is ephemeral-first:
+
+~~~text
+temporary container disk target: approximately 200 GB
+optional warm volume target: approximately 10 GB
+authoritative worker storage: none
+model weights: reconstructible
+runtime/browser/build caches: reconstructible
+workspace: temporary, durability externalization required
+~~~
+
+These capacities are deployment defaults, not architecture constants.
+
+### Worker bootstrap phases
+
+General phases:
+
+~~~text
+PROVISIONING
+BOOTING
+REGISTERING
+RUNTIME_STARTING
+ARTIFACT_LOADING
+MODEL_LOADING where relevant
+READY
+BUSY
+IDLE_GRACE
+DRAINING
+STOPPING / TERMINATING
+~~~
+
+Provider RUNNING is not equivalent to Reverend READY.
+
+### Capability classes
+
+The Compute Scheduler reasons about verified capability, not broad machine type:
+
+~~~text
+CPU_BUILD_WORKER
+BROWSER_WORKER
+MODEL_GPU_WORKER
+ACCELERATED_COMPUTE_GPU
+MEDIA_GPU
+~~~
+
+A Job requiring repo/LSP work should not keep an A100 active merely because CPUs are available on the GPU worker.
+
+### Durability gate before destructive lifecycle
+
+Capacity Controller may stop/terminate a disposable worker only after D19 WorkerDurabilityGate proves no unique unrecoverable state remains.
+
+### Persistent provider cache
+
+Provider-local persistent model/cache storage is optional and economics-driven.
+
+It is never required for correctness.

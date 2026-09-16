@@ -357,3 +357,28 @@ Final outcome must be safe retry, verified completion, explicit failure or RECOV
 ## 19. Exit Condition
 
 D12 is satisfied when a developer adding a tool does not need to invent approval, secret, network, journal, resume, execution, reconciliation or cost semantics.
+
+
+---
+
+## 20. Capability-Modernization Registry Addendum
+
+D16–D20 introduce additional capability operations that remain subject to this registry.
+
+| Operation | Side effect | Boundary |
+|---|---|---|
+| Repository Intelligence query / LSP read | PURE_READ | isolated Repository Intelligence adapter |
+| dependency acquisition | REPEATABLE_COMPUTE | isolated CPU worker + restricted registry network |
+| browser research acquisition | PURE_READ | RESEARCH_BROWSER + public egress policy |
+| frontend browser verification | REPEATABLE_COMPUTE | FRONTEND_TEST_BROWSER + task-scoped TestEndpoint |
+| large Artifact upload | REMOTE_IDEMPOTENT | Job-scoped Blob capability |
+
+Rules:
+
+- browser automation is not a generic network bypass;
+- LSP/Tree-sitter analysis does not gain arbitrary process execution;
+- dependency acquisition is distinct from editing dependency manifests;
+- Browser Test credentials are test-only and lease/task scoped;
+- large-Artifact upload grants one bounded object operation, not general BlobStore credentials.
+
+The companion YAML manifest is extended with these operations and remains a design-time executable safety registry for C0/C5 implementation.

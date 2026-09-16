@@ -1,0 +1,23 @@
+flowchart TB
+CP["Persistent Control Plane"] --> CB["Context Broker"]
+CP --> TB["Tool / Capability Broker"]
+CB --> RI["Repository Intelligence"]
+CB --> RF["Research Fabric"]
+CB --> ME["Memory / Evidence"]
+CB --> MF["Model Fabric"]
+TB --> CR["Capability Registry"]
+CR --> CS["Compute Scheduler"]
+CS --> CPU["CPU Build/Test/Index Worker"]
+CS --> BR["Browser Research/Test Worker"]
+CS --> GPU["Model GPU Worker"]
+CS --> SCI["Accelerated Scientific GPU"]
+CS --> MED["Media/Asset GPU"]
+RI --> IDX["Derived indexes<br/>Tree-sitter • LSP • vectors"]
+RF --> SRC["SourceSnapshots / EvidenceClaims"]
+MF --> GPU
+CPU --> ART["Typed Artifacts"]
+BR --> ART
+GPU --> ART
+SCI --> ART
+MED --> ART
+ART --> CP

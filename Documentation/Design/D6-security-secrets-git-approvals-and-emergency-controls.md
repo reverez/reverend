@@ -1178,3 +1178,127 @@ Security rules:
 - model/cache integrity is checked before health becomes READY.
 
 A Community provider remains capable of observing worker plaintext at the infrastructure layer; supply-chain hardening does not upgrade its trust classification.
+
+
+---
+
+## 45. Capability Modernization Security Addendum
+
+### Search-query confidentiality
+
+Outbound search query text is an external disclosure.
+
+Research Fabric therefore applies D16 QueryDisclosurePolicy before any external search engine/provider sees a query.
+
+Secret scanning is defense in depth; sensitivity/provenance policy is the authority.
+
+### Browser network enforcement
+
+Browser worker network policy covers top-level and subresource traffic including WebSockets/service workers.
+
+Public research browsers cannot reach Control Plane private addresses, metadata endpoints or local files.
+
+### Model artifact credentials
+
+Long-lived model-registry credentials are not injected into Community workers by default.
+
+Private model acquisition uses pre-staged verified artifacts/short-lived object capabilities or stronger-trust workers.
+
+### Parser/language-server supply chain
+
+Repository-specified binaries/grammars/plugins are not automatically executed for Repository Intelligence.
+
+Pinned Reverend-approved parsers/language services are execution dependencies and follow worker-image/provenance policy.
+
+
+---
+
+## 46. Capability Worker Network Enforcement
+
+For untrusted browser/fetch/build capabilities, policy is enforced at both:
+
+1. application/tool layer; and
+2. OS/network boundary.
+
+A browser script must not reach private Control Plane services merely by bypassing Playwright request interception.
+
+Dependency-acquisition workers have a distinct allowlist from Research/browser workers.
+
+Build/test phase should return to network-off whenever feasible.
+
+Ephemeral TestEndpoint routes are task/lease scoped and are not public development-server exposure.
+
+
+---
+
+## 47. Authenticated Research Provider Policy
+
+Public Research Fabric and owner-scoped Git/GitHub authority are separate concerns.
+
+A Research Agent cannot infer:
+
+~~~text
+Run has GitHub credential
+therefore use it to search private GitHub content
+~~~
+
+Authenticated research requires an explicit typed provider capability whose credential scope, Project authorization and source sensitivity are configured and audited.
+
+Private-source output inherits at least PROJECT_PRIVATE sensitivity.
+
+Browser traces/screenshots/downloads containing authenticated/test material receive the same sensitivity and redaction rules as other Project Artifacts.
+
+
+---
+
+## 48. Credentialed Research & Language-Tool Configuration Security
+
+Credentialed search/research provider calls are Secret-bearing adapter operations.
+
+Provider credentials never enter generic browser/search model context.
+
+Repository language tooling additionally sanitizes configuration that could trigger compiler plugins, arbitrary language-service plugins, external executable discovery or host-path access.
+
+If analysis requires executing Project tooling, it uses a normal isolated CPU capability rather than expanding trusted LSP privileges.
+
+
+---
+
+## 49. Explicit Community-Compute Disclosure Policy
+
+The accepted RunPod Community baseline is a lower-assurance environment whose provider infrastructure can potentially observe plaintext sent to the worker.
+
+Therefore Project placement is explicit.
+
+Safe default:
+
+~~~text
+PUBLIC
+  Community eligible
+
+PROJECT_PRIVATE
+  Community ineligible until Project owner explicitly opts in
+
+USER_PRIVATE
+SECRET_ADJACENT
+RESTRICTED
+  Community ineligible by default
+~~~
+
+The selected Reverend deployment may create a Project policy preset for ordinary private engineering that explicitly permits PROJECT_PRIVATE on Community Cloud, but that is a human-visible policy choice, not an implication of the label.
+
+Rules:
+
+- Secret Broker plaintext is never allowed by this opt-in;
+- EXTERNAL_API requires a separate policy decision;
+- changing disclosure policy is versioned/audited;
+- Context Broker/Compute Scheduler enforce the current policy before transmitting context;
+- an Agent cannot weaken disclosure policy.
+
+### Inference log confidentiality
+
+Model workers configure vLLM/SGLang/runtime logging so normal logs do not record full prompts, source code, images or generated private reasoning.
+
+Metrics retain request IDs, token counts, timings and bounded error codes.
+
+Diagnostic prompt capture is disabled by default and, if ever enabled under explicit operator diagnostics, inherits Project sensitivity and short retention.
