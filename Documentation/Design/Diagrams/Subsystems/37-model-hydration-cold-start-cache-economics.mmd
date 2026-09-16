@@ -1,0 +1,45 @@
+flowchart TB
+
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+
+REQ["Admitted model-backed Job"]:::compute
+PROV["Provision disposable worker"]:::compute
+BOOT["Boot pinned Reverend runtime image"]:::compute
+MAN["ModelArtifactManifest<br/>approved source • immutable revision • files • hashes"]:::model
+CACHE{"Verified worker-local<br/>ephemeral snapshot?"}:::data
+UP["Approved upstream repository<br/>exact pinned revision"]:::data
+STAGE["Staging download<br/>bounded retries/timeouts"]:::compute
+VERIFY["Verify revision / files / safe format / digests"]:::verify
+ATOM["Atomic verified snapshot"]:::data
+LOAD["Load model runtime"]:::model
+SMOKE["Functional smoke health"]:::verify
+READY["Node/Profile READY"]:::compute
+RUN["Grant inference lease"]:::compute
+TERM["Worker terminated<br/>cache may disappear"]:::compute
+
+REQ --> PROV --> BOOT --> MAN --> CACHE
+CACHE -->|yes| LOAD
+CACHE -->|no| UP --> STAGE --> VERIFY --> ATOM --> LOAD
+LOAD --> SMOKE --> READY --> RUN
+RUN --> TERM
+
+FAIL["Hydration failure<br/>block / bounded retry / release paid worker"]:::security
+STAGE -->|source/timeout failure| FAIL
+VERIFY -->|mismatch| FAIL
+
+METRIC["Hydration telemetry<br/>bytes • seconds • source • startup cost"]:::cost
+STAGE --> METRIC
+LOAD --> METRIC
+
+ECON["Cache economics<br/>monthly hydration cost vs recurring storage"]:::cost
+METRIC --> ECON
+RECO["Persistent cache recommendation<br/>operator approval required"]:::cost
+ECON --> RECO
+
+LOCAL["Developer local copies<br/>optional archival only<br/>not normal hydration source"]:::data
+LOCAL -. no production dependency .-> MAN
