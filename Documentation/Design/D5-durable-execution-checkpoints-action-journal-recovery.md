@@ -985,3 +985,28 @@ A lower generation is used only when every newer generation is provably corrupt/
 ### Recovery-key test
 
 C6/C9 fault tests include a blank-host restore in which no original host key file exists. A backup is not accepted as complete if it can restore rows/blobs but cannot restore the secrets needed for authorized external actions.
+
+
+---
+
+## 37. Recursive Audit Cycle 5 — Budget-Independent Safety Cleanup
+
+Hard budget exhaustion stops new productive charge-bearing work, but it cannot prevent mandatory reconciliation required to make the system safe.
+
+Examples:
+
+- determining whether a privileged external Action occurred;
+- stopping/terminating an orphan paid provider resource;
+- persisting a final checkpoint/journal result;
+- restoring integrity after a partial provider lifecycle operation.
+
+A bounded system `safety_recovery_reserve` may therefore be used after user hard-budget exhaustion.
+
+Rules:
+
+- only recovery/cleanup operations classified by trusted code are eligible;
+- no model-generated “continue work” request can access the reserve;
+- every use emits a SAFETY_RECOVERY_OVERRUN CostEvent/audit Event;
+- once safe state is reached, the Run remains budget-blocked until a human increases budget or cancels.
+
+This prevents a budget limit from becoming a resource-leak or duplicate-side-effect vulnerability.
