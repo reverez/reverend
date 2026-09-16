@@ -98,6 +98,14 @@ These are deployment defaults, not permanent semantic bindings.
 | D8 | observability, budgets, billing, operations and deployment | operations plane |
 | D9 | migration waves, branch discipline, testing and development gates | implementation programme |
 
+### Architecture diagrams
+
+The visual architecture map is maintained under [`Documentation/Design/Diagrams/`](./Diagrams/README.md).
+
+- `00-system-overview.mmd` provides a compact system map.
+- `system-complete-mermaid-diagram.mmd` preserves the complete architecture.
+- `Subsystems/` contains one focused Mermaid file per numbered architecture subsystem for practical viewing.
+
 Recommended reading order:
 
 ~~~text

@@ -1,0 +1,75 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 3: CLOUD API / CLIENT CONTRACT
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 3. CLOUD API / CLIENT CONTRACT
+%% =========================================================
+subgraph API["3. CLOUD API SERVICE — REST/JSON + SSE"]
+direction TB
+
+FASTAPI["ASGI API<br/>FastAPI + Pydantic v2 + Uvicorn"]:::api
+REQCTX["RequestContext<br/>request_id • principal_user_id • session_id • device_id?<br/>trace_id • received_at"]:::api
+AUTHMW["Authentication middleware<br/>cookie session or CLI bearer session"]:::security
+CSRFM["CSRF validation<br/>cookie-authenticated mutations"]:::security
+IDEMP["Idempotency service<br/>principal + operation + Idempotency-Key + request hash"]:::api
+AUTHZMW["Authorization dependency<br/>capability + resource scope + principal"]:::security
+
+subgraph ROUTES["Versioned /api/v1 routes"]
+direction LR
+R_AUTH["/auth/login<br/>/auth/logout<br/>/me"]:::api
+R_PROJECTS["/projects<br/>/projects/{id}<br/>/projects/{id}/runs"]:::api
+R_RUNS["/runs<br/>/runs/{id}<br/>pause • resume • run-now • cancel"]:::api
+R_QUEUE["/queue"]:::api
+R_APPROVALS["/approvals<br/>approve • reject"]:::api
+R_ART["/runs/{id}/artifacts<br/>/artifacts/{id}"]:::api
+R_WF["/runs/{id}/workflow<br/>/runs/{id}/agents"]:::api
+R_COST["/runs/{id}/costs<br/>/costs/me<br/>/system/rates"]:::api
+R_SYS["/system/status<br/>/system/compute<br/>emergency controls"]:::api
+R_SSE["/events/stream<br/>SSE + Last-Event-ID replay"]:::api
+end
+
+ERR["Stable API error taxonomy<br/>validation_error • unauthenticated • forbidden • not_found • conflict<br/>invalid_state_transition • idempotency_conflict • budget_exceeded<br/>approval_required • recovery_blocked • provider_unavailable"]:::api
+
+BOUNDS["Bounded payloads<br/>JSON ≤ 1 MiB • objective ≤ 100 KiB<br/>approval note ≤ 8 KiB • event ≤ 32 KiB • inline Artifact ≤ 64 KiB"]:::security
+
+FASTAPI --> REQCTX --> AUTHMW --> CSRFM --> IDEMP --> AUTHZMW
+
+
+FASTAPI --> ERR
+FASTAPI --> BOUNDS
+end
+
+PUBAPI --> FASTAPI

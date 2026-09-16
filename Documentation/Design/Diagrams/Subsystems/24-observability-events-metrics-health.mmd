@@ -1,0 +1,70 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 24: OBSERVABILITY / EVENTS / METRICS / HEALTH
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 24. OBSERVABILITY / EVENTS / METRICS / HEALTH
+%% =========================================================
+subgraph OBS["24. OBSERVABILITY, TRACEABILITY & HEALTH"]
+direction TB
+
+TRACE["Trace lineage<br/>request • user • Project • Run • Workflow • Task • Agent • Job<br/>lease • node • Action • model invocation"]:::ops
+LOG["Structured JSON logs<br/>redacted • no secrets • no raw chain-of-thought"]:::ops
+METRICS["Operational metrics<br/>API • scheduler • Run • Agent • model • compute • recovery • cost"]:::ops
+AUDIT["Immutable privileged audit Events<br/>principal • capability • scope • Approval • external identity • result"]:::ops
+SSEPROJ["SSE presentation projection<br/>durable Event sequence + resumable cursor"]:::ops
+
+HEALTH["Health model"]:::ops
+LIVE["Liveness"]:::ops
+READY["Readiness<br/>PostgreSQL • schema • Secret key • recovery gate • controllers"]:::ops
+FUNC["Functional health<br/>real bounded model/tool smoke"]:::ops
+PROVHEALTH["Provider / worker health"]:::ops
+RECHEALTH["Recovery health<br/>generation age + replica ACK"]:::ops
+
+ALERT["Alert conditions<br/>DB unavailable • scheduler leader missing • old recovery generation<br/>worker/provision failures • billing mismatch • hard-budget bypass<br/>Secret key missing • RECOVERY_BLOCKED • backup failure • low disk"]:::ops
+
+TRACE --> LOG
+TRACE --> METRICS
+EVENT --> AUDIT
+EVENT --> SSEPROJ
+R_SSE --> SSEPROJ
+
+
+LIVE --> ALERT
+READY --> ALERT
+FUNC --> ALERT
+PROVHEALTH --> ALERT
+RECHEALTH --> ALERT
+end

@@ -1,0 +1,63 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 28: EXTERNAL SYSTEMS
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 28. EXTERNAL SYSTEMS
+%% =========================================================
+subgraph EXTERNAL["28. EXTERNAL SYSTEMS / PROVIDERS / SOURCES"]
+direction LR
+
+EXT_GH["GitHub<br/>repositories • branches • PRs • remote state"]:::external
+EXT_RP["RunPod Community Cloud<br/>baseline disposable GPU provider"]:::external
+EXT_RPSEC["RunPod Secure / dedicated class<br/>stronger trust fallback"]:::external
+EXT_HETZ["Hetzner Cloud<br/>persistent Control Plane host"]:::external
+EXT_TS["Tailscale<br/>private network"]:::external
+EXT_WEB["Public web / SearXNG"]:::external
+EXT_HF["Model repositories / Hugging Face<br/>pinned revisions / weights / licenses"]:::external
+EXT_API["Optional paid external APIs<br/>policy/trust/budget gated"]:::external
+
+T_PUSH --> EXT_GH
+T_PR --> EXT_GH
+T_MERGE --> EXT_GH
+RP_ADAPT --> EXT_RP
+CS -. stronger trust job .-> EXT_RPSEC
+HETZ --> EXT_HETZ
+TS --> EXT_TS
+T_SEARCH --> EXT_WEB
+T_FETCH --> EXT_WEB
+DPROF --> EXT_HF
+EXTMODEL --> EXT_API
+end

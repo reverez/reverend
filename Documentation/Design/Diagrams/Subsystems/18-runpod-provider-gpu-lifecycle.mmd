@@ -1,0 +1,69 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 18: RUNPOD PROVIDER / GPU LIFECYCLE
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 18. RUNPOD PROVIDER / GPU LIFECYCLE
+%% =========================================================
+subgraph RUNPOD["18. GPU PROVIDER & SCALE-TO-ZERO LIFECYCLE"]
+direction TB
+
+RP_ADAPT["RunPod ComputeProvider adapter<br/>provision • inspect • start • stop • terminate • estimate rate"]:::compute
+RP_CRED["RunPod API credential<br/>SYSTEM Secret<br/>resolved only by Capacity Controller adapter"]:::security
+
+P_ABS["ABSENT"]:::compute
+P_PROV["PROVISIONING"]:::compute
+P_BOOT["BOOTING"]:::compute
+P_REG["REGISTERING"]:::compute
+P_LOAD["LOADING"]:::compute
+P_READY["READY"]:::compute
+P_BUSY["BUSY"]:::compute
+P_IDLE["IDLE_GRACE<br/>default design target 420s"]:::compute
+P_DRAIN["DRAINING<br/>no new leases • settle safe work • persist metrics"]:::compute
+P_STOP["STOPPING / STOPPED"]:::compute
+P_TERM["TERMINATED"]:::compute
+P_UNH["UNHEALTHY"]:::compute
+
+CAP --> RP_ADAPT
+RP_CRED --> RP_ADAPT
+RP_ADAPT --> P_ABS --> P_PROV --> P_BOOT --> P_REG --> P_LOAD --> P_READY --> P_BUSY --> P_IDLE --> P_DRAIN --> P_STOP --> P_TERM
+P_PROV --> P_UNH
+P_BOOT --> P_UNH
+P_REG --> P_UNH
+P_BUSY --> P_UNH
+
+RP_ADAPT --> W_BOOT --> W_REG
+P_READY --> NODE_REG
+end

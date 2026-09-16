@@ -1,0 +1,101 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 19: MODEL FABRIC / ROUTING / SERVING
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 19. MODEL FABRIC / ROUTING / SERVING
+%% =========================================================
+subgraph MODELS["19. MODEL FABRIC, ROUTING & INFERENCE"]
+direction TB
+
+MREQ["ModelRequirement<br/>reasoning • coding • repository reasoning • tool use • structured output<br/>vision • min context • trust • latency • cost class"]:::model
+MREG["Model Registry"]:::model
+MPROF["ModelProfile<br/>family • model/revision • license • modalities • capabilities<br/>advertised/validated context • runtime compatibility • trust • benchmark status"]:::model
+DPROF["DeploymentProfile<br/>model revision • runtime/version • quantization • container digest<br/>context • reasoning effort • hardware requirement • trust<br/>concurrency/batching • benchmark set • cost profile"]:::model
+MROUTER["Model Router<br/>filters eligibility then ranks candidates"]:::model
+
+subgraph LOGICAL["Logical requirement profiles"]
+direction LR
+MR_CONTROL["CONTROL"]:::model
+MR_FASTGEN["FAST_GENERAL"]:::model
+MR_FASTENG["FAST_ENGINEERING"]:::model
+MR_PRIMARY["PRIMARY_ENGINEERING"]:::model
+MR_DEEP["DEEP_REASONING"]:::model
+MR_ASSURE["ASSURANCE"]:::model
+MR_VISION["VISION"]:::model
+MR_EMBED["EMBEDDING"]:::model
+MR_RERANK["RERANKING"]:::model
+MR_MEDIA["MEDIA_GENERATION"]:::model
+MR_MAX["MAX_QUALITY_ESCALATION"]:::model
+end
+
+MREQ --> MREG --> MPROF --> DPROF --> MROUTER
+
+
+BASEMODEL["Cloud v1 baseline profile<br/>Qwen/Qwen3.8-27B<br/>vLLM • A100 SXM 80 GB • 64K context<br/>RunPod Community Cloud"]:::model
+COSTDOWN["Cost-down benchmark profile<br/>RTX A6000 48 GB + validated quantized Qwen<br/>or North Mini Code / Nemotron candidate"]:::model
+PREMIUM["Premium/headroom profile<br/>RTX Pro 6000 96 GB when benchmarked value exists"]:::model
+EXTMODEL["Optional external API profile<br/>EXTERNAL_API trust<br/>policy-permitted non-sensitive context only"]:::external
+
+
+VLLM["InferenceRuntime: vLLM<br/>worker-local/private<br/>health • profiles • ensure_loaded • generate • stream • cancel • metrics"]:::model
+OLLAMA["InferenceRuntime: Ollama<br/>local compatibility adapter"]:::model
+SGLANG["InferenceRuntime: SGLang<br/>future interchangeable adapter"]:::model
+
+BASEMODEL --> VLLM
+COSTDOWN --> VLLM
+PREMIUM --> VLLM
+MPROF --> OLLAMA
+MPROF --> SGLANG
+
+MROUTER --> CS
+GPUW --> VLLM
+
+INFREQ["InferenceRequest<br/>invocation/job/agent • deployment profile • ContextManifest<br/>prompt ref • output budget • temperature • reasoning effort • schema • timeout"]:::model
+INFRESP["InferenceResponse<br/>status • model revision • runtime version • token counts<br/>finish reason • output ref • queue/setup/provider metrics"]:::model
+
+MROUTER --> INFREQ
+INFREQ --> VLLM --> INFRESP
+INFRESP --> LOOP_PARSE
+
+REASON["Reasoning effort selected per Job<br/>low • medium • high • max where supported"]:::model
+CTXPROF["Context profile policy<br/>64K baseline • 128K only if measured • >128K explicit evidence"]:::model
+QUANT["Quantization = separate DeploymentProfile<br/>must pass benchmark/quality/verification gates"]:::model
+MREQ --> REASON
+MREQ --> CTXPROF
+DPROF --> QUANT
+end
+
+SSPEC --> MREQ

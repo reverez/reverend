@@ -1,0 +1,102 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 8: SPECIALIST / AGENT RUNTIME
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 8. SPECIALIST / AGENT RUNTIME
+%% =========================================================
+subgraph AGENTS["8. SPECIALIST, AGENTINSTANCE & AGENTTEAM RUNTIME"]
+direction TB
+
+SREG["Specialist Registry<br/>versioned SpecialistSpec"]:::agent
+SSPEC["SpecialistSpec<br/>id/version/name • role_family • methodology<br/>ModelRequirement • ContextPolicy • tool policy • capability requirements<br/>input/output Artifact types • authority ceiling • budget policy<br/>completion • verification • escalation • metadata"]:::agent
+
+AINST["AgentInstance<br/>agent_instance_id • run/task/team<br/>specialist id/version • mission<br/>effective authority • budget envelope • context scope<br/>created/closed timestamps"]:::agent
+
+A_BUDGET["AgentBudget<br/>model calls • input/output tokens • tool calls • wall time<br/>retries • dependency requests • max cost"]:::agent
+A_AUTH["Effective Authority<br/>Specialist ceiling ∩ Task policy ∩ Project policy<br/>∩ Run-owner authority ∩ emergency state ∩ environment trust"]:::security
+
+ATEAM["AgentTeam<br/>team_id • Run • parent Task • objective • strategy<br/>leader • budget • concurrency • completion/failure/disagreement policy"]:::agent
+TPLAN["TeamPlan<br/>versioned members + Control Plane Task IDs + dependencies"]:::agent
+
+STRAT_PIPE["pipeline"]:::agent
+STRAT_PAR["parallel_decomposition"]:::agent
+STRAT_SHARD["sharded"]:::agent
+STRAT_REP["independent_replication"]:::agent
+STRAT_ADV["adversarial_review"]:::agent
+
+MINTEAM["Minimum-sufficient-team policy<br/>one Agent when enough<br/>expand only when expected value > coordination + compute cost"]:::agent
+MUTSCOPE["MutationScope<br/>workspace • branch • path set<br/>conflict detection before concurrent mutation"]:::security
+INTEGTASK["Explicit Integration Task<br/>combines isolated worktrees/Artifacts<br/>never silent cross-agent merge"]:::verify
+
+SREG --> SSPEC --> AINST
+SPECSEL --> SREG
+AINST --> A_BUDGET
+AINST --> A_AUTH
+AINST --> ATEAM
+ATEAM --> TPLAN
+ATEAM --> STRAT_PIPE
+ATEAM --> STRAT_PAR
+ATEAM --> STRAT_SHARD
+ATEAM --> STRAT_REP
+ATEAM --> STRAT_ADV
+MINTEAM --> ATEAM
+AINST --> MUTSCOPE --> INTEGTASK
+
+subgraph ROLES["Specialist organisation — logical roles, not permanent model bindings"]
+direction LR
+ROLE_RESEARCH["Research Intelligence"]:::agent
+ROLE_STAKE["Stakeholder / Product Intelligence"]:::agent
+ROLE_UX["UX / Accessibility"]:::agent
+ROLE_ARCH["Systems Architect"]:::agent
+ROLE_REPO["Repository Analyst"]:::agent
+ROLE_DEV["Coding Intelligence / Developer"]:::agent
+ROLE_TEST["Test Engineering"]:::agent
+ROLE_DEP["Dependency / Migration"]:::agent
+ROLE_PERF["Performance Engineering"]:::agent
+ROLE_SEC["Security Reviewer"]:::agent
+ROLE_VERIFY["Independent Verifier"]:::agent
+ROLE_CRITIC["Adversarial Critic"]:::agent
+ROLE_FAIL["Failure Investigator"]:::agent
+ROLE_INTEG["Integration Governor"]:::agent
+ROLE_ASSET["Asset / Media capability worker"]:::agent
+ROLE_SIM["Simulation capability worker<br/>CFD / FEA / scientific compute"]:::agent
+ROLE_DEPLOY["Deployment / external automation"]:::agent
+end
+
+
+end
+
+TASK --> AINST

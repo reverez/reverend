@@ -1,0 +1,102 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 5: AUTHORITATIVE CONTROL PLANE
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 5. AUTHORITATIVE CONTROL PLANE
+%% =========================================================
+subgraph CP["5. AUTHORITATIVE CONTROL PLANE — ONE SERVER-SIDE SOURCE OF TRUTH"]
+direction TB
+
+CPROOT["Control Plane service<br/>authoritative Project / Run / Workflow / Task / Job / Event / Artifact state"]:::authority
+
+RUN["Run<br/>run_id • project_id • immutable owner_user_id • objective<br/>status • queue_class • priority • checkpoint • interruption_depth<br/>github_identity_ref • resource_policy • budget_policy • row_version"]:::authority
+
+WF["Workflow<br/>workflow_id • run_id • objective • status • trace_id"]:::domain
+TASK["Task<br/>task_id • workflow_id • team_id?<br/>kind • objective • status • acceptance_criteria • priority"]:::domain
+TDEP["TaskDependency<br/>task_id → depends_on_task_id<br/>acyclic DAG"]:::domain
+JOB["Job<br/>job_id • task_id • agent_instance_id?<br/>attempt_number • status • executor_type • node • runtime_epoch<br/>error_code • result_ref"]:::domain
+
+EVENT["Event<br/>append-only sequence • event_id • event_type • occurred_at<br/>user/project/run/workflow/task/job/agent lineage<br/>actor • trace_context • bounded payload"]:::domain
+
+ART["Artifact<br/>artifact_id • type • schema_version • content_ref/inline_content<br/>content_hash • producer job/agent • provenance<br/>validation_state • promotion_state"]:::domain
+ARTP["ArtifactParent<br/>derived_from lineage"]:::domain
+
+REQ["Requirement<br/>statement • source_ref • status<br/>priority • acceptance_refs • version • supersession"]:::domain
+DEC["Decision<br/>type • title • decision_text • rationale_ref<br/>status • supersession"]:::domain
+MEM["MemoryRecord<br/>scope • type • statement • evidence_refs<br/>confidence • status • expiry • supersession"]:::domain
+
+APPROVAL["Approval<br/>run/project • action_type • action_fingerprint<br/>requested_actor • effective_external_identity<br/>resource summary • required policy • state • expiry • decision"]:::security
+
+CHECK["RunCheckpoint<br/>sequence • manifest • status snapshot • journal watermark<br/>hash • complete"]:::durable
+ACTION["ActionRecord<br/>journal_sequence • action_id • run/job • actor • tool • operation<br/>arguments_digest • idempotency_key • state • resume_strategy<br/>result_ref • reconciliation metadata"]:::durable
+
+RR["ResourceRequest<br/>job-owned capacity requirement<br/>CPU • RAM • accelerator • runtime • trust • priority • cost ceiling"]:::sched
+RL["ResourceLease<br/>request/job/node • runtime_epoch • granted resources<br/>ACTIVE/RELEASED/EXPIRED/REVOKED • TTL • heartbeat"]:::sched
+CN["ComputeNode<br/>provider • provider_instance • trust_class • lifecycle<br/>capabilities • runtime profiles • resident models • heartbeat"]:::compute
+
+RATE["RateSnapshot<br/>provider/product/tier • native rate/currency<br/>billing rules • FX source/rate • effective/captured timestamps"]:::cost
+COSTEV["CostEvent<br/>category • lineage • quantity/unit • native unit price/currency<br/>rate_snapshot • estimated/actual GBP • source • metadata"]:::cost
+
+IDEMPREC["IdempotencyRecord<br/>principal • operation • key • request_hash<br/>response/resource ref • expiry"]:::domain
+RUNTIME_EPOCH["RuntimeEpoch<br/>changes each authoritative backend boot<br/>invalidates stale lease/worker execution authority"]:::durable
+
+CPROOT --> RUN --> WF --> TASK --> JOB
+TASK --> TDEP
+CPROOT --> EVENT
+CPROOT --> ART --> ARTP
+PROJECT --> REQ
+PROJECT --> DEC
+PROJECT --> MEM
+RUN --> APPROVAL
+RUN --> CHECK
+RUN --> ACTION
+JOB --> RR --> RL --> CN
+CPROOT --> RATE
+CPROOT --> COSTEV
+CPROOT --> IDEMPREC
+CPROOT --> RUNTIME_EPOCH
+end
+
+PROJECT --> RUN
+RUN -->|owner_user_id| USER
+RUN -->|github_identity_ref| GITHUBID
+R_RUNS --> CPROOT
+R_QUEUE --> CPROOT
+R_APPROVALS --> CPROOT
+R_ART --> CPROOT
+R_WF --> CPROOT
+R_SSE --> EVENT
+IDEMP --> IDEMPREC

@@ -1,0 +1,65 @@
+flowchart TB
+
+%% STYLES
+%% =========================================================
+classDef human fill:#e8f0ff,stroke:#3458a4,stroke-width:2px,color:#111;
+classDef client fill:#eef7ff,stroke:#3678a8,stroke-width:1.5px,color:#111;
+classDef api fill:#e9fff7,stroke:#23855f,stroke-width:1.5px,color:#111;
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef domain fill:#fff9e8,stroke:#a7802b,stroke-width:1.5px,color:#111;
+classDef agent fill:#f5edff,stroke:#7552a8,stroke-width:1.5px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.2px,color:#111;
+classDef tool fill:#fff0f0,stroke:#aa4949,stroke-width:1.5px,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.5px,color:#111;
+classDef sched fill:#eefcf8,stroke:#2f7a68,stroke-width:1.5px,color:#111;
+classDef compute fill:#eef4ff,stroke:#4f68a8,stroke-width:1.5px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.5px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.5px,color:#111;
+classDef security fill:#ffecec,stroke:#a73b3b,stroke-width:1.5px,color:#111;
+classDef data fill:#f4f4f4,stroke:#666,stroke-width:1.3px,color:#111;
+classDef cost fill:#ecfff1,stroke:#3e8b55,stroke-width:1.5px,color:#111;
+classDef ops fill:#f2fbff,stroke:#3f7890,stroke-width:1.5px,color:#111;
+classDef external fill:#f7f7f7,stroke:#777,stroke-width:1.2px,stroke-dasharray:5 3,color:#111;
+classDef dev fill:#fff8ed,stroke:#9b6b23,stroke-width:1.3px,color:#111;
+classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
+
+%% =========================================================
+
+ROOT["REVEREND CLOUD v1<br/>Focused subsystem view"]:::authority
+
+%% =========================================================
+%% FOCUSED VIEW
+%% Source: ../system-complete-mermaid-diagram.mmd
+%% Section 17: COMPUTE FABRIC / NODE / WORKER PROTOCOL
+%% External cross-subsystem references may render as compact interface nodes.
+%% =========================================================
+
+%% =========================================================
+%% 17. COMPUTE FABRIC / NODE / WORKER PROTOCOL
+%% =========================================================
+subgraph COMPUTE["17. COMPUTE FABRIC & AUTHENTICATED WORKER PROTOCOL"]
+direction TB
+
+NODE_REG["ComputeNode Registry<br/>capability + health + trust + runtime + model residency"]:::compute
+W_BOOT["One-time worker bootstrap credential<br/>≥256-bit random • hash stored • provider-instance-bound • short TTL"]:::security
+W_REG["POST /internal/v1/workers/register<br/>provider_instance + worker version + capabilities + runtime profiles"]:::compute
+W_SESSION["Worker session<br/>short-lived • node + runtime_epoch + endpoint scope"]:::security
+W_HB["Worker heartbeat<br/>health • CPU/RAM/GPU telemetry • resident models • active lease IDs"]:::compute
+W_LONG["Long-poll assignment<br/>GET /assignments/next"]:::compute
+W_ACK["Assignment ACK<br/>revalidate worker + node + Job + lease + epoch"]:::compute
+W_EXEC["Worker executes bounded assignment"]:::compute
+W_RESULT["Result submission<br/>lease + epoch + outcome + metrics + Artifact/result refs"]:::compute
+
+CPUW["CPU sandbox worker<br/>heavy/untrusted CPU execution"]:::compute
+GPUW["GPU worker<br/>disposable • non-authoritative"]:::compute
+
+NODE_REG --> W_REG --> W_SESSION --> W_HB
+W_SESSION --> W_LONG --> W_ACK --> W_EXEC --> W_RESULT
+RL --> W_LONG
+W_HB --> CN
+CN --> NODE_REG
+W_EXEC --> CPUW
+W_EXEC --> GPUW
+end
+
+CS --> NODE_REG
