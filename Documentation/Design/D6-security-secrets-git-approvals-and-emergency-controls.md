@@ -1209,3 +1209,21 @@ Private model acquisition uses pre-staged verified artifacts/short-lived object 
 Repository-specified binaries/grammars/plugins are not automatically executed for Repository Intelligence.
 
 Pinned Reverend-approved parsers/language services are execution dependencies and follow worker-image/provenance policy.
+
+
+---
+
+## 46. Capability Worker Network Enforcement
+
+For untrusted browser/fetch/build capabilities, policy is enforced at both:
+
+1. application/tool layer; and
+2. OS/network boundary.
+
+A browser script must not reach private Control Plane services merely by bypassing Playwright request interception.
+
+Dependency-acquisition workers have a distinct allowlist from Research/browser workers.
+
+Build/test phase should return to network-off whenever feasible.
+
+Ephemeral TestEndpoint routes are task/lease scoped and are not public development-server exposure.
