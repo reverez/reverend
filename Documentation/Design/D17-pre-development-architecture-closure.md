@@ -486,3 +486,16 @@ A second pass found and closed additional laptop-to-server gaps:
 4. **Control host overload:** 4-vCPU/8-GB remains a baseline, but derived services must move off-host/queue when authority-service reserves would be violated.
 
 These are now part of the C7/C8 acceptance surface.
+
+
+---
+
+## 16. Capability Modernization Recursive Audit — Cycle 3
+
+A third pass closed asynchronous/distributed capability races:
+
+1. **Late capability results:** D3/D15 now require Job-attempt + snapshot/policy revalidation before current-state use.
+2. **Browser TestEndpoint authorization:** D14/D1 now require lease-bound authenticated private routes; opaque routing alone is not authority.
+3. **Frontend credential bleed:** browser tests use explicit test-only credentials by default rather than copying real human sessions.
+
+These prevent stale research/index/browser/model results from mutating newer execution state.
