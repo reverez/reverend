@@ -883,3 +883,29 @@ per-Run Action cursor
 ~~~
 
 Both use D1 transactional counters, not raw PostgreSQL identity allocation.
+
+
+---
+
+## 29. Recursive Audit Cycle 12 — Off-Host Write-Ahead Safety Barrier
+
+The recursive audit found a catastrophic-host-loss gap in the original durability model.
+
+Writing an ActionRecord before an external side effect protects against **process/worker failure**, but not against complete loss of the persistent Control Plane host when the latest off-host RecoveryGeneration predates that Action. Restoring an older generation could otherwise forget that a Git push/provider mutation/deployment was attempted and repeat it.
+
+Cloud v1 therefore adds a **small off-host write-ahead safety barrier** for external side effects whose duplication or loss of reconciliation intent is unsafe.
+
+Canonical rule:
+
+~~~text
+persist ActionRecord PLANNED locally
+→ build authenticated RecoveryActionIntent
+→ durably ACK intent on required off-host recovery target
+→ only then perform the external side effect
+~~~
+
+This is not a full checkpoint/RecoveryGeneration on every action. It is a compact recovery-journal delta containing only the minimum identifiers and reconciliation metadata needed to prevent blind replay after host disaster.
+
+D5/D1 define the exact semantics.
+
+A remote action that requires this barrier must remain BLOCKED if no required durable target is available. Availability must never silently weaken durability policy.
