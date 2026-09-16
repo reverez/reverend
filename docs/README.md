@@ -71,4 +71,6 @@ For the current Cloud programme, use this order:
 4. this `docs/current/` local-baseline documentation
 5. `docs/history/` for implementation lineage and historical evidence
 
-The reorganization in this directory is path-only/documentation cleanup; it does not change runtime behavior.
+Two top-level compatibility aliases — `docs/release-0.4.0.md` and `docs/roadmap.md` — are intentionally retained because the existing 0.4.0 release validator and historical external references depend on those paths. New links should use the canonical `docs/current/` locations.
+
+The reorganization in this directory is documentation cleanup; it does not change runtime behavior.
