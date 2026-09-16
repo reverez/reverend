@@ -575,19 +575,31 @@ Pin actual revision/digest during C7 live validation.
 
 ---
 
-## 24. Model Loading State
+## 24. Model Hydration and Loading State
 
-Separate:
+D17 refines startup into separately observable stages:
 
 ~~~text
 PROVIDER_RUNNING
 WORKER_REGISTERING
 RUNTIME_READY
+MODEL_RESOLVING
+MODEL_HYDRATING
+MODEL_VERIFYING
 MODEL_LOADING
+MODEL_SMOKE_TEST
 NODE_READY
 ~~~
 
-Do not grant inference lease until functional smoke health passes.
+Cloud v1 default storage policy is **ephemeral upstream hydration**:
+
+- check verified worker-local ephemeral cache;
+- otherwise fetch the exact pinned model revision from the approved upstream repository;
+- verify artifact manifest/revision/checksums;
+- load and smoke-test;
+- grant no inference lease before NODE_READY.
+
+Persistent paid model cache is disabled by default and is not required to satisfy the baseline DeploymentProfile.
 
 ---
 
@@ -603,7 +615,8 @@ Compute Scheduler
 → RunPod
 → worker bootstrap
 → registration
-→ model load
+→ pinned model resolve/hydration/verification
+→ model load + smoke test
 → lease
 ~~~
 
@@ -620,7 +633,11 @@ ABSENT
 PROVISIONING
 BOOTING
 REGISTERING
-LOADING
+MODEL_RESOLVING
+MODEL_HYDRATING
+MODEL_VERIFYING
+MODEL_LOADING
+MODEL_SMOKE_TEST
 READY
 BUSY
 IDLE_GRACE
@@ -1153,3 +1170,54 @@ Engineering and media pools maintain separate:
 - budget admission.
 
 A media request does not keep the engineering GPU alive unless routing explicitly selected the same node/profile.
+
+
+---
+
+## 2026-09-16 Model Hydration Extension
+
+### Model hydration admission
+
+Before Capacity Controller provisions a charge-bearing GPU for a profile that requires hydration, it must have:
+
+- an admitted ResourceRequest;
+- a pinned DeploymentProfile;
+- a valid ModelArtifactManifest;
+- at least one approved hydration source;
+- sufficient budget reservation for expected provisioning + bounded hydration + load;
+- a storage profile with enough ephemeral disk headroom.
+
+The worker does not rely on a connected developer device.
+
+### Bounded failure
+
+Hydration attempts are bounded.
+
+A worker that cannot retrieve/verify the required revision transitions to an explicit hydration failure state and is drained/terminated according to cost policy rather than retrying indefinitely on paid GPU capacity.
+
+### Residency preference
+
+For otherwise-equivalent candidates, scheduler ranking may prefer an already verified/resident compatible model because it avoids cold-start cost.
+
+Residency preference never overrides:
+
+- trust;
+- model capability;
+- Project sensitivity;
+- DeploymentProfile eligibility;
+- Run isolation.
+
+Across Run handoff, weights may remain resident but KV/prompt/session state and Project workspace access must be cleared/rebound before reuse.
+
+### Ephemeral storage
+
+The initial RunPod worker storage profile must reserve enough ephemeral disk for:
+
+~~~text
+model snapshot
++ transfer staging headroom
++ runtime cache
++ bounded worker temp/log data
+~~~
+
+The persistent Control Plane host is not the production model-weight cache.
