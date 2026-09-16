@@ -865,3 +865,86 @@ budget/trust inputs
 ~~~
 
 This is bounded decision provenance, not hidden chain-of-thought.
+
+
+---
+
+## 37. Recursive Audit Cycle 14 — Model and Runtime Supply-Chain Safety
+
+A pinned revision is necessary but not sufficient if loading that revision can execute arbitrary repository-provided code or unsafe serialized objects.
+
+### Model artifact policy
+
+Production DeploymentProfiles must declare a validated model artifact manifest containing, as applicable:
+
+~~~text
+model repository
+immutable revision/commit
+expected weight filenames
+weight format
+file digests / repository object identities
+tokenizer/config filenames
+remote-code requirement
+license reference
+validation timestamp
+~~~
+
+Cloud v1 baseline policy prefers non-executable safe weight formats such as SafeTensors.
+
+Unsafe pickle-style model loading is prohibited for production profiles unless an explicit reviewed exception exists inside a stronger isolated build/runtime profile.
+
+### Remote model code
+
+Production baseline launches with remote/custom model code execution disabled.
+
+Equivalent rule:
+
+~~~text
+trust_remote_code = false
+~~~
+
+where supported.
+
+If a future model genuinely requires custom code:
+
+1. fetch the exact immutable revision;
+2. review/vendor the required code into the trusted worker image or separately pinned reviewed artifact;
+3. benchmark/security-test that new DeploymentProfile;
+4. do not execute mutable repository code directly at model-load time.
+
+### Tokenizer/config handling
+
+Tokenizer/config files remain untrusted structured input.
+
+Parsers/loaders must use bounded file sizes and no dynamic import/eval hooks from model repository content.
+
+A profile fails admission if the expected artifact manifest differs from what is present on the worker.
+
+### Worker image provenance
+
+Container digest pinning is mandatory but the digest must refer to an image built/published through the Reverend trusted release pipeline or an explicitly reviewed upstream image.
+
+Record:
+
+~~~text
+image digest
+build source revision
+base image identity
+runtime dependency lock/manifest
+build provenance reference where available
+vulnerability review timestamp/result
+~~~
+
+A mutable image tag may aid discovery but is never production identity.
+
+### Cache poisoning
+
+Shared model/runtime caches are addressed/validated by immutable profile identity and expected digests.
+
+A cached file from another profile/revision is not trusted merely because its filename matches.
+
+Checksum/profile mismatch deletes/quarantines the cache entry and prevents node readiness.
+
+### Profile admission after security update
+
+A runtime/base-image security change creates a new DeploymentProfile version and reruns the required ReverendBench/security smoke rather than silently mutating an accepted profile.
