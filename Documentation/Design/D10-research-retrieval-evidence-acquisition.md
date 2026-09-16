@@ -685,3 +685,32 @@ D10 is satisfied when Development can implement research without inventing:
 - how failure is represented.
 
 Cloud v1 therefore extends the accepted research path rather than replacing it with an unconstrained scraper or LLM-only web agent.
+
+
+---
+
+## 29. Relationship to D16 Research Fabric
+
+D10 remains the foundational Cloud contract for research/retrieval/evidence semantics inherited from the accepted 0.4.0 system.
+
+D16 is the server-era capability refinement and is authoritative where it adds:
+
+- SourceRecord / SourceSnapshot lifecycle;
+- provider-neutral SearchBroker / FetchBroker structure;
+- Browser Worker escalation;
+- query-disclosure policy;
+- authenticated/private source partitions;
+- browser subresource/network isolation;
+- evidence-span validation;
+- source-retention/cache boundaries;
+- research-team sharding and cloud economics.
+
+If D10 and D16 appear to overlap, apply:
+
+~~~text
+D10 foundational evidence/retrieval invariant
+→ D16 capability/runtime/security refinement
+→ D20 Context Broker decides when/how the evidence is consumed
+~~~
+
+Neither document turns search snippets, cached pages, embeddings or browser output into Project authority.
