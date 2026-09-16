@@ -469,3 +469,41 @@ Rejected:
 D11 is satisfied when every major existing subsystem has explicit disposition, target owner, migration phase, authority cutover and retirement condition.
 
 Development should therefore adapt proven Reverend components deliberately rather than rediscover or duplicate them.
+
+
+---
+
+## 2026-09-16 Cloud-Only Product Cutover Clarification
+
+The Cloud product boundary is now stricter than the historical local compatibility path.
+
+### Production Cloud
+
+Client devices do not execute:
+
+- Ollama/local LLMs;
+- embeddings/reranking;
+- Workstation scheduler;
+- repository builds/tests;
+- sandboxes;
+- media models;
+- required recovery replication.
+
+The Cloud browser/API client is the supported shared two-user product surface.
+
+### Local 0.4.0
+
+Local Workstation/Ollama/SQLite code remains useful during migration for:
+
+- regression reference;
+- deterministic development tests;
+- adapter compatibility;
+- historical data inspection.
+
+It must not shape Cloud authority contracts or create a hybrid execution requirement.
+
+After C9, retirement/archival of product-facing local mode should be evaluated by a separate ADR.
+
+### Conversation migration
+
+Legacy encrypted Workstation conversation history may be imported selectively into D15 Conversations, but is not required for Cloud cutover and never imports old Task authority implicitly.
