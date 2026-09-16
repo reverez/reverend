@@ -1,0 +1,1057 @@
+# D8 — Observability, Cost, Budgets, Operations & Deployment
+
+> **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
+> **Depends on:** A6, A7, A8, A11, A12, D1, D4, D5, D6, D7  
+> **Purpose:** Define the operational plane required to run Reverend Cloud v1 safely: metrics, tracing, event observability, immutable cost accounting, budget enforcement, provider reconciliation, backups, health, deployment, upgrades and operational runbooks.
+
+---
+
+## 1. Operational Principle
+
+Reverend Cloud must make autonomous work inspectable and attributable.
+
+For any meaningful action, operators should be able to answer:
+
+~~~text
+Who caused this work?
+Which Project / Run / Task / Agent / Job?
+Which model/runtime/node?
+Which resource lease?
+Which external action?
+Which approval?
+Which Artifact / evidence?
+How long did it take?
+How much did it cost?
+Did verification pass?
+Can the result be recovered?
+~~~
+
+Observability is not optional decoration.
+
+It is part of correctness, recovery, security and economics.
+
+---
+
+## 2. Observability Layers
+
+Cloud v1 distinguishes:
+
+~~~text
+Durable Domain Events
+Operational Logs
+Metrics
+Trace Context
+Provider Usage / Billing
+Audit Events
+Recovery Evidence
+~~~
+
+These layers may correlate through IDs, but they have different retention and authority.
+
+Durable Events are authoritative history for state transitions.
+
+Logs/metrics are operational telemetry and may be sampled/rotated.
+
+---
+
+## 3. Trace Context
+
+Every request / Run execution path carries:
+
+~~~text
+trace_id
+request_id
+user_id
+project_id
+run_id
+workflow_id?
+task_id?
+agent_instance_id?
+job_id?
+lease_id?
+node_id?
+action_id?
+~~~
+
+Null means genuinely not applicable.
+
+It must not mean the system forgot to capture identity.
+
+---
+
+## 4. Logging Format
+
+Use structured JSON logs in Cloud mode.
+
+Example:
+
+~~~json
+{
+  "timestamp": "2026-09-16T12:00:00Z",
+  "level": "INFO",
+  "service": "compute_scheduler",
+  "event": "resource_lease_granted",
+  "trace_id": "...",
+  "run_id": "...",
+  "job_id": "...",
+  "node_id": "...",
+  "lease_id": "...",
+  "duration_ms": 12
+}
+~~~
+
+Logs must pass through redaction before output.
+
+---
+
+## 5. Logging Prohibitions
+
+Never log:
+
+- session tokens;
+- CSRF secrets;
+- Authorization headers;
+- GitHub credentials;
+- RunPod API keys;
+- Secret Broker plaintext;
+- DB passwords;
+- recovery keys;
+- raw private keys;
+- hidden model chain-of-thought;
+- unrestricted prompt bodies by default.
+
+Prompt/context logging is disabled by default.
+
+If debugging requires a content capture, it must use an explicit local/admin diagnostic mode with redaction and short retention.
+
+---
+
+## 6. Metrics Categories
+
+### Control Plane
+
+~~~text
+api_request_count
+api_latency_seconds
+api_error_count
+postgres_transaction_latency
+event_append_latency
+sse_client_count
+sse_replay_count
+scheduler_loop_latency
+scheduler_leader_status
+~~~
+
+### Run / Workflow
+
+~~~text
+runs_queued
+runs_running
+runs_paused
+runs_awaiting_approval
+runs_recovery_blocked
+task_ready_wait_seconds
+job_attempt_count
+repair_rounds
+~~~
+
+### Agent / Model
+
+~~~text
+model_invocation_count
+model_input_tokens
+model_output_tokens
+model_queue_wait_seconds
+model_setup_seconds
+model_inference_seconds
+structured_output_failure_count
+tool_call_count
+context_tokens_selected
+context_items_omitted
+~~~
+
+### Compute
+
+~~~text
+compute_nodes_by_state
+resource_leases_active
+lease_wait_seconds
+worker_heartbeat_age
+gpu_utilization
+gpu_vram_used
+provider_provision_seconds
+worker_register_seconds
+model_load_seconds
+gpu_idle_grace_seconds
+~~~
+
+### Recovery
+
+~~~text
+checkpoint_commit_seconds
+checkpoint_failure_count
+recovery_generation_age
+recovery_replica_ack_count
+recovery_run_count
+recovery_blocked_count
+action_unknown_count
+~~~
+
+### Economics
+
+~~~text
+estimated_cost_gbp
+actual_cost_gbp
+gpu_billable_seconds
+gpu_lease_seconds
+shared_overhead_gbp
+budget_remaining_gbp
+provider_reconciliation_delta_gbp
+~~~
+
+---
+
+## 7. Metrics Backend
+
+Cloud v1 does not require a complex metrics stack to begin Development.
+
+Acceptable initial implementation:
+
+- existing Reverend observability store/events;
+- structured logs;
+- PostgreSQL cost/event queries;
+- optional Prometheus-compatible endpoint.
+
+If Prometheus is added, metrics must be operational projections, not a source of authority.
+
+No Kubernetes dependency is introduced.
+
+---
+
+## 8. Durable Event vs Metric
+
+Example:
+
+~~~text
+Run RUNNING → PAUSED
+~~~
+
+must produce a durable Event.
+
+A metric:
+
+~~~text
+runs_paused = 1
+~~~
+
+may be regenerated.
+
+Do not rely on a time-series metric to reconstruct Run state.
+
+---
+
+## 9. Cost Accounting Objects
+
+A11 defines the canonical accounting model.
+
+Cloud v1 persists:
+
+~~~text
+RateSnapshot
+CostEvent
+ComputeLeaseUsage
+PowerSession
+~~~
+
+D1 includes durable RateSnapshot and CostEvent tables.
+
+Development should add explicit repositories/services for ComputeLeaseUsage and PowerSession if not represented as typed CostEvents alone.
+
+Recommended approach:
+
+- keep PowerSession and ComputeLeaseUsage as first-class tables for lifecycle reconciliation;
+- emit CostEvents from their state changes;
+- derive user-facing totals from immutable CostEvents.
+
+---
+
+## 10. PowerSession
+
+Represents one provider-billable worker lifecycle interval.
+
+~~~text
+PowerSession
+├── power_session_id
+├── provider
+├── provider_instance_id
+├── node_id?
+├── deployment_profile_id
+├── requested_start_at
+├── provider_running_at
+├── stop_requested_at
+├── provider_stopped_at
+├── billing_start_at
+├── billing_end_at
+├── rate_snapshot_id
+├── estimated_cost_gbp
+├── actual_cost_gbp?
+└── reconciliation_state
+~~~
+
+A PowerSession may exist before any Run lease becomes attributable.
+
+---
+
+## 11. ComputeLeaseUsage
+
+Represents attributable ResourceLease use.
+
+~~~text
+ComputeLeaseUsage
+├── lease_id
+├── user_id
+├── project_id
+├── run_id
+├── job_id
+├── node_id
+├── deployment_profile_id
+├── acquired_at
+├── released_at
+├── duration_seconds
+├── rate_snapshot_id
+└── estimated_cost_gbp
+~~~
+
+Lease time is attributed to the immutable Run owner.
+
+---
+
+## 12. RateSnapshot
+
+RateSnapshot freezes the provider/FX rate used for historical estimates.
+
+Fields:
+
+~~~text
+provider
+product
+provider tier
+native rate
+native currency
+billing increment
+minimum duration
+FX source
+FX rate to GBP
+effective_at
+captured_at
+~~~
+
+Historical bills never change because a later FX/provider price changes.
+
+---
+
+## 13. Rate Acquisition
+
+Provider rate is captured when:
+
+- a deployment profile is created/refreshed;
+- before a new paid PowerSession starts if current snapshot is stale;
+- provider reconciliation returns a differing billed rate.
+
+Rate acquisition may use:
+
+- provider API;
+- manually configured validated rate;
+- operator-approved snapshot.
+
+If a reliable provider rate is unavailable:
+
+- show estimate quality as unknown/low;
+- hard budget admission should use conservative configured ceiling;
+- do not pretend exact cost.
+
+---
+
+## 14. Cost Categories
+
+### Variable attributable to Run owner
+
+- active GPU lease;
+- separately provisioned Run CPU worker;
+- paid external model/API;
+- Run-specific storage/egress.
+
+### Shared fixed
+
+Initial 50/50 split:
+
+- persistent Control Plane host;
+- baseline PostgreSQL/storage;
+- backups;
+- domain/DNS where paid;
+- shared monitoring.
+
+### Shared transient GPU overhead
+
+Initial 50/50 split:
+
+- provider boot before first attributable lease;
+- model warm/load outside Run lease;
+- idle grace after final lease;
+- controlled drain;
+- unavoidable provider reconciliation gap.
+
+This policy is explicit and changeable later.
+
+---
+
+## 15. Cost Event Categories
+
+Suggested enum:
+
+~~~text
+CONTROL_PLANE_FIXED
+GPU_POWER_SESSION
+GPU_LEASE
+CPU_WORKER
+EXTERNAL_API
+STORAGE
+NETWORK_EGRESS
+BACKUP
+SHARED_GPU_OVERHEAD
+CREDIT_ADJUSTMENT
+PROVIDER_RECONCILIATION
+~~~
+
+CostEvent is append-only.
+
+Corrections use compensating events, not mutation of history.
+
+---
+
+## 16. Cost Estimation
+
+Before paid admission:
+
+~~~text
+estimated duration
+× current rate
++ expected startup overhead where applicable
+~~~
+
+For a newly provisioning GPU:
+
+- Run budget must admit expected Run-specific lease;
+- shared startup overhead follows shared policy.
+
+Estimate is conservative.
+
+The UI labels:
+
+~~~text
+estimated
+~~~
+
+until reconciliation.
+
+---
+
+## 17. Provider Reconciliation
+
+Periodic/terminal reconciliation:
+
+1. query provider instance/billing data;
+2. match provider instance to PowerSession;
+3. compute native actual;
+4. apply stored/reconciliation FX RateSnapshot;
+5. compare ledger estimate;
+6. append reconciliation CostEvent;
+7. mark PowerSession reconciled.
+
+A material mismatch raises an operational alert.
+
+No silent counter overwrite.
+
+---
+
+## 18. Budget Hierarchy
+
+Canonical:
+
+~~~text
+User monthly
+   ↓
+Run
+   ↓
+Team
+   ↓
+Task
+   ↓
+Agent
+   ↓
+Job / operation
+~~~
+
+Cloud v1 minimum policy fields:
+
+~~~text
+max_run_cost_gbp
+max_run_runtime_seconds
+monthly_user_soft_limit_gbp
+monthly_user_hard_limit_gbp
+~~~
+
+Optional child budgets are introduced through Agent/Team policies.
+
+---
+
+## 19. Soft Budget
+
+Soft limit behavior:
+
+- emit BudgetWarning Event;
+- surface UI warning;
+- allow current execution;
+- optionally ask orchestrator to reduce optional work.
+
+Soft limit does not revoke authority by itself.
+
+---
+
+## 20. Hard Budget
+
+Hard limit behavior:
+
+- prevent next charge-bearing action;
+- allow current unsafe/non-interruptible action to settle;
+- checkpoint at safe boundary;
+- release paid resources where possible;
+- transition Task/Run to blocked/failure policy as appropriate;
+- surface bounded operator options.
+
+Do not terminate a Git push/deployment in the middle merely to satisfy a cost limit.
+
+---
+
+## 21. Budget Reservation
+
+Before expensive operation, reserve estimated amount against parent budget.
+
+Conceptual:
+
+~~~text
+available = hard_limit - settled_cost - active_reservations
+~~~
+
+A reservation:
+
+- has operation/Job identity;
+- expires if admission never occurs;
+- converts to measured usage as CostEvents arrive.
+
+This prevents simultaneous Team Jobs from each assuming the same remaining budget.
+
+---
+
+## 22. Cost Dashboard
+
+Per Run:
+
+- owner;
+- active deployment profile;
+- active lease time;
+- GPU/CPU usage;
+- provider PowerSession estimate;
+- shared overhead allocation;
+- estimated total;
+- reconciled total;
+- hard/soft budget;
+- remaining amount.
+
+Per user/month:
+
+- Run-variable spend;
+- paid APIs;
+- shared fixed allocation;
+- shared transient overhead;
+- actual/estimated status.
+
+---
+
+## 23. Primary Economic Metric
+
+Reverend optimization remains:
+
+> **GBP per verified successful engineering Task**
+
+Benchmark record must distinguish:
+
+~~~text
+model/provider billed time
+resource lease time
+idle/warm overhead
+verified success
+human intervention
+repair rounds
+~~~
+
+Tokens/second alone is not an economic success metric.
+
+---
+
+## 24. Health Model
+
+Separate:
+
+~~~text
+liveness
+readiness
+functional health
+provider health
+recovery health
+~~~
+
+### Control Plane liveness
+
+Process/event loop alive.
+
+### Control Plane readiness
+
+- PostgreSQL reachable;
+- migrations supported;
+- Secret Broker key available;
+- no unresolved global recovery gate;
+- scheduler/recovery service state valid.
+
+### Worker health
+
+Defined in D4.
+
+### Model functional health
+
+Bounded smoke request succeeds for expected DeploymentProfile.
+
+---
+
+## 25. Health Endpoints
+
+Internal/administrative:
+
+~~~text
+/health/live
+/health/ready
+~~~
+
+Public/system API exposes sanitized:
+
+~~~text
+GET /api/v1/system/status
+~~~
+
+Do not expose DB credentials/provider internals.
+
+---
+
+## 26. Alerts
+
+Initial alert-worthy conditions:
+
+- PostgreSQL unavailable;
+- scheduler leader absent too long;
+- RecoveryGeneration too old;
+- no recovery replica ACK beyond threshold;
+- repeated worker registration failure;
+- provider provisioning timeout;
+- cost reconciliation delta exceeds threshold;
+- hard budget unexpectedly bypassed;
+- Secret Broker key unavailable;
+- RECOVERY_BLOCKED Run;
+- Event/SSE sequence corruption;
+- backup verification failure;
+- disk capacity low.
+
+Cloud v1 can initially deliver alerts through logs/UI; external notification integration is optional.
+
+---
+
+## 27. PostgreSQL Backup
+
+Minimum policy:
+
+- nightly logical backup;
+- backup before schema-destructive migration;
+- recovery generation before planned authoritative host replacement/shutdown;
+- periodic restore test.
+
+Use encrypted storage.
+
+A backup is not accepted until:
+
+- command succeeds;
+- file hash recorded;
+- restore test policy satisfied.
+
+---
+
+## 28. BlobStore Backup
+
+Content-addressed durable objects referenced by active:
+
+- Artifacts;
+- checkpoints;
+- recovery generations;
+- Project state
+
+must be included in backup/replication policy.
+
+Garbage collection cannot remove objects referenced by any retained durable manifest.
+
+---
+
+## 29. Secret Backup
+
+Backup contains encrypted secret rows and protected recovery-key procedure/material.
+
+Do not copy plaintext secrets into generic backup archives.
+
+Test secret restoration on an isolated replacement environment.
+
+---
+
+## 30. Recovery Replica Monitoring
+
+Track:
+
+~~~text
+latest complete RecoveryGeneration
+latest ACK per recovery-enabled device
+age since acknowledged generation
+device revoked/offline state
+~~~
+
+Planned authoritative-host shutdown gate consumes these metrics.
+
+---
+
+## 31. Persistent Host Deployment
+
+Initial target:
+
+~~~text
+Hetzner CX33-class x86
+4 vCPU
+8 GB RAM
+80 GB NVMe
+EU region
+~~~
+
+Recommended deployment style:
+
+- Debian/Ubuntu LTS;
+- dedicated reverend service user;
+- PostgreSQL;
+- Python virtualenv or pinned application container;
+- systemd services;
+- HTTPS reverse proxy;
+- Tailscale/private network.
+
+No Kubernetes.
+
+---
+
+## 32. Service Units
+
+Suggested logical systemd units:
+
+~~~text
+reverend-api.service
+postgresql.service
+reverend-backup.timer
+reverend-backup.service
+reverend-recovery-replication.timer
+~~~
+
+Scheduler/capacity/recovery loops may initially live inside reverend-api/application process under PostgreSQL leader locks.
+
+If later split, service boundaries already exist in code.
+
+---
+
+## 33. Reverse Proxy
+
+Acceptable choices:
+
+~~~text
+Caddy
+or
+nginx
+~~~
+
+Responsibilities:
+
+- TLS;
+- request size limits;
+- security headers;
+- proxy to private ASGI bind;
+- SSE streaming without buffering;
+- no direct PostgreSQL/vLLM exposure.
+
+Do not place application identity solely in proxy headers without cryptographic/session validation.
+
+---
+
+## 34. PostgreSQL Network
+
+PostgreSQL binds only to local/private interface required by Reverend.
+
+No public internet port.
+
+Use a dedicated database role with only required schema privileges.
+
+Migration role may be separate from runtime role later.
+
+---
+
+## 35. Disk Layout
+
+Suggested:
+
+~~~text
+/var/lib/reverend/
+├── objects/
+├── workspaces/
+├── backups/
+└── state/
+
+/etc/reverend/
+├── runtime.env
+└── secret-key
+~~~
+
+Exact paths may follow distro conventions.
+
+Secrets/config permissions are restricted.
+
+Repository source checkout is separate from state directory.
+
+---
+
+## 36. Upgrade Procedure
+
+Cloud application upgrade:
+
+1. ensure clean Git/release artifact;
+2. run portable tests/contract tests;
+3. create backup;
+4. place scheduler in drain/maintenance mode;
+5. allow active Run safe boundary or pause;
+6. apply backward-compatible DB migrations;
+7. restart application with new runtime epoch;
+8. recovery controller reconciles stale leases/work;
+9. verify readiness;
+10. resume queued work.
+
+Do not hot-upgrade model/provider code in the middle of an unjournalled side effect.
+
+---
+
+## 37. Schema Migration Safety
+
+Before destructive migration:
+
+- backup;
+- validate old schema version;
+- migration transaction where possible;
+- run integrity checks;
+- refuse startup if migration partially applied.
+
+Migration checksums are recorded.
+
+Production does not auto-run unknown newer migrations.
+
+---
+
+## 38. Provider/Model Upgrade
+
+A DeploymentProfile upgrade creates a new profile identity.
+
+Do not mutate:
+
+~~~text
+qwen3.8-...-v1
+~~~
+
+to point silently at a different model/runtime image.
+
+Create:
+
+~~~text
+...-v2
+~~~
+
+benchmark it, promote it, then disable/retire v1 for new Jobs.
+
+Historical Runs preserve original profile provenance.
+
+---
+
+## 39. Maintenance Mode
+
+Persistent Control Plane supports a durable maintenance flag.
+
+While enabled:
+
+- clients can authenticate/read;
+- no new Run enters STARTING;
+- current Run may be safely paused/drained;
+- provider provisioning disabled unless explicitly needed for recovery;
+- admin operations/backups allowed.
+
+Maintenance state is visible to UI.
+
+---
+
+## 40. Provider Outage
+
+If RunPod unavailable:
+
+- queued GPU Jobs remain queued;
+- Capacity Controller records provider unavailable;
+- Control Plane remains online;
+- no weaker trust/model profile is silently selected;
+- user sees bounded status;
+- CPU-only work may continue if dependencies allow.
+
+If an active worker survives provider API outage, scheduler may continue using it while lease/worker health remain valid, but destructive lifecycle actions may be deferred.
+
+---
+
+## 41. Control Host Resource Protection
+
+Persistent authority must remain responsive.
+
+Reserve resources for Control Plane.
+
+Do not run arbitrary heavyweight builds directly on authority host.
+
+Use:
+
+- process memory/CPU limits for bounded internal tasks;
+- separate CPU worker for untrusted/heavy work.
+
+Disk monitor must protect PostgreSQL/WAL from workspace/cache exhaustion.
+
+---
+
+## 42. Local Development Environment
+
+Development should provide a local cloud-stack profile, for example:
+
+~~~text
+PostgreSQL container/local service
+Reverend cloud API
+fake/in-memory ComputeProvider
+fake worker
+mock InferenceRuntime
+~~~
+
+This permits deterministic CI without real RunPod cost.
+
+Live provider tests run separately.
+
+---
+
+## 43. Configuration Validation
+
+At startup validate:
+
+- DATABASE_URL;
+- state/blob root;
+- secret key;
+- public URL;
+- auth/session settings;
+- RunPod provider secret reference if enabled;
+- recovery policy;
+- idle grace;
+- budget defaults.
+
+Invalid security-critical configuration fails startup.
+
+---
+
+## 44. CI Layers
+
+### Portable unit/contract CI
+
+No paid providers.
+
+### PostgreSQL integration CI
+
+Ephemeral PostgreSQL.
+
+### Fault-injection CI
+
+Recovery/action/checkpoint tests.
+
+### Browser/API CI
+
+Auth + SSE + UI contract.
+
+### Live provider validation
+
+Explicit/manual/protected:
+- RunPod provisioning;
+- vLLM model load;
+- ReverendBench smoke;
+- billing reconciliation.
+
+Live tests never run automatically on every commit without explicit cost authorization.
+
+---
+
+## 45. Operational Runbooks
+
+Documentation/Design should lead Development to create operational runbooks before C9 for:
+
+~~~text
+restore PostgreSQL/BlobStore
+rotate master secret key
+rotate GitHub credential
+rotate RunPod API key
+recover RECOVERY_BLOCKED Run
+replace control host
+handle provider outage
+drain GPU worker
+disable compromised worker
+stop Project/Global execution
+perform Cloud upgrade
+reconcile billing mismatch
+~~~
+
+Runbooks should reference executable commands, not only prose.
+
+---
+
+## 46. D8 Acceptance Tests
+
+Must prove:
+
+- cost derived from immutable events;
+- RateSnapshot preserves historical estimate;
+- Run-owner lease cost attribution;
+- shared overhead split policy;
+- hard budget blocks next paid action safely;
+- PowerSession reconciles provider actual;
+- logs redact seeded test secrets;
+- readiness fails when DB/key missing;
+- zero-GPU status remains ready;
+- PostgreSQL backup restores to blank instance;
+- BlobStore referenced object restores/validates;
+- maintenance mode stops new execution;
+- profile version change preserves historical provenance.
+
+---
+
+## 47. Exit Condition
+
+C8 is ready when operators can observe identity-to-cost lineage for a Run, enforce budgets safely, recover/backup authoritative state, operate the persistent host without exposing worker/model internals publicly, and distinguish estimated from provider-reconciled cost.
