@@ -521,3 +521,53 @@ Must prove:
 ## 23. Exit Condition
 
 Model Fabric is ready when Reverend can replace or specialize models based on measured capability without changing Agent semantics, reconstruct serving from pinned profiles on disposable workers and optimize runtime behavior without making caches or model claims authoritative.
+
+
+---
+
+## 24. Recursive Capability Audit — Model Artifact Acquisition & Cache Trust
+
+### Community worker must not receive registry credentials by default
+
+For the baseline public model:
+
+~~~text
+model artifacts are public
+→ worker may fetch from approved public model host
+→ pinned revision + digest verification
+~~~
+
+For private/licensed model artifacts requiring credentials:
+
+- do not place long-lived Hugging Face/model-registry token on a Community worker;
+- trusted Control Plane/build pipeline may pre-stage verified encrypted/model objects in an approved artifact store;
+- worker receives short-lived object capability/signed download reference scoped to exact required artifacts; or
+- use stronger-trust dedicated infrastructure with an explicit credential adapter.
+
+### Model download network policy
+
+Worker may contact only approved artifact origins needed by its DeploymentProfile.
+
+Redirect/origin change is revalidated.
+
+Model download path cannot become a general-purpose web client.
+
+### Cache poisoning defense
+
+Cache lookup key includes:
+
+~~~text
+DeploymentProfile ID
+model revision
+file identity
+expected digest
+quantization/runtime compatibility
+~~~
+
+A file with matching name but wrong digest/profile is quarantined/deleted.
+
+### Baseline fit remains an empirical gate
+
+A100 SXM 80 GB + Qwen3.8-27B + 64K is the accepted initial **target profile**, but C7 must measure real VRAM/runtime/context fit before production ELIGIBLE status.
+
+If the exact serving profile does not fit safely or has unacceptable throughput, ReverendBench selects a revised DeploymentProfile rather than weakening worker safety margins.
