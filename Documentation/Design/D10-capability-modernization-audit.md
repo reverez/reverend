@@ -399,3 +399,36 @@ D11–D17 freeze the detailed designs.
 ## 11. Exit Condition
 
 Capability modernization is complete when every significant local-era subsystem has a Cloud disposition, persistent/reconstructible classification, trust boundary, worker placement, budget model and benchmark gate.
+
+
+---
+
+## 12. Recursive Capability Audit — Build Environments & Persistent-Host Sizing
+
+Two additional laptop-era assumptions are explicitly removed.
+
+### Development environment is no longer “whatever is installed on the laptop”
+
+Cloud workers reconstruct an ExecutionEnvironmentSpec from trusted worker/toolchain profiles plus Project dependency manifests.
+
+Dependency acquisition is a bounded capability with registry/network policy and integrity/provenance.
+
+### 4 vCPU / 8 GB is a reference Control Plane profile, not permission to co-locate every derived service
+
+PostgreSQL/API/schedulers/recovery receive protected headroom.
+
+Heavy/reconstructible services such as:
+
+~~~text
+large Qdrant indexes
+SearXNG
+repository indexing
+language servers
+browser execution
+large document parsing
+build/test processes
+~~~
+
+may run as separate CPU services/workers when measurements show they threaten authority-host liveness.
+
+Cloud architecture optimizes derived-service placement independently from authoritative state.
