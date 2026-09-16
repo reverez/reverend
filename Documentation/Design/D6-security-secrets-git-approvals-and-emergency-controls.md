@@ -1260,3 +1260,45 @@ Provider credentials never enter generic browser/search model context.
 Repository language tooling additionally sanitizes configuration that could trigger compiler plugins, arbitrary language-service plugins, external executable discovery or host-path access.
 
 If analysis requires executing Project tooling, it uses a normal isolated CPU capability rather than expanding trusted LSP privileges.
+
+
+---
+
+## 49. Explicit Community-Compute Disclosure Policy
+
+The accepted RunPod Community baseline is a lower-assurance environment whose provider infrastructure can potentially observe plaintext sent to the worker.
+
+Therefore Project placement is explicit.
+
+Safe default:
+
+~~~text
+PUBLIC
+  Community eligible
+
+PROJECT_PRIVATE
+  Community ineligible until Project owner explicitly opts in
+
+USER_PRIVATE
+SECRET_ADJACENT
+RESTRICTED
+  Community ineligible by default
+~~~
+
+The selected Reverend deployment may create a Project policy preset for ordinary private engineering that explicitly permits PROJECT_PRIVATE on Community Cloud, but that is a human-visible policy choice, not an implication of the label.
+
+Rules:
+
+- Secret Broker plaintext is never allowed by this opt-in;
+- EXTERNAL_API requires a separate policy decision;
+- changing disclosure policy is versioned/audited;
+- Context Broker/Compute Scheduler enforce the current policy before transmitting context;
+- an Agent cannot weaken disclosure policy.
+
+### Inference log confidentiality
+
+Model workers configure vLLM/SGLang/runtime logging so normal logs do not record full prompts, source code, images or generated private reasoning.
+
+Metrics retain request IDs, token counts, timings and bounded error codes.
+
+Diagnostic prompt capture is disabled by default and, if ever enabled under explicit operator diagnostics, inherits Project sensitivity and short retention.
