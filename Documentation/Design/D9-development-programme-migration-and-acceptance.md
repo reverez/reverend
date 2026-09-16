@@ -1022,3 +1022,44 @@ The gate passes only when:
 - a fresh audit pass finds no new Cloud-v1-blocking flaw.
 
 This means “zero known blocking flaws”, not a claim that defects are mathematically impossible.
+
+
+---
+
+## 37. Recursive Audit Cycle 2 — Additional Acceptance Gates
+
+Development must add explicit tests for the Cycle-2 fixes:
+
+### Lifecycle
+
+- active cancellation visibly passes through CANCEL_REQUESTED/CANCELLING;
+- no paid lease or non-interruptible Action remains when CANCELLED is committed;
+- human clarification uses AWAITING_INPUT rather than Approval;
+- one blocked Team member does not suspend unrelated runnable work;
+- Run enters aggregate waiting state only when no useful work remains.
+
+### Worker/control restart
+
+- consumed bootstrap does not strand a surviving worker after Control Plane restart;
+- worker identity reconnect issues a new epoch session;
+- old epoch leases/results remain invalid;
+- compromised/revoked worker identity cannot reconnect.
+
+### Provider reconciliation
+
+- crash after provider accepts provisioning but before local completion does not create a duplicate paid worker;
+- scale-to-zero verifies provider billing state;
+- cost ledger distinguishes provider PowerSession time from Run lease time.
+
+### Security
+
+- malicious URL cannot reach loopback/private/link-local/cloud metadata destinations;
+- redirect/DNS rebinding cannot bypass the fetch policy;
+- credential-bearing arbitrary Git remote is rejected;
+- active HTML/SVG Artifact cannot execute in Reverend application origin.
+
+### Provenance
+
+- ContextManifest Artifact exists for model-backed Jobs;
+- model invocation links Task/Agent/Job/deployment/node/context;
+- cross-Project Memory is denied even if semantic retrieval ranks it highest.
