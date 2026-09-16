@@ -32,10 +32,10 @@ The initial implementation profile is:
     PostgreSQL
 
     GPU provider:
-    RunPod Secure Cloud Pods
+    RunPod Community Cloud Pods
 
     baseline GPU:
-    A100 PCIe 80 GB
+    A100 SXM 80 GB
 
     inference runtime:
     vLLM
@@ -72,9 +72,9 @@ All Cloud Analysis inputs required by A12 are available and accepted.
 | A5 | authoritative state vs memory/context, typed artifact communication, provenance |
 | A6 | Workflow Scheduler vs Compute Scheduler, ComputeNode, ResourceRequest/Lease |
 | A7 | Run lifecycle, checkpoints, Action Journal, pause/recovery, approval-wait release |
-| A8 | authentication, authorization, Git identity, secrets, workers, approvals, emergency control |
+| A8 | authentication, authorization, Git identity, secrets, workers, Community-worker trust class, approvals, emergency control |
 | A9 | capability-based ModelRequirements and current model candidate research |
-| A10 | persistent Control Plane + disposable compute, RunPod/vLLM direction, hardware tiers |
+| A10 | persistent Control Plane + disposable compute, RunPod/vLLM direction, hardware tiers and selected Community A100 SXM note |
 | A11 | economics, billing, PostgreSQL decision, exact initial Cloud v1 deployment profile |
 
 No analysis milestone remains a blocker to starting the Design/Implementation programme.
@@ -569,10 +569,10 @@ A11's Qwen3.8-27B selection is an initial deployment profile, not a semantic bin
 Initial production-quality baseline:
 
     Provider:
-    RunPod Secure Cloud Pods
+    RunPod Community Cloud Pods
 
     GPU:
-    A100 PCIe 80 GB
+    A100 SXM 80 GB
 
     Runtime:
     vLLM
@@ -719,6 +719,22 @@ Relevant scope dimensions include:
 - provider.
 
 Models, workers and clients cannot grant themselves broader authority.
+
+### Community Cloud execution trust
+
+The accepted GPU baseline is RunPod Community Cloud.
+
+A8 classifies this as a lower-infrastructure-assurance worker class than dedicated/single-tenant infrastructure. The Community worker is therefore:
+
+- disposable and non-authoritative;
+- limited to task-scoped workspace/context;
+- authenticated with short-lived worker authority;
+- excluded from GitHub/provider/control-plane/master-key secrets;
+- ineligible for Jobs whose `trust_requirement` demands stronger infrastructure.
+
+Reverend accepts the additional shared-host / noisy-neighbour / potential side-channel risk for normal project workloads in exchange for lower cost.
+
+Highly sensitive, regulated or policy-restricted workloads must use a stronger deployment class such as Secure Cloud or another dedicated/single-tenant worker.
 
 ---
 
@@ -1157,6 +1173,16 @@ server/control plane is authoritative.
 
 **Resolution:** recovery peers are backup replicas only, never active authority.
 
+### Conflict 8 — Secure Cloud vs Community Cloud baseline
+
+Earlier A11/A12:
+RunPod Secure Cloud + A100 PCIe 80 GB.
+
+Final deployment choice:
+RunPod Community Cloud + A100 SXM 80 GB.
+
+**Resolution:** Community Cloud is the accepted normal GPU tier. It is explicitly classified as lower-assurance shared-host infrastructure under A8. Community workers remain disposable, secret-minimised and task-scoped; Jobs requiring stronger trust use a stronger deployment class.
+
 No unresolved conflict remains that blocks Design/Implementation.
 
 ---
@@ -1271,6 +1297,14 @@ A Team requests another specialist; orchestrator checks DAG, budget, authority a
 
 48 GB deployment profile is not promoted until ReverendBench and cost metrics satisfy the A11 promotion rule.
 
+### E2E-21 — Community worker trust isolation
+
+A Community A100 SXM worker is provisioned for an ordinary Run. It receives only the bounded workspace/context and short-lived worker authority required for the Job. Attempts to access GitHub credentials, provider lifecycle credentials, Control Plane database credentials, secret-store keys or unrelated Project data fail.
+
+### E2E-22 — Stronger-trust workload rejected from Community placement
+
+A Job declares a trust requirement stronger than `COMMUNITY_CLOUD_WORKER`. The Compute Scheduler refuses the Community node and waits/provisions an eligible stronger deployment class rather than silently weakening policy.
+
 ---
 
 ## 38. Implementation Programme
@@ -1370,7 +1404,7 @@ Deliver:
 - RunPod ComputeProvider;
 - authenticated GPU worker;
 - vLLM runtime adapter;
-- A100/Qwen baseline profile;
+- A100 SXM Community/Qwen baseline profile;
 - drain/scale-to-zero;
 - cold-start telemetry.
 
@@ -1427,15 +1461,17 @@ Before Cloud v1 becomes the primary Reverend environment:
 4. PostgreSQL restore is tested from a blank replacement control host;
 5. client/off-host recovery material is validated;
 6. secret redaction tests pass;
-7. RunPod provisioning/stop/replacement is verified;
+7. RunPod Community A100 SXM provisioning/stop/replacement is verified;
 8. zero-GPU Control Plane availability is verified;
-9. A100/Qwen/vLLM deployment passes ReverendBench minimum gates;
-10. A6000 cost-down profile remains disabled until benchmark admission;
-11. Action Journal fault injection passes;
-12. approval-wait release/restart passes;
-13. provider billing and cost ledger reconcile within defined tolerance;
-14. hard budget enforcement passes;
-15. deterministic verification blocks unsafe integration.
+9. A100 SXM/Qwen/vLLM deployment passes ReverendBench minimum gates;
+10. Community-worker isolation tests prove no GitHub/provider/DB/master-key authority is present;
+11. scheduler trust-placement tests reject Community nodes for stronger-trust Jobs;
+12. A6000 cost-down profile remains disabled until benchmark admission;
+13. Action Journal fault injection passes;
+14. approval-wait release/restart passes;
+15. provider billing and cost ledger reconcile within defined tolerance;
+16. hard budget enforcement passes;
+17. deterministic verification blocks unsafe integration.
 
 ---
 
@@ -1528,6 +1564,10 @@ Qwen3.8-27B is the initial workhorse, not a permanent semantic role binding.
 
 Client/off-host replicas restore the Control Plane; they do not compete with it.
 
+### A12-I17 — Community compute is lower-assurance and bounded
+
+Community Cloud workers receive only task-scoped data and short-lived execution authority. They never become a credential, database or workflow authority, and stronger-trust Jobs require a stronger deployment class.
+
 ---
 
 ## 43. A12 Decision Record
@@ -1568,10 +1608,10 @@ Client/off-host replicas restore the Control Plane; they do not compete with it.
     Capacity Controller
 
     GPU PROVIDER:
-    RunPod Secure Cloud Pods
+    RunPod Community Cloud Pods
 
     BASELINE GPU:
-    A100 PCIe 80 GB
+    A100 SXM 80 GB
 
     INFERENCE:
     vLLM
