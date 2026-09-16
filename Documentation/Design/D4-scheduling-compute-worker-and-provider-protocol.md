@@ -1012,3 +1012,32 @@ CPU tasks may execute on an already-leased GPU worker only when:
 - doing so does not retain/extend an expensive GPU PowerSession solely for CPU work.
 
 Reverend must not keep an A100 alive just to run generic tests that could wait for an appropriate CPU executor.
+
+
+---
+
+## 40. Recursive Audit Cycle 9 — Worker Result Retry Contract
+
+Worker terminal-result submission is idempotent for a specific:
+
+~~~text
+job_id
+attempt_number
+lease_id
+runtime_epoch_id
+result_digest
+~~~
+
+If the server has already accepted the same terminal result, a network retry returns the canonical accepted outcome.
+
+If the same Job/lease submits a conflicting result digest after terminal acceptance, the server rejects it, emits a security/integrity Event and never overwrites the first authoritative result.
+
+A result from:
+
+- prior attempt;
+- prior runtime epoch;
+- released/revoked/expired lease
+
+cannot become current Job success.
+
+Content-addressed output upload may be repeated safely before result finalization.
