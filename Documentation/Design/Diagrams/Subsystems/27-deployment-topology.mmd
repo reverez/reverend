@@ -46,6 +46,7 @@ DISK["Host storage layout<br/>/var/lib/reverend objects/workspaces/backups/state
 REVPROC["Reverend modular-monolith process<br/>API + orchestration + schedulers + context + policy + cost + recovery coordination"]:::authority
 PGHOST["Local/private PostgreSQL"]:::data
 RPROXY["Caddy/nginx reverse proxy"]:::security
+OFFHOST["Encrypted off-host cloud/object-store recovery target"]:::data
 
 HETZ --> SYSTEMD
 SYSTEMD --> REVPROC
@@ -55,6 +56,7 @@ HETZ --> RPROXY
 RPROXY --> REVPROC
 REVPROC --> PGHOST
 REVPROC --> CPROOT
+REVPROC --> OFFHOST
 end
 
 RP --> RPROXY
