@@ -1066,3 +1066,32 @@ settle/reconcile required Actions
 Parallel Agent Tasks may create Actions, but ActionRecord sequence assignment is serialized only for the short journal insert transaction.
 
 Fault injection must cover two concurrent Action inserts where the second attempts to commit before the first; checkpoint/recovery must still observe a valid total order.
+
+
+---
+
+## 40. Recursive Audit Cycle 10 — Run Recovery vs System Recovery
+
+Recovery performs two related but distinct journal passes.
+
+### System journal recovery
+
+Using the RecoveryGeneration `global_action_high_watermark`, reconcile post-generation SYSTEM/PROJECT/RUN ActionRecords such as:
+
+- orphan provider provisioning/stopping;
+- backup/replication uploads;
+- secret/key rotation;
+- infrastructure maintenance;
+- external deployment effects.
+
+This occurs before normal scheduler admission when unresolved actions could leak cost or authority.
+
+### Run journal recovery
+
+For each RunCheckpoint, use the Run's `run_sequence` watermark to reconstruct/reconcile Run-local work.
+
+A system Action is never hidden merely because no Run existed to own it.
+
+### Control-host readiness gate
+
+If a SYSTEM-scoped UNKNOWN action can cause unsafe duplicate external effect or ongoing paid resource leakage, Control Plane may serve read/status APIs but productive scheduler readiness remains blocked until the action is reconciled or explicitly moved to an authorized recovery-blocked operator state.
