@@ -932,3 +932,56 @@ After Control Plane restart:
 - worker may reconnect using D4 worker identity;
 - scheduler may grant a fresh lease after Run/Job recovery;
 - old in-flight result can never be retroactively accepted as current success unless explicit reconciliation proves it corresponds to the recovered attempt.
+
+
+---
+
+## 36. Recursive Audit Cycle 4 — Recovery Key Hierarchy and Rollback Protection
+
+### Recovery key hierarchy
+
+A recoverable encrypted Secret store requires recoverable key material without placing plaintext master keys in the RecoveryGeneration.
+
+Cloud v1 uses:
+
+~~~text
+Secret Data Encryption Key (S-DEK)
+  held only by Secret Broker helper
+
+Recovery Integrity signing/MAC key (R-IK)
+  held only by recovery/secret privilege boundary
+
+Recovery recipient public keys / operator recovery public key
+  used to wrap S-DEK and R-IK recovery material
+~~~
+
+RecoveryGeneration contains only:
+
+- encrypted secret rows;
+- wrapped key envelopes for authorized recovery recipients;
+- integrity public metadata/key IDs;
+- authenticated manifest.
+
+It never contains plaintext S-DEK/R-IK.
+
+At least one tested recovery recipient must be able to unwrap the required key material before a RecoveryGeneration is declared disaster-recovery healthy.
+
+### Restore ceremony
+
+Fresh-host restore requires:
+
+1. choose the highest valid acceptable generation from available replicas;
+2. verify manifest signature/MAC before trusting object refs;
+3. compare generation numbers across available peers to detect stale rollback;
+4. unwrap recovery key envelopes using authorized operator/device recovery credential;
+5. restore Secret Broker key material directly into its protected OS boundary;
+6. restore PostgreSQL/BlobStore;
+7. create a new runtime epoch;
+8. rotate worker/session credentials as required;
+9. perform functional health checks before resuming Runs.
+
+A lower generation is used only when every newer generation is provably corrupt/unavailable, and that rollback is explicitly logged and operator-confirmed.
+
+### Recovery-key test
+
+C6/C9 fault tests include a blank-host restore in which no original host key file exists. A backup is not accepted as complete if it can restore rows/blobs but cannot restore the secrets needed for authorized external actions.
