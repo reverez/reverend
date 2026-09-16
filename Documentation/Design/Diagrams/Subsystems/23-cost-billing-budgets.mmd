@@ -50,6 +50,8 @@ direction LR
 VAR["Variable Run-specific cost<br/>100% Run owner"]:::cost
 FIXED["Persistent Control Plane / baseline backup/storage<br/>initially 50/50 shared"]:::cost
 TRANSIENT["Boot / warm-up / idle grace / drain overhead<br/>initially 50/50 shared"]:::cost
+HYDCOST["Model hydration startup cost<br/>bytes • seconds • source • estimated/reconciled cost"]:::cost
+CACHEECON["Cache economics<br/>hydration spend vs recurring storage<br/>operator-approved cache only"]:::cost
 ZEROCOST["PAUSED / AWAITING_APPROVAL / RESUME_QUEUED<br/>GBP 0 active compute without lease"]:::cost
 end
 
@@ -92,3 +94,5 @@ COSTEV --> DASH
 DASH --> METRIC
 BUDRES --> BUDGETS
 end
+
+HYD --> HYDCOST --> CACHEECON
