@@ -286,3 +286,52 @@ Reverend is evolving from a local AI workstation into a private shared autonomou
 The goal is not to maximize model size or Agent count.
 
 The goal is to maximize **verified engineering value** while keeping authority, security, durability and cost explicit.
+
+
+---
+
+## Cloud Product Interaction
+
+The accepted Cloud product is a **cloud-only shared autonomous engineering service**.
+
+Developer devices are thin clients: they render the browser/desktop GUI, submit chat/commands/uploads and display server results. Production Cloud does not rely on laptop inference, embeddings, builds, sandboxes, indexing, media generation, scheduling, authoritative state or disaster-recovery replicas.
+
+The primary interaction model is:
+
+~~~text
+You / teammate
+      ↓
+ChatGPT-style Reverend client
+      ↓
+accepted BuildSpecification
+      ↓
+single globally active Run
+      ↓
+autonomous implementation / test / repair / verification
+      ↓
+Artifacts + repository changes
+~~~
+
+External reasoning tools such as ChatGPT may be used manually to create high-quality specifications, but Reverend Cloud v1 has **no automatic frontier-model API dependency**.
+
+Two developers share the system while one top-level Run remains active globally. A higher-priority queued project uses safe checkpointed pre-emption: current work is made durable, the Run yields to `RESUME_QUEUED`, the higher-priority Run executes, and the interrupted Run can later resume.
+
+### Developer Asset Studio
+
+Cloud v1 also includes a developer-oriented Media/Asset Fabric:
+
+- raster image generation and reference editing through an eligible media model profile;
+- asset variants, background removal, resize/crop and web optimization;
+- SVG/icon generation;
+- deterministic charts and diagrams;
+- browser-render/screenshot feedback for real UI implementation.
+
+Audio, video and generative 3D are intentionally outside Cloud v1.
+
+See:
+
+- [D15 — Conversation, Specification & Priority Handoff](Documentation/Design/D15-conversation-specification-and-priority-handoff.md)
+- [D16 — Developer Media & Asset Studio](Documentation/Design/D16-developer-media-and-asset-studio.md)
+- [ADR-001](Documentation/Design/Decisions/ADR-001-cloud-only-client-and-cloud-recovery.md)
+- [ADR-002](Documentation/Design/Decisions/ADR-002-conversation-specification-and-priority-handoff.md)
+- [ADR-003](Documentation/Design/Decisions/ADR-003-developer-media-asset-fabric.md)
