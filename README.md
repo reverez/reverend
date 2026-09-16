@@ -14,7 +14,7 @@ The current stable implementation is **Reverend 0.4.0**, a local-first Linux/WSL
 |---|---|
 | Local Reverend 0.4.0 | Accepted baseline |
 | Cloud Analysis A0–A12 | Complete / accepted |
-| Cloud Design D0–D9 | Complete / ready for Development |
+| Cloud Design D0–D17 | Hardened / pre-C0 closure |
 | Cloud implementation | Next phase |
 | Current local inference | Ollama-based |
 | Accepted Cloud v1 inference target | vLLM + Qwen3.8-27B |
@@ -42,7 +42,10 @@ Persistent Reverend Control Plane
           ├── PostgreSQL authoritative state
           ├── Project / Run / Workflow / Task / Job
           ├── Agent / Team runtime
-          ├── Context / Memory / Artifacts
+          ├── Context Broker / Memory / Artifacts
+          ├── Research Fabric
+          ├── Repository Intelligence
+          ├── Model Registry / Router
           ├── Policy / Approvals / Secrets / Git
           ├── Workflow Scheduler
           ├── Compute Scheduler
@@ -51,12 +54,15 @@ Persistent Reverend Control Plane
           └── Cost / Observability
           │
           ▼
-Authenticated disposable execution workers
+Authenticated disposable capability workers
           │
-          ├── CPU sandbox execution
-          └── RunPod GPU workers
-                └── vLLM
-                      └── Qwen3.8-27B baseline
+          ├── CPU build/test/index workers
+          ├── Browser research/test workers
+          ├── Model GPU workers
+          │     └── vLLM
+          │           └── Qwen3.8-27B baseline
+          ├── accelerated scientific GPU profiles
+          └── media/asset GPU profiles
 ~~~
 
 Cloud v1 keeps the Control Plane available even when GPU worker count is zero.
@@ -73,9 +79,39 @@ Initial accepted operating profile:
 - vLLM initial cloud inference runtime;
 - Qwen3.8-27B initial workhorse;
 - 64K initial serving context;
-- GPU provisioning on demand and scale-to-zero after idle grace.
+- GPU provisioning on demand and scale-to-zero after idle grace;
+- model weights/runtime caches are reconstructible rather than authoritative;
+- initial GPU storage target is approximately 200 GB temporary container disk plus an optional approximately 10 GB disposable warm cache;
+- Project knowledge is acquired through persistent state, Repository Intelligence, retained Evidence/Memory and bounded Research Fabric acquisition.
 
 These deployment choices remain replaceable behind stable interfaces.
+
+
+### Persistent brain, disposable muscle
+
+Cloud v1 deliberately separates durable intelligence from expensive execution:
+
+~~~text
+Persistent:
+  Control Plane
+  PostgreSQL
+  Git / BlobStore
+  Requirements / Decisions / Memory
+  Evidence retained by the Project
+  recovery / cost / audit state
+
+Reconstructible:
+  GPU/CPU/browser workers
+  model weights
+  vector/parser/LSP indexes
+  browser/runtime/build caches
+  temporary worktrees
+~~~
+
+A complete loss of RunPod resources must cause only reconstruction/recovery work — never loss of a Project or authoritative Run state.
+
+When Reverend needs knowledge, Context Broker first uses existing authoritative Project/repository/evidence state and only invokes Research Fabric when information is missing or stale.
+
 
 ---
 
@@ -120,6 +156,14 @@ D6  Security, secrets, Git and approvals
 D7  Model profiles, routing and ReverendBench
 D8  Observability, costs, budgets and operations
 D9  Development programme and acceptance gates
+D10 Capability modernization audit
+D11 Research Fabric and web context acquisition
+D12 Repository Intelligence and code context
+D13 Model Fabric serving and optimization
+D14 Worker Capability Fabric and ephemeral bootstrap
+D15 Context Broker and knowledge retrieval v2
+D16 ReverendBench v2 and adaptive optimization
+D17 Pre-development architecture closure
 ~~~
 
 Implementation should follow these contracts rather than recreating architecture ad hoc.
@@ -135,11 +179,11 @@ C0  Contract package / migration skeleton
 C1  PostgreSQL persistent Control Plane
 C2  Remote identity / API / SSE
 C3  Run / queue / workflow convergence
-C4  Agent / Team / Context runtime
+C4  Agent / Team / Context + intelligence facades
 C5  Security / Git / secrets / approvals
 C6  Durable execution / recovery
-C7  Compute fabric / RunPod / vLLM
-C8  Economics / budgets / operational UX
+C7  Capability execution fabric / CPU / browser / RunPod / vLLM
+C8  Economics / budgets / observability / ReverendBench
 C9  Full Cloud acceptance
 ~~~
 
