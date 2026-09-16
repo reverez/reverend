@@ -1366,3 +1366,20 @@ Mandatory tests:
 - TestEndpoint credential becomes invalid when either lease ends;
 - Browser Worker cannot use TestEndpoint route to scan unrelated producer-worker ports;
 - real user browser session/cookie is not copied into frontend-test worker by default.
+
+
+---
+
+## 51. Background/Auth-Research/Browser Artifact Tests
+
+Mandatory tests:
+
+- idle Control Plane does not spontaneously launch Research/Agent work;
+- stale Evidence is refreshed on-demand, not by uncontrolled crawler;
+- Project-specific repository index refresh is bound to an active Run/Job when compute is required;
+- Research Fabric cannot automatically reuse Run-owner GitHub credential for private search;
+- authenticated research source receives non-PUBLIC access partition and sensitivity;
+- Browser trace does not retain Authorization/cookies in normal Artifact output;
+- screenshot/trace/download from private TestEndpoint inherits Project sensitivity;
+- temporary browser profile/cache is destroyed after Job;
+- source/browser storage quota cannot evict retained recovery/evidence roots.
