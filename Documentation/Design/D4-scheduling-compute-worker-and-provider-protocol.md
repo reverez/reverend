@@ -1041,3 +1041,76 @@ A result from:
 cannot become current Job success.
 
 Content-addressed output upload may be repeated safely before result finalization.
+
+
+---
+
+## 41. Recursive Audit Cycle 13 — Provider Blast-Radius Limits
+
+Budgets are necessary but are not sufficient protection against a scheduler/provider bug that accidentally creates multiple expensive instances before normal reconciliation catches up.
+
+Cloud v1 therefore has **deployment-level hard capacity ceilings** outside ordinary Agent/Run policy.
+
+Initial conservative defaults:
+
+~~~text
+MAX_PAID_GPU_WORKERS_TOTAL = 1
+MAX_PROVISIONING_GPU_WORKERS_TOTAL = 1
+MAX_PROVIDER_INSTANCES_PER_DEPLOYMENT_PROFILE = 1
+~~~
+
+These are initial two-user v1 defaults, not permanent scalability limits.
+
+### Two-level capacity limit
+
+Capacity admission uses the minimum of:
+
+~~~text
+static deployment safety ceiling
+dynamic authoritative policy/budget ceiling
+actual provider availability
+~~~
+
+The static ceiling is operator configuration not writable by a model, Agent, Project policy or ordinary remote API.
+
+Increasing it requires explicit operator/admin deployment action.
+
+### Provisioning serialization
+
+Before a paid provision call, Capacity Controller transactionally counts:
+
+- ACTIVE provider instances;
+- PROVISIONING/BOOTING/REGISTERING/LOADING instances;
+- unresolved provider-provision ActionRecords/PowerSessions.
+
+If the hard ceiling would be exceeded, it does not issue the provider call.
+
+An UNKNOWN provisioning Action counts against the ceiling until reconciliation proves no resource exists.
+
+### Provider attestation after provisioning
+
+Before a node becomes READY, trusted reconciliation checks provider metadata against the admitted DeploymentProfile:
+
+- GPU class/count/VRAM;
+- CPU/RAM minimum where relevant;
+- provider tier/trust class;
+- region if policy-constrained;
+- current/quoted billing rate where available.
+
+If hardware/trust mismatches:
+
+- node never becomes eligible;
+- no Project context is sent;
+- provider resource is drained/terminated safely.
+
+If actual rate exceeds the configured/provider-cost ceiling:
+
+- do not admit productive work;
+- terminate using safety cleanup authority;
+- record provider mismatch/cost Event.
+
+### CapacityController restart
+
+On controller startup/failover, query provider inventory and reconcile every Reverend-tagged instance before provisioning anything new.
+
+Local absence of a ComputeNode row is not proof that no billable provider resource exists.
