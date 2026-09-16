@@ -51,10 +51,13 @@ subgraph ROUTES["Versioned /api/v1 routes"]
 direction LR
 R_AUTH["/auth/login<br/>/auth/logout<br/>/me"]:::api
 R_PROJECTS["/projects<br/>/projects/{id}<br/>/projects/{id}/runs"]:::api
-R_RUNS["/runs<br/>/runs/{id}<br/>pause • resume • run-now • cancel"]:::api
+R_CHAT["/projects/{id}/conversations<br/>/conversations/{id}/messages<br/>/uploads"]:::api
+R_SPEC["/projects/{id}/specifications<br/>accept specification"]:::api
+R_RUNS["/runs<br/>/runs/{id}<br/>pause • resume • priority/run-now • cancel"]:::api
 R_QUEUE["/queue"]:::api
 R_APPROVALS["/approvals<br/>approve • reject"]:::api
 R_ART["/runs/{id}/artifacts<br/>/artifacts/{id}"]:::api
+R_MEDIA["/projects/{id}/media<br/>generate • edit • accept"]:::api
 R_WF["/runs/{id}/workflow<br/>/runs/{id}/agents"]:::api
 R_COST["/runs/{id}/costs<br/>/costs/me<br/>/system/rates"]:::api
 R_SYS["/system/status<br/>/system/compute<br/>emergency controls"]:::api
