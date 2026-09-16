@@ -9,9 +9,9 @@ and output reserves are enforced. Failed requests retain usage diagnostics.
 
 ## Evidence
 
-- [Deterministic routing](../benchmarks/results/vnext/m8/routing/benchmarks/runs/20260914T093704440638Z-366ffa53.json): 6/6 pass, zero inference calls.
-- [Live Auto classifier](../benchmarks/results/vnext/m8/classifier/benchmarks/runs/20260914T093756096468Z-7bcb86df.json): pass, two local calls, no retrieval or network use.
-- [Workstation regressions](../benchmarks/results/vnext/m8/workstation/benchmarks/runs/20260914T093704459777Z-17d3c304.json): rocket passes; Xavier and nonexistent entity fail. No runtime errors/timeouts; each case uses one embedding and one generation call.
+- [Deterministic routing](../../../../benchmarks/results/vnext/m8/routing/benchmarks/runs/20260914T093704440638Z-366ffa53.json): 6/6 pass, zero inference calls.
+- [Live Auto classifier](../../../../benchmarks/results/vnext/m8/classifier/benchmarks/runs/20260914T093756096468Z-7bcb86df.json): pass, two local calls, no retrieval or network use.
+- [Workstation regressions](../../../../benchmarks/results/vnext/m8/workstation/benchmarks/runs/20260914T093704459777Z-17d3c304.json): rocket passes; Xavier and nonexistent entity fail. No runtime errors/timeouts; each case uses one embedding and one generation call.
 
 The rocket improvement is domain classification, not an implemented evidence gate. The
 remaining failures are preserved for M9. Keyword relevance and response checks do not prove
@@ -19,7 +19,7 @@ factual correctness or safety. M6/M7 reports remain immutable.
 
 The historical RAG cases now declare two **total inference** calls; earlier one-call budgets
 were not enforced and omitted embeddings from accounting. No additional inference operation
-was introduced into their existing RAG path. See `docs/intelligence.md` for the measurement
+was introduced into their existing RAG path. See `docs/current/architecture/intelligence.md` for the measurement
 contract and scope boundaries.
 
 ## Validation

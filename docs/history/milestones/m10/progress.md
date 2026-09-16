@@ -118,7 +118,7 @@ The current BGE-M3 semantic path is accepted as the M10 default. A dedicated
 cross-encoder is deferred unless later M14 bake-offs demonstrate a measured
 quality/latency advantage.
 
-See `docs/m10-acceptance.md`.
+See `docs/history/milestones/m10/acceptance.md`.
 
 ## Milestone state
 

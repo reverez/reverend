@@ -17,14 +17,14 @@ the transfer remained below the authorized 15 GB ceiling. A timed-out range was 
 from the retained partial file and the complete hash verified before activation.
 
 The origin is official Kiwix; the final mirror was selected by Kiwix's own redirect service.
-[Recorded provenance](m9-reference-provenance.json) includes acquisition time, origin/mirror,
+[Recorded provenance](reference-provenance.json) includes acquisition time, origin/mirror,
 provider digest, actual ZIM metadata, UUID and indexes. The archive has no License metadata key;
 its actual article footer supplies the attribution/license notice and links. Those are retained
 per article, with a recorded provenance sample. No license text was invented.
 
 Dependency: official **libzim 3.13.0**, installed only in the project `.venv` with no additional
 packages and declared as optional `reverend[reference]`. ZIM files/partial payloads are ignored
-by Git; the archive is not committed. See [reference-provider.md](reference-provider.md).
+by Git; the archive is not committed. See [reference-provider.md](../../../current/guides/reference-provider.md).
 
 ## Validation
 
@@ -58,7 +58,7 @@ The fabricated entity remained unsupported and abstained with zero generation ca
 purely local and needs no embedding call. Title/lexical index operations and provenance survive
 in source metadata; these are bounded operations inside a single retrieval attempt.
 
-The previous [M9 report](../benchmarks/results/vnext/m9/workstation/benchmarks/runs/20260914T145321512130Z-a8ace495.json)
+The previous [M9 report](../../../../benchmarks/results/vnext/m9/workstation/benchmarks/runs/20260914T145321512130Z-a8ace495.json)
 remains immutable: one pass, two failures, no errors/timeouts before a real reference corpus
 was available. The canonical SQLite database remains 8,277 personal documents and three
 synthetic fixtures; none were promoted or replaced by the archive.
@@ -94,4 +94,4 @@ The final live reference-backed ReverendBench run passed all three canonical M9 
 
 The final full pytest suite passed 373 tests.
 
-M9 is COMPLETE. See `docs/m9-acceptance.md`.
+M9 is COMPLETE. See `docs/history/milestones/m09/acceptance.md`.

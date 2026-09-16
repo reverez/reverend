@@ -68,7 +68,7 @@ Evidence:
 
 Acceptance:
 
-`docs/m11-acceptance.md`
+`docs/history/milestones/m11/acceptance.md`
 
 ## Final state
 

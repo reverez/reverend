@@ -126,7 +126,7 @@ inference smoke case in addition to portable package/startup/security checks.
 - README rewritten for the accepted Reverend vNext Workstation;
 - 0.4.0 install, models, GUI, privacy, network, project trust, development, knowledge,
   backup and validation behavior documented;
-- `docs/release-0.4.0.md` records upgrade, encryption migration, rollback and recovery;
+- `docs/current/release/release-0.4.0.md` records upgrade, encryption migration, rollback and recovery;
 - roadmap updated from stale V2 future work to the 0.4.0 release state/post-release work.
 
 ### Clean package/startup smoke
