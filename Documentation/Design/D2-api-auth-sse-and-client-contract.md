@@ -853,3 +853,76 @@ Authentication/token issuance endpoints use dedicated replay-safe semantics rath
 ### Optimistic concurrency
 
 Mutable Project/Run policy endpoints must support an expected version/ETag equivalent once exposed. A stale client update returns conflict rather than silently overwriting a newer human or scheduler decision.
+
+
+---
+
+## 30. Recursive Audit Cycle 2 — Human Input, Rendering and Cross-Origin Safety
+
+### Human input endpoints
+
+Clarification is distinct from Approval.
+
+Cloud v1 exposes:
+
+~~~text
+GET  /api/v1/input-requests
+GET  /api/v1/input-requests/{input_request_id}
+POST /api/v1/input-requests/{input_request_id}/answer
+POST /api/v1/input-requests/{input_request_id}/cancel
+~~~
+
+Answers are authenticated, authorized and idempotent.
+
+A Run that was globally `AWAITING_INPUT` transitions to `RESUME_QUEUED` after the required input is durably accepted. If other Tasks were still running, only the blocked Task is unblocked.
+
+### Safe cancellation contract
+
+`POST /api/v1/runs/{run_id}/cancel` does not immediately present a running Run as terminal.
+
+For active execution it returns 202 and transitions through:
+
+~~~text
+CANCEL_REQUESTED
+→ CANCELLING
+→ CANCELLED
+~~~
+
+The API exposes the intermediate states so the UI does not falsely imply that external effects/resources have already settled.
+
+### Artifact rendering boundary
+
+Artifact content is untrusted by default.
+
+Browser behavior:
+
+- plain text/code/JSON render through escaped text components;
+- HTML/SVG or other active formats are downloaded or rendered only in a sandboxed, separate-origin/no-credential preview;
+- no Artifact may execute script in the Reverend application origin;
+- Content-Type and Content-Disposition are server-controlled from validated media metadata, never copied blindly from model output;
+- `X-Content-Type-Options: nosniff` remains mandatory.
+
+### Cross-origin policy
+
+Cloud v1 browser UI is same-origin by default.
+
+CORS is disabled unless an explicit allowlist is configured. If a future IDE/web origin is allowed:
+
+- wildcard origins are prohibited for credentialed requests;
+- allowed methods/headers are minimal;
+- CSRF/session rules remain in force;
+- Origin validation remains explicit.
+
+### Cursor pagination consistency
+
+Collection cursors are opaque server tokens bound to:
+
+~~~text
+resource type
+authorized principal/scope
+stable sort key
+filter hash
+expiry/version
+~~~
+
+Clients cannot alter a cursor to widen Project visibility or change filters silently.
