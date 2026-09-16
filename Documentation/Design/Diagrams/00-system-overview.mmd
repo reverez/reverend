@@ -26,6 +26,9 @@ classDef invariant fill:#fffbe6,stroke:#b09121,stroke-width:1.5px,color:#111;
 %% =========================================================
 
 H["Authenticated developers"]:::human
+CLIENT["ChatGPT-style thin client<br/>CHAT • PROJECT • RUN • ARTIFACTS • STUDIO"]:::client
+SPEC["Accepted BuildSpecification<br/>versioned implementation contract"]:::domain
+MEDIA["Developer Media Fabric<br/>raster generation/edit + deterministic assets"]:::tool
 EDGE["Private edge<br/>Tailscale + TLS + reverse proxy"]:::security
 API["/api/v1 + SSE"]:::api
 CP["Authoritative Control Plane<br/>PostgreSQL-backed project/run/workflow/task/job truth"]:::authority
@@ -44,9 +47,11 @@ OBS["Observability / health / audit"]:::ops
 GIT["Reviewable isolated Git state / PR"]:::tool
 OUT["Verified project result<br/>human retains final authority"]:::authority
 
-H --> EDGE --> API --> CP
+H --> CLIENT --> EDGE --> API --> CP
+CLIENT --> SPEC --> CP
 CP --> ORCH --> CTX --> MODEL
 MODEL --> POLICY --> TOOLS --> VERIFY --> GIT --> OUT
+POLICY --> MEDIA --> TOOLS
 
 CP --> SCHED --> COMPUTE
 COMPUTE --> MODEL
@@ -55,4 +60,5 @@ CP --> COST
 CP --> OBS
 TOOLS --> DUR
 SCHED --> COST
+SCHED --> MEDIA
 VERIFY --> OBS
