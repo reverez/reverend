@@ -1044,3 +1044,21 @@ Replay algorithm:
 6. after any reconnect/notification loss, resume from durable sequence queries.
 
 Concurrency tests must create overlapping Event transactions and prove no late-committing Event is skipped.
+
+
+---
+
+## 35. Recursive Audit Cycle 9 — Concurrent Idempotency Semantics
+
+For idempotent mutations, the server reserves the `Idempotency-Key` before the authoritative command is admitted.
+
+Concurrent same-key requests:
+
+- same request hash → receive the same resource/command outcome or an explicit “operation in progress” representation;
+- different request hash → 409 `idempotency_conflict`.
+
+A client timeout after request admission can safely retry the same key.
+
+The server does not execute the mutation twice merely because the first HTTP response was lost.
+
+Idempotency records are retained at least through the maximum supported client retry/recovery horizon for the operation class.
