@@ -719,3 +719,67 @@ Must prove:
 ## 35. Exit Condition
 
 C5 is complete when privileged actions can be proposed by Agents yet executed only through authenticated, policy-checked, Approval-aware trusted adapters with server-side secret resolution, immutable Run-owner external identity, auditable events, and tested worker/sandbox isolation.
+
+
+---
+
+## 36. Recursive Architecture Hardening — Credential, Approval and Secret Isolation
+
+### Password credentials are first-class security records
+
+Human password/setup credentials are stored in the D1 `auth_credentials` table, separate from user presentation data and separate from generic retrievable Secrets.
+
+Password hashes are never resolvable through Secret Broker as plaintext.
+
+### Privilege-separated Secret Broker
+
+The master key is available only to the D0 privilege-separated Secret Broker helper, not to the general Control Plane process.
+
+The helper:
+
+- runs under a separate OS credential boundary;
+- exposes authenticated local IPC only;
+- authorizes every secret resolution against an action context;
+- returns plaintext only for a bounded trusted adapter invocation;
+- never mounts its key/socket into a sandbox or worker;
+- emits metadata-only audit records.
+
+A Python module import is not treated as a security boundary.
+
+### Owner-scoped credential approvals
+
+An action that exercises a **USER-scoped external credential** under the immutable Run owner's identity defaults to `owner_only` whenever human approval is required.
+
+`either_operator` may be used for system/provider administration, but it does not implicitly authorize the other developer to approve use of the Run owner's GitHub or other personal credential.
+
+Explicit Project policy may delegate a narrower action class, but the delegation itself is durable, human-authored policy and is included in the Approval fingerprint.
+
+### Single-use Approval binding
+
+The Approval row records `used_action_id`. Approval consumption and creation of the corresponding PLANNED ActionRecord occur atomically as defined by D5.
+
+Concurrent executors therefore cannot both consume one Approval.
+
+### Secret references are typed
+
+A `secret:<uuid>` reference resolves only when all of these match:
+
+~~~text
+expected secret_type
+expected scope
+expected owner/project/run
+calling service identity
+requested operation
+current policy
+~~~
+
+A caller cannot substitute a different secret ID of another type merely because it has permission to invoke the same adapter.
+
+### Community-worker disclosure statement
+
+COMMUNITY_CLOUD_WORKER means the infrastructure provider can potentially observe any plaintext context intentionally sent to that worker. Therefore:
+
+- never classify Community Cloud as confidential execution;
+- Project/Task policy must tag material that may not leave the stronger trust domain;
+- Context Broker filters such material before placement;
+- a Job whose mandatory context exceeds the worker trust ceiling must be rejected or placed on stronger-trust infrastructure, never redacted into an incorrect Task silently.
