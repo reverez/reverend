@@ -1121,3 +1121,75 @@ Recovery behavior:
 5. mark conflict/recovery-blocked or replan according to operation semantics.
 
 This prevents crash recovery from overwriting valid work that landed after the original approval.
+
+
+---
+
+## 42. Recursive Audit Cycle 12 — Catastrophic-Host-Loss External-Effect Barrier
+
+### Why RecoveryGeneration cadence alone is insufficient
+
+Suppose:
+
+~~~text
+RecoveryGeneration G acknowledged off-host
+↓
+local ActionRecord says “push commit X”
+↓
+GitHub push succeeds
+↓
+Control Plane host is permanently lost
+↓
+restore G
+~~~
+
+If the Action intent existed only on the lost host, the restored system could believe the push was never attempted and repeat/replan from stale state.
+
+Therefore externally visible, non-trivially-repeatable actions use D1's `OFF_HOST_INTENT_ACK` barrier.
+
+### Execution protocol
+
+~~~text
+create PLANNED ActionRecord
+→ include complete reconciliation identity
+→ authenticate/encrypt compact RecoveryActionIntent
+→ replicate to required durable off-host target
+→ receive durable ACK
+→ mark barrier satisfied
+→ perform external effect
+→ reconcile/persist COMPLETED/FAILED/UNKNOWN locally
+→ later full RecoveryGeneration subsumes the delta
+~~~
+
+A full RecoveryGeneration is not required before every Git push.
+
+### Disaster restore protocol
+
+Before normal Run recovery:
+
+1. restore latest valid RecoveryGeneration;
+2. enumerate every configured recovery target;
+3. authenticate and import valid ActionIntent deltas newer than the generation watermark;
+4. deduplicate by Action ID/digest;
+5. reject conflicting/tampered envelopes;
+6. reconcile each imported external intent against real provider/Git state;
+7. only then permit scheduler/productive execution.
+
+If a delta proves an action was intended but external outcome is unknowable, restore enters the appropriate recovery-blocked state instead of replaying blindly.
+
+### Availability behavior
+
+If an action requires OFF_HOST_INTENT_ACK and no target can ACK:
+
+- the action does not execute;
+- the affected Task receives a durable recovery-replication blocker;
+- unrelated safe work may continue;
+- UI/operations expose degraded recovery availability.
+
+Durability policy is fail-closed.
+
+### Provider/control-service actions
+
+The same barrier applies to SYSTEM-scoped provider/deployment side effects when duplicate provisioning or forgotten paid resources could survive host loss.
+
+Provider-side idempotency/tags are additional reconciliation evidence, not a substitute unless the Tool Recovery Registry explicitly proves the restored system can deterministically derive and query the same operation identity.
