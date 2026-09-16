@@ -1,365 +1,347 @@
 # Reverend Cloud v1 — Design Specification Index
 
 > **Phase:** Design  
-> **Status:** READY FOR DEVELOPMENT  
-> **Accepted architecture input:** Documentation/Analysis/A12-cloud-architecture-acceptance.md  
-> **Design closure baseline:** A12 + D0–D14 on main; executable C0 baseline is recorded separately under Design/Baselines  
-> **Purpose:** Turn the accepted A0–A12 architecture into concrete implementation contracts without changing the accepted authority, durability, security, scheduling, model, or cost semantics.
+> **Status:** FINAL CLOSURE CANDIDATE — CI / MERGE REQUIRED  
+> **Accepted architecture input:** [A12 — Cloud Architecture Acceptance](../Analysis/A12-cloud-architecture-acceptance.md)  
+> **Final closure authority:** [D22 — Pre-Development Architecture Closure](./D22-pre-development-architecture-closure.md)  
+> **Purpose:** Define the complete implementation contract for Reverend Cloud v1 before C0 Development begins.
 
 ---
 
-## 1. Design-Phase Objective
+## 1. Design Objective
 
-The Analysis phase answered **what Reverend Cloud v1 must be**.
+The Analysis phase established **what Reverend Cloud v1 must be**.
 
-The Design phase answers:
+The Design phase defines:
 
-> **Exactly which persisted objects, interfaces, state transitions, services, worker protocols, security boundaries, deployment profiles, migrations, and acceptance tests should development implement?**
+> **the persisted objects, interfaces, state machines, security boundaries, research/context contracts, worker protocols, model/runtime profiles, migration strategy, recovery semantics, economics, UX states and acceptance gates that Development must implement.**
 
-This folder is therefore the authoritative pre-development technical plan.
-
-It is intentionally more concrete than Documentation/Analysis while remaining implementation-language compatible with the existing Python codebase.
-
-The implementation team may refine code structure where necessary, but it must not change a frozen A12 invariant without an explicit architecture decision.
+The Design set intentionally preserves Reverend 0.4.0's accepted semantics while replacing laptop-bound implementations with a durable server-authoritative Cloud architecture.
 
 ---
 
-## 2. Canonical Cloud v1 Target
+## 2. Canonical Product Model
 
-Reverend Cloud v1 is designed as:
+Reverend is designed as a persistent autonomous engineering organization.
 
 ~~~text
-Two authenticated developers
-        │
-        ▼
-Thin GUI / CLI / IDE clients
-        │
-        ▼
-Authenticated /api/v1 Control API + SSE
-        │
-        ▼
-Persistent Reverend Control Plane
-        │
-        ├── PostgreSQL authoritative state
-        ├── Project / Run / Workflow / Task / Job
-        ├── Agent / Team runtime coordination
-        ├── Context / Memory / Artifact fabric
-        ├── Policy / Approval / Secret brokers
-        ├── Workflow Scheduler
-        ├── Compute Scheduler
-        ├── Capacity Controller
-        ├── Cost ledger / budgets
-        └── Observability
-        │
-        ▼
-Authenticated disposable execution fabric
-        │
-        ├── CPU sandbox workers
-        └── RunPod GPU workers
-              └── vLLM
-                    └── Qwen3.8-27B baseline
+Human authority
+      ↓
+Design intelligence
+human / external frontier model / Reverend Architect
+      ↓
+accepted SpecificationPackage
+      ↓
+Persistent Control Plane
+      ├── Project / Run / Workflow / Task / Job authority
+      ├── Agent / Team Runtime
+      ├── Context Broker
+      ├── Research Fabric
+      ├── Repository Intelligence
+      ├── Memory / Evidence / Artifacts
+      ├── Policy / Tool / Secret Brokers
+      ├── Model Registry / Router
+      ├── Workflow + Compute Schedulers
+      ├── Capacity Controller
+      ├── Recovery / Action Journal
+      └── Cost / Observability
+             │
+             ▼
+Replaceable Capability Workers
+      ├── CPU build/test/index
+      ├── Browser research/test
+      ├── Model GPU
+      ├── accelerated scientific GPU
+      └── media/asset GPU
 ~~~
 
-Initial accepted deployment profile:
+Core rule:
 
-| Concern | Cloud v1 baseline |
-|---|---|
-| Control host | Hetzner CX33-class x86 host |
-| Control host resources | 4 vCPU / 8 GB RAM / 80 GB NVMe baseline |
-| Authoritative DB | PostgreSQL |
-| Top-level Run concurrency | 1 |
-| GPU provider | RunPod Community Cloud Pods |
-| Baseline GPU | A100 SXM 80 GB |
-| Inference runtime | vLLM |
-| Baseline workhorse | Qwen/Qwen3.8-27B |
-| Initial model context | 64K |
-| Live client events | SSE |
-| Primary API | REST/JSON under /api/v1 |
-| GPU idle behavior | drain and scale to zero |
-| Redis | not required |
-| Kubernetes | not required |
+> **Persistent intelligence and durable state; disposable expensive execution.**
 
-These are deployment defaults, not permanent semantic bindings.
+A healthy system may have zero GPU workers.
 
 ---
 
 ## 3. Design Documents
 
-| Document | Scope | Primary development output |
+| Document | Scope | Primary Development Output |
 |---|---|---|
-| D0 | system boundaries, code/package plan, contract/version policy | repository/module skeleton |
-| D1 | authoritative domain model and PostgreSQL schema | migrations + repositories |
-| D2 | authentication, REST API, idempotency, SSE and client contract | cloud API server |
-| D3 | Agent, Team, context, artifact and memory runtime | cognitive runtime |
-| D4 | schedulers, ComputeNode, worker protocol, RunPod and vLLM | compute fabric |
-| D5 | Run lifecycle, checkpointing, Action Journal and recovery | durable execution |
-| D6 | security, secrets, Git/GitHub, approvals and emergency controls | enforcement plane |
-| D7 | model profiles, routing, serving and ReverendBench | model fabric |
-| D8 | observability, budgets, billing, operations and deployment | operations plane |
-| D9 | migration waves, branch discipline, testing and development gates | implementation programme |
-| D10 | research, web/reference acquisition, evidence provenance and retrieval | research/evidence fabric |
-| D11 | legacy 0.4.0 → Cloud refactor/cutover map | safe incremental migration |
-| D12 | tool capability, side-effect, secret, approval and recovery registry | Tool Broker safety registry |
-| D13 | browser/CLI/operator lifecycle presentation contract | Cloud operational UX |
-| D14 | Design closure, baseline and PostgreSQL test strategy | C0 Development entry |
-
-### Architecture diagrams
-
-The visual architecture map is maintained under [`Documentation/Design/Diagrams/`](./Diagrams/README.md).
-
-- `00-system-overview.mmd` provides a compact system map.
-- `system-complete-mermaid-diagram.mmd` preserves the complete architecture.
-- `Subsystems/` contains one focused Mermaid file per numbered architecture subsystem for practical viewing.
-
-Recommended reading order:
-
-~~~text
-D0
- ↓
-D1 ── D2
- ↓      ↓
-D3 ── D4
- ↓      ↓
-D5 ── D6
-  \    /
-   D7
-    ↓
-   D8
-    ↓
-   D9
-    ↓
-D10–D13 closure specifications
-    ↓
-   D14 Development entry
-~~~
+| [D0](./D0-system-contracts-and-codebase-boundaries.md) | system boundaries, package plan, contract/version policy | module/contracts skeleton |
+| [D1](./D1-authoritative-domain-and-postgresql-schema.md) | domain model, PostgreSQL authority, specification packages, capability metadata | migrations + repositories |
+| [D2](./D2-api-auth-sse-and-client-contract.md) | auth, REST API, idempotency, SSE, specification API | Cloud API |
+| [D3](./D3-agent-team-context-artifact-runtime.md) | Agent/Team runtime, Artifacts, specification-driven engineering | cognitive runtime |
+| [D4](./D4-scheduling-compute-worker-and-provider-protocol.md) | schedulers, ComputeNode, worker/provider protocol | compute fabric |
+| [D5](./D5-durable-execution-checkpoints-action-journal-recovery.md) | Run lifecycle, checkpoints, Action Journal, recovery | durable execution |
+| [D6](./D6-security-secrets-git-approvals-and-emergency-controls.md) | security, secrets, Git/GitHub, approvals, emergency controls | enforcement plane |
+| [D7](./D7-model-profiles-routing-serving-and-reverendbench.md) | model profiles, routing, serving, baseline benchmark gates | model registry/router |
+| [D8](./D8-observability-cost-budgets-operations-deployment.md) | observability, budgets, billing, operations, deployment | operations plane |
+| [D9](./D9-development-programme-migration-and-acceptance.md) | C0–C9 programme, migration/test/review gates | Development sequence |
+| [D10](./D10-research-retrieval-evidence-acquisition.md) | foundational research, retrieval and evidence semantics | research/evidence contracts |
+| [D11](./D11-legacy-to-cloud-migration-and-refactor-map.md) | 0.4.0 → Cloud refactor/cutover map | safe migration plan |
+| [D12](./D12-tool-policy-side-effect-and-recovery-registry.md) | tool capability, side effects, approval/recovery registry | Tool Broker registry |
+| [D13](./D13-client-operator-ux-state-contract.md) | browser/CLI/operator lifecycle UX | Cloud operational UX |
+| [D14](./D14-development-readiness-baseline-and-postgresql-test-strategy.md) | fresh baseline, PostgreSQL tests, ADR/change-control discipline | C0 evidence/testing strategy |
+| [D15](./D15-capability-modernization-audit.md) | laptop-era capability modernization | KEEP/GENERALIZE/REPLACE/NEW map |
+| [D16](./D16-research-fabric-and-web-context-acquisition.md) | Cloud Research Fabric, browser acquisition, source snapshots | research execution fabric |
+| [D17](./D17-repository-intelligence-and-code-context.md) | repository snapshots, Tree-sitter/LSP, code/test graphs | Repository Intelligence |
+| [D18](./D18-model-fabric-serving-and-optimization.md) | dynamic model fleet, vLLM optimization, ephemeral model storage | Model Fabric v2 |
+| [D19](./D19-worker-capability-fabric-and-ephemeral-bootstrap.md) | CPU/browser/GPU worker taxonomy, bootstrap/storage profiles | Worker Capability Fabric |
+| [D20](./D20-context-broker-and-knowledge-retrieval-v2.md) | authority-first context routing and iterative retrieval | Context Broker v2 |
+| [D21](./D21-reverendbench-v2-and-adaptive-optimization.md) | whole-organization benchmarking and promotion | ReverendBench v2 |
+| [D22](./D22-pre-development-architecture-closure.md) | final architecture reconciliation and pre-C0 gate | Design closure |
 
 Supporting controls:
 
 - [Architecture Decision Records](./Decisions/README.md)
-- [Development baseline records](./Baselines/README.md)
-- [Architecture diagrams](./Diagrams/README.md)
+- [Development Baseline Records](./Baselines/README.md)
+- [Architecture Diagrams](./Diagrams/README.md)
+- [Tool Policy Registry YAML](./D12-tool-policy-recovery-registry.yaml)
 
 ---
 
-## 4. Frozen Design Principles
+## 4. Reading Order
 
-The following are non-negotiable implementation constraints inherited from A12.
-
-### One authority per concern
-
-PostgreSQL-backed Control Plane state is authoritative for Run / Workflow / Task / Job truth.
-
-No client, model, worker, cache, provider, recovery replica, or UI state may become a competing authority.
-
-### Authenticated immutable ownership
-
-Every Run has immutable owner_user_id.
-
-User-scoped Git identity, secrets, approvals, audit attribution, and variable costs derive from that owner where relevant.
-
-### Model output never creates authority
-
-Models may propose actions.
-
-Trusted Reverend enforcement code decides whether the action is allowed, whether approval is required, and which secret/credential is resolved.
-
-### Durable application state, disposable compute
-
-Reverend recovers from persisted application state, not preserved Python memory, process stacks, CUDA state, VRAM, or KV cache.
-
-### Typed collaboration
-
-Durable Agent collaboration occurs through typed artifacts and structured control messages.
-
-### Deterministic verification outranks model confidence
-
-A failing deterministic gate blocks integration even when a model claims success.
-
-### Minimum sufficient parallelism
-
-Cloud capacity is used to accelerate useful independent work, not to maximize Agent count.
-
-### Cost attribution is event-derived
-
-Billing/accounting is derived from immutable resource/provider events and explicit shared-cost policy.
-
----
-
-## 5. Contract Version Set
-
-Development begins with the following semantic versions:
+Recommended order for a developer entering the project:
 
 ~~~text
-REST API                       v1
-SSE Event Envelope             v1
-Run Lifecycle                  v1
-RunCheckpoint                  v1
-ActionRecord / Action Journal  v1
-RecoveryGeneration             v1
-Approval                       v1
-Artifact Envelope              v1
-AgentSpec / AgentInstance      v1
-ComputeNode                    v1
-ResourceRequest / Lease        v1
-CostEvent / RateSnapshot       v1
-Worker Registration Protocol   v1
+A12
+ ↓
+D0 → D1 → D2
+       ↓
+      D3
+   ↙   ↓   ↘
+ D10  D11  D12–D14
+       ↓
+      D15
+  ┌────┼────┬────┐
+ D16  D17  D18  D19
+  └────┴──┬─┴────┘
+          D20
+           ↓
+          D21
+           ↓
+          D22
+           ↓
+           D9
+           ↓
+           C0
 ~~~
 
-Rules:
-
-1. additive optional fields may stay within v1;
-2. changing an existing field's meaning is breaking;
-3. persisted records must remain readable;
-4. breaking changes require explicit migration/versioning;
-5. network clients must reject unsupported major versions cleanly.
+Focused developers may read the relevant subsystem document directly, but implementation questions must still respect the authority order below.
 
 ---
 
-## 6. Persistence Rule
+## 5. Canonical Authority Order
 
-Authoritative structured state goes to PostgreSQL.
+When documents overlap:
 
-Large immutable payloads use a BlobStore abstraction.
+1. frozen A12 invariants;
+2. D22 explicit final-closure decisions;
+3. D15–D21 capability refinements for their domains;
+4. D10–D14 closure/foundation specifications;
+5. D0–D9 core contracts;
+6. accepted A0–A11 analysis details;
+7. accepted Reverend 0.4.0 code semantics where compatible;
+8. implementation convenience.
 
-Cloud v1 initial BlobStore may be filesystem-backed on persistent control infrastructure, but every durable blob is content-addressed and included in backup/recovery policy.
+A later Design refinement may narrow or strengthen an implementation rule but may not silently weaken an A12 authority/security/durability invariant.
 
-Reconstructible state includes:
-
-- embeddings;
-- search indexes;
-- model weights;
-- runtime cache;
-- worker caches;
-- build output;
-- KV cache.
-
-Reconstructible state must not be required to determine project truth.
-
----
-
-## 7. Runtime Rule
-
-The persistent server may initially run several logical services in one Python deployment for simplicity, but those services must preserve explicit boundaries.
-
-Cloud v1 logical services:
+Specific overlap rules:
 
 ~~~text
-API Service
-Auth / Identity Service
-Control Plane Service
-Workflow Scheduler
-Agent / Team Runtime
-Context / Artifact / Memory Services
-Policy / Tool / Secret Brokers
-Compute Scheduler
-Capacity Controller
-Cost Ledger
-Recovery Service
+D10 foundational Research/Evidence semantics
+→ D16 Cloud Research Fabric refinement
+→ D20 Context Broker consumption
+
+D7 Model Profile/Router foundation
+→ D18 Model Fabric optimization
+→ D21 benchmark-driven promotion
+
+D4 Compute/Worker protocol foundation
+→ D19 capability-worker/bootstrap refinement
+
+D14 baseline/testing discipline
++ D22 final architecture closure
+→ C0 Development entry
 ~~~
-
-Physical co-location does not erase authority boundaries.
-
-This allows development to begin as a modular monolith while retaining a clean path to process separation later.
 
 ---
 
-## 8. Development Compatibility Rule
+## 6. Frozen Cloud v1 Deployment Baseline
 
-Existing Reverend 0.4.0 local functionality is a regression baseline.
+| Concern | Initial Baseline |
+|---|---|
+| Users | two authenticated developers |
+| Top-level Run concurrency | one active |
+| Control Plane | persistent CPU-oriented host |
+| Control-host starting envelope | 4 vCPU / 8 GB RAM / 80 GB NVMe reference profile |
+| Authoritative DB | PostgreSQL |
+| Primary API | REST/JSON under /api/v1 |
+| Live client events | SSE |
+| GPU provider | RunPod Community Cloud |
+| GPU baseline | A100 SXM 80 GB |
+| Inference runtime | vLLM |
+| Workhorse baseline | Qwen3.8-27B |
+| Initial Reverend context profile | 64K |
+| GPU idle behavior | drain + scale to zero |
+| Provider-local model storage | reconstructible by default; persistent cache optional |
+| Redis | not required |
+| Kubernetes | not required |
 
-Local mode remains supported while Cloud v1 is built.
+These are benchmark/deployment defaults, not permanent semantic bindings.
 
-The migration should therefore prefer:
-
-~~~text
-new cloud interface
-    ↓
-adapter over existing semantic contract
-    ↓
-gradual replacement of local implementation
-~~~
-
-rather than deleting working subsystems before equivalent cloud behavior exists.
-
-Examples:
-
-- current ControlPlaneStore semantics migrate to PostgreSQL repositories;
-- current SpecialistSpec evolves rather than being discarded;
-- current ResourceRequest / ResourceLease semantics generalize;
-- Ollama remains a local inference adapter;
-- current loopback Workstation remains a compatibility client until /api/v1 is ready.
+The A100/Qwen/64K combination does not become production-eligible until C7 live fit/throughput validation succeeds.
 
 ---
 
-## 9. Source Layout Direction
+## 7. Persistent vs Reconstructible State
 
-The Design phase recommends extending the existing repository rather than creating one giant cloud package.
-
-Target module direction:
+### Durable / authoritative
 
 ~~~text
-src/reverend/
-├── api/                    # new cloud API / SSE surface
-├── controlplane/           # canonical workflow authority
-├── persistence/            # PostgreSQL + migrations + blob storage
-├── specialists/            # AgentSpec / AgentInstance / Team contracts
-├── intelligence/           # cognitive runtime / context / model requirements
-├── runtime/                # compute nodes, leases, inference/compute adapters
-├── policy/                 # authorization and capability policy
-├── security/               # identity, sessions, secrets, worker credentials
-├── development/            # repo/worktree/coding execution
-├── observability/          # events/metrics/tracing/redaction
-├── workstation/            # existing local compatibility mode
-└── ui/                     # current client assets
+PostgreSQL
+Git / recovery refs
+durable BlobStore
+SpecificationPackages
+Requirements / Decisions / AcceptanceCriteria
+Run / Workflow / Task / Job state
+Artifacts / retained Evidence / Memory
+Action Journal
+RunCheckpoints / RecoveryGenerations
+cost / audit / policy state
 ~~~
 
-Exact file names are specified by the focused design documents.
+### Reconstructible
+
+~~~text
+GPU / CPU / browser workers
+model weights
+KV / prefix cache
+Qdrant indexes
+Tree-sitter indexes
+LSP sessions
+web/browser caches
+build/package caches
+temporary worktrees
+provider instances
+~~~
+
+Loss of reconstructible state may increase latency but may not destroy Project truth.
+
+---
+
+## 8. Primary Run Entry Modes
+
+### Specification-driven
+
+~~~text
+Human / design intelligence
+→ DRAFT SpecificationPackage
+→ validation
+→ human ACCEPTED package
+→ normalized Requirements / Decisions / AcceptanceCriteria
+→ Run pinned to exact specification version/hash
+→ Task DAG
+→ Agent/Team implementation
+→ deterministic verification
+~~~
+
+### Objective-driven
+
+~~~text
+Human objective
+→ Reverend research / clarification / architecture
+→ candidate specification / Project truth
+→ implementation
+~~~
+
+No external model provider is required for either mode.
+
+---
+
+## 9. Development Compatibility
+
+Reverend 0.4.0 remains the accepted local regression baseline while Cloud v1 is implemented.
+
+Migration preference:
+
+~~~text
+new Cloud contract
+→ adapter over accepted local semantics
+→ targeted tests
+→ replacement only after equivalent acceptance evidence
+~~~
+
+Do not delete proven local functionality merely because a future Cloud subsystem exists on paper.
 
 ---
 
 ## 10. Development Entry Gate
 
-Development may begin when:
+Design is formally complete when:
 
-- D0–D14 plus the ADR and baseline-control documents are present;
-- README points to the accepted Analysis and Design specifications;
-- no Design document contradicts A12;
-- C0 contract work can be implemented without inventing missing authority rules;
-- schema/state-machine acceptance tests are specified;
-- migration order is explicit.
+- D0–D22 are merged to main;
+- README points to the accepted Analysis/Design set;
+- the complete/system/subsystem diagrams reflect the final architecture;
+- no known Design contradiction remains against A12;
+- the specification-driven and objective-driven Run authority models are explicit;
+- the Research/Repository/Context/Model/Worker capability refinements are reconciled with D0–D14;
+- documentation/CI validation is green;
+- D22 is marked final;
+- a fresh C0-entry baseline is recorded before runtime-changing C0 code begins.
 
-This document set is intended to satisfy that gate.
+The fresh baseline is execution evidence, not more architecture design.
 
 ---
 
-## 11. Canonical Source Priority
+## 11. C0 Development Rule
 
-When implementation questions conflict, resolve them in this order:
+Development begins with contracts, migrations and tests — not provider provisioning.
 
-1. A12 accepted invariants;
-2. D0–D14 and accepted ADRs;
-3. accepted A0–A11 analysis details;
-4. current code semantics where compatible;
-5. implementation convenience.
+C0 must freeze executable v1 contracts for at least:
 
-Implementation convenience never overrides a frozen authority/security/durability rule.
+~~~text
+SpecificationPackage / AcceptanceCriteria
+Project / Run / Workflow / Task / Job
+AgentSpec / AgentInstance / AgentTeam
+Artifact / Evidence / Memory references
+ContextNeed / ContextManifest
+CapabilitySpec
+WorkerProfile / StorageProfile / BootstrapSpec
+ExecutionEnvironmentSpec
+RepositorySnapshot
+SourceRecord / SourceSnapshot / EvidenceClaim
+ModelRequirement / ModelProfile / DeploymentProfile
+ComputeNode / ResourceRequest / ResourceLease
+ActionRecord
+Approval
+Secret metadata
+CostEvent / RateSnapshot
+BenchmarkScenario / BenchmarkRun
+shared enums / IDs / schema versions
+~~~
+
+No paid provider work is enabled in C0.
 
 ---
 
 ## 12. Change Control During Development
 
-If development discovers a necessary design correction:
+If Development discovers a Design correction:
 
 1. record the issue;
 2. determine whether it changes an A12 invariant;
-3. if not, update the relevant Design document and tests;
-4. if yes, create an explicit architecture decision before implementation;
-5. never silently encode a contradictory behavior only in code.
+3. if no, update the relevant Design document and tests;
+4. if yes, create an explicit ADR/architecture decision before implementation;
+5. never encode a contradictory behavior only in code.
 
 ---
 
-## 13. Development Exit Definition
+## 13. Design Exit Definition
 
-The Design phase is successful only if the Development phase can work in narrow branches with concrete contracts and objective acceptance gates.
+The Design phase is successful when C0 can begin without inventing missing authority, security, durability, context, worker, model, research, recovery or cost semantics.
 
-The final Cloud v1 implementation is not accepted until D9/C9 verifies the full E2E matrix inherited from A12.
+D22 records the final closure verdict.
+
+Cloud v1 itself is not complete until D9/C9 passes the full end-to-end acceptance programme.
