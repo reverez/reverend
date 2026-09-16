@@ -1099,3 +1099,20 @@ Mandatory tests:
 - migration role is not used by runtime API/scheduler;
 - hard budget stops productive work but still permits narrowly classified safety cleanup;
 - STOP_GLOBAL blocks new productive actions while allowing provider termination, lease release and journal reconciliation.
+
+
+---
+
+## 40. Recursive Audit Cycle 6 — Confidentiality and Leadership Tests
+
+Mandatory coverage:
+
+- scheduler/capacity/recovery advisory lock uses a dedicated connection and controller stops on connection loss;
+- failover cannot create duplicate provider action without reconciliation;
+- SSE stream closes/filters after user/session/membership revocation;
+- Event/SSE schema rejects seeded secret/raw-header/raw-environment fields;
+- Artifact sensitivity propagates through summary/derivation;
+- mandatory RESTRICTED context is never sent to a Community worker or external API;
+- semantic retrieval cannot downgrade sensitivity;
+- Git credential is absent from remote URL, argv, logs and committed config;
+- production storage/security deployment verifies intended at-rest encryption/firewall/service ownership assumptions.
