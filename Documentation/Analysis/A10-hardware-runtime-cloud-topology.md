@@ -921,6 +921,45 @@ against which cheaper quantized 48GB setups should be judged.
 
 ---
 
+## 28A. A11 Final Selection Note — Community A100 SXM
+
+A10 originally handed the 48 GB and 80–96 GB tiers to A11 for economic selection.
+
+A11's accepted Cloud v1 baseline is now:
+
+```text
+provider:
+RunPod
+
+provider tier:
+Community Cloud
+
+GPU:
+A100 SXM 80 GB
+
+runtime:
+vLLM
+
+workhorse:
+Qwen3.8-27B
+
+initial serving context:
+64K
+```
+
+Current RunPod research snapshot used by A11:
+
+```text
+A100 SXM 80 GB Community Cloud:
+$1.39 / hour
+```
+
+This does not change A10's topology or abstraction decisions. RunPod remains replaceable behind `ComputeProvider`; A100 SXM is a deployment profile rather than a semantic dependency.
+
+The Community tier is also a trust-placement input, not only a price choice. A8 classifies the selected worker as lower-assurance shared-host infrastructure. Jobs whose `trust_requirement` demands stronger infrastructure are not eligible for this profile.
+
+---
+
 ## 29. RTX Pro 6000 96GB
 
 The 96GB Blackwell-class RTX Pro 6000 is particularly interesting.
@@ -2448,6 +2487,13 @@ RunPod candidate
 
 INITIAL GPU MODE:
 Pod-based elastic worker
+
+A11 SELECTED BASELINE PROFILE:
+RunPod Community Cloud
+A100 SXM 80 GB
+vLLM
+Qwen3.8-27B
+64K initial serving context
 
 PRIMARY INFERENCE RUNTIME:
 vLLM
