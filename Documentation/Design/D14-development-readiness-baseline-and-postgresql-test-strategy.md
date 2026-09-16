@@ -413,7 +413,7 @@ They remain explicit Development/Operations deliverables under D7–D9.
 ## 18. C0 Entry Checklist
 
 - [x] A12 accepted.
-- [x] D0–D14 documented.
+- [x] D0–D16 documented.
 - [x] architecture diagrams indexed.
 - [x] legacy migration map exists.
 - [x] tool/recovery registry exists.
@@ -445,3 +445,34 @@ Otherwise use narrow ADRs during Development.
 D14 closes Design when no known Cloud-v1-blocking design gap remains and Development has precise migration, tool safety, research, UX, PostgreSQL testing and decision-control contracts.
 
 The only remaining C0 prerequisite after this document is real baseline execution evidence.
+
+
+---
+
+## 2026-09-16 Design Extension Closure
+
+D15, D16 and ADR-001..003 extend the closed Design baseline with product requirements resolved after the original D14 closure.
+
+They do not reopen the fundamental A12 authority model.
+
+Additional C0-ready contracts now include:
+
+- Conversation / Message;
+- BuildSpecification/v1;
+- accepted specification → Run reference;
+- global Run priority/pre-emption request semantics;
+- MediaGenerationRequest;
+- MediaAsset/v1;
+- cloud/off-host recovery target policy.
+
+Additional test obligations:
+
+- conversation authorization/isolation;
+- specification immutability/versioning;
+- safe global Run priority handoff/resume;
+- cloud restore with clients offline;
+- no automatic external frontier API;
+- media Artifact lineage/cost/recovery;
+- thin-client-only product operation.
+
+Development entry is now governed by D0–D16 plus accepted ADRs.
