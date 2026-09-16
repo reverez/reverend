@@ -1354,3 +1354,31 @@ These are host-security requirements, not substitutes for application authorizat
 Operational logs and durable Events prefer identifiers, hashes, status codes and bounded summaries over raw content.
 
 A debug mode that captures raw prompts/tool output cannot run by default in production and must advertise that it weakens confidentiality.
+
+
+---
+
+## 54. Recursive Audit Cycle 7 — Control/Inhibitor Operations
+
+Operational status surfaces:
+
+- active SYSTEM/PROJECT/RUN execution controls;
+- who created them;
+- safe public reason summary;
+- whether productive execution is blocked;
+- whether safety cleanup remains active;
+- current shutdown/drain inhibitors.
+
+### Inhibitor watchdog
+
+A periodic controller scans expired/stale shutdown inhibitors.
+
+It clears one only after proving the owning Action/Job is terminal or reconciled.
+
+An inhibitor with ambiguous external state creates an alert/RECOVERY_BLOCKED path rather than being force-cleared automatically.
+
+### Maintenance migration interaction
+
+Schema migration activates a SYSTEM MAINTENANCE control and a MIGRATION shutdown inhibitor before DDL begins.
+
+Runtime API may serve bounded read/status endpoints, but no scheduler/provider work begins until migration and post-migration integrity checks complete and the control is explicitly cleared.
