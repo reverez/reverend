@@ -2423,3 +2423,519 @@ A connected recovery-enabled client may satisfy this.
 For unattended autonomous operation, an always-available encrypted object-store recovery target is strongly recommended so external actions do not depend on a laptop remaining online.
 
 The target abstraction is provider-neutral.
+
+
+---
+
+## 35. Capability Modernization Schema Addendum
+
+__D20__–D21 introduce additional durable metadata. These tables remain subordinate to the same PostgreSQL authority and BlobStore rules.
+
+### 35.1 Capability specifications
+
+~~~sql
+capability_specs(
+  capability_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  capability_family TEXT NOT NULL,
+  input_contract JSONB NOT NULL,
+  output_contract JSONB NOT NULL,
+  resource_requirement_template JSONB NOT NULL,
+  trust_requirement TEXT NOT NULL,
+  side_effect_class TEXT NOT NULL,
+  network_policy JSONB NOT NULL,
+  recovery_policy JSONB NOT NULL,
+  benchmark_profile TEXT,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  PRIMARY KEY(capability_id,version)
+)
+~~~
+
+This is a versioned catalog. Agent/model output cannot insert or promote production capability definitions directly.
+
+### 35.2 Worker and storage profiles
+
+~~~sql
+storage_profiles(
+  storage_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  profile JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+worker_profiles(
+  worker_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  trust_class TEXT NOT NULL,
+  capability_refs JSONB NOT NULL,
+  resource_envelope JSONB NOT NULL,
+  provider_profile JSONB NOT NULL,
+  container_digest TEXT NOT NULL,
+  bootstrap_policy JSONB NOT NULL,
+  storage_profile_id TEXT NOT NULL REFERENCES storage_profiles(storage_profile_id),
+  network_profile JSONB NOT NULL,
+  sandbox_profile JSONB NOT NULL,
+  health_contract JSONB NOT NULL,
+  idle_policy JSONB NOT NULL,
+  cost_profile JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+A semantic change to a profile that would alter historical execution creates a new profile identity/version rather than silently rewriting prior provenance.
+
+### 35.3 Research source registry
+
+~~~sql
+source_records(
+  source_id UUID PRIMARY KEY,
+  canonical_locator TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  access_partition TEXT NOT NULL DEFAULT 'PUBLIC',
+  publisher TEXT,
+  authority_class TEXT NOT NULL,
+  default_freshness_policy TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(source_type,access_partition,canonical_locator)
+);
+
+source_snapshots(
+  snapshot_id UUID PRIMARY KEY,
+  source_id UUID NOT NULL REFERENCES source_records(source_id),
+  fetched_at TIMESTAMPTZ NOT NULL,
+  published_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  content_hash TEXT NOT NULL,
+  content_ref TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  byte_count BIGINT NOT NULL CHECK (byte_count >= 0),
+  trust_class TEXT NOT NULL,
+  sensitivity_label TEXT NOT NULL,
+  extraction_version TEXT NOT NULL,
+  provider_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  UNIQUE(source_id,content_hash,extraction_version)
+)
+~~~
+
+SourceSnapshot content referenced by retained Evidence is subject to durable BlobStore retention and backup roots.
+
+### 35.4 Evidence claims
+
+~~~sql
+evidence_claims(
+  claim_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  snapshot_id UUID NOT NULL REFERENCES source_snapshots(snapshot_id),
+  claim_text TEXT NOT NULL,
+  source_locator JSONB NOT NULL,
+  evidence_type TEXT NOT NULL,
+  authority_class TEXT NOT NULL,
+  confidence NUMERIC,
+  freshness_state TEXT NOT NULL,
+  extracted_by TEXT NOT NULL,
+  validation_state TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+ResearchEvidencePack remains an Artifact whose manifest references EvidenceClaim and SourceSnapshot IDs.
+
+### 35.5 Repository snapshots
+
+~~~sql
+repository_snapshots(
+  repository_snapshot_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  run_id UUID REFERENCES runs(run_id),
+  workspace_id TEXT,
+  repository_identity JSONB NOT NULL,
+  base_commit TEXT NOT NULL,
+  head_ref TEXT,
+  head_commit TEXT,
+  index_digest TEXT,
+  diff_digest TEXT,
+  untracked_manifest_digest TEXT,
+  snapshot_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(project_id,snapshot_hash)
+);
+
+repository_index_builds(
+  index_build_id UUID PRIMARY KEY,
+  repository_snapshot_id UUID NOT NULL REFERENCES repository_snapshots(repository_snapshot_id),
+  adapter_id TEXT NOT NULL,
+  adapter_version TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','BUILDING','READY','FAILED','STALE')),
+  result_manifest_ref TEXT,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  error_code TEXT
+)
+~~~
+
+Repository index content is derived/rebuildable. Metadata exists so Context Broker can reject stale/mismatched results.
+
+### 35.6 Context manifests
+
+ContextManifest is persisted as an Artifact as already required by D3/D20.
+
+The schema must include explicit references to:
+
+- Task/Agent/Job;
+- source Requirements/Decisions/Artifacts;
+- RepositorySnapshot;
+- SourceSnapshot/Evidence;
+- Memory;
+- compiler/policy/model tokenizer versions;
+- sensitivity/trust domain;
+- included/omitted source refs;
+- content hash.
+
+### 35.7 Benchmark registry
+
+~~~sql
+benchmark_scenarios(
+  benchmark_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  benchmark_family TEXT NOT NULL,
+  scenario_manifest_ref TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('DEVELOPMENT','PROMOTION','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(benchmark_id,version)
+);
+
+benchmark_runs(
+  benchmark_run_id UUID PRIMARY KEY,
+  benchmark_id TEXT NOT NULL,
+  benchmark_version INTEGER NOT NULL,
+  reverend_revision TEXT NOT NULL,
+  experiment_manifest_ref TEXT NOT NULL,
+  result_manifest_ref TEXT,
+  status TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL,
+  finished_at TIMESTAMPTZ,
+  FOREIGN KEY(benchmark_id,benchmark_version)
+    REFERENCES benchmark_scenarios(benchmark_id,version)
+)
+~~~
+
+D7 benchmark_result_sets for DeploymentProfiles may reference/aggregate these generalized benchmark runs.
+
+### 35.8 Research and repository Project isolation
+
+Database/service constraints enforce:
+
+- EvidenceClaim.project_id controls retrieval scope;
+- SourceSnapshot may be globally deduplicated only when disclosure policy allows reuse; Project Evidence references remain explicit;
+- RepositorySnapshot never changes canonical Run repository binding;
+- semantic/vector index keys always include Project/snapshot scope;
+- cross-Project promotion/import is an explicit audited operation, not similarity-based leakage.
+
+### 35.9 New migration groups
+
+Development should extend the migration set with logically equivalent migrations for:
+
+~~~text
+capability + worker/storage profiles
+research source/evidence registry
+repository snapshots/index metadata
+generalized benchmark registry
+capability-specific indexes/constraints
+~~~
+
+Exact migration filenames are a C0/C1 implementation detail; these entities are not optional once their corresponding capability is enabled.
+
+
+### 35.10 Source access partition refinement
+
+The research cache is not globally reusable solely by URL.
+
+Interpret access_partition as:
+
+~~~text
+PUBLIC
+PROJECT:<project_id>:<credential-scope-version>
+or another explicit policy-owned partition
+~~~
+
+Rules:
+
+- anonymous public sources may deduplicate under PUBLIC;
+- authenticated/private provider results are isolated by Project/credential scope;
+- SourceSnapshot retrieval always checks the Evidence/Project authorization path;
+- a cache hit never grants new access authority.
+
+### 35.11 Capability index isolation
+
+Derived repository/vector/search index records must include Project/snapshot scope in their key/filter model.
+
+Authorization/scope filtering occurs before semantic ranking.
+
+A future shared public-dependency index is a distinct explicitly public corpus, not implicit cross-Project reuse.
+
+
+### 35.12 Execution environment profiles
+
+~~~sql
+execution_environment_profiles(
+  environment_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  base_image_digest TEXT NOT NULL,
+  toolchain_manifest JSONB NOT NULL,
+  dependency_policy JSONB NOT NULL,
+  network_policy JSONB NOT NULL,
+  sandbox_policy JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+Project lockfiles/manifests are referenced per Job/Artifact rather than mutating the profile catalog.
+
+### 35.13 Ephemeral TestEndpoint authorization
+
+~~~sql
+test_endpoints(
+  test_endpoint_id UUID PRIMARY KEY,
+  run_id UUID NOT NULL REFERENCES runs(run_id),
+  job_id UUID NOT NULL REFERENCES jobs(job_id),
+  producer_lease_id UUID NOT NULL REFERENCES resource_leases(lease_id),
+  consumer_lease_id UUID REFERENCES resource_leases(lease_id),
+  route_ref TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','ACTIVE','REVOKED','EXPIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ
+)
+~~~
+
+route_ref is an opaque private-network routing reference, not a publicly routable URL containing credentials.
+
+Authorization requires current Run/Job/lease scope. Endpoint revocation is part of Job/lease cleanup.
+
+
+### 35.14 Capability execution provenance
+
+Every remote/derived capability output is associated with the canonical Job attempt and input version identities.
+
+Where a capability produces a durable Artifact, Artifact provenance includes at least:
+
+~~~text
+run_id
+task_id
+job_id
+attempt_number
+capability_id/version
+RepositorySnapshot / SourceSnapshot refs where applicable
+policy/context version refs
+producer node/worker profile when remote
+~~~
+
+Late results are storable but cannot transition a newer Job/Task attempt.
+
+### 35.15 TestEndpoint authentication refinement
+
+Extend test_endpoints with implementation-equivalent fields for:
+
+~~~text
+consumer_job_id
+consumer_lease_id
+connection_credential_hash / channel identity
+allowed_protocol
+allowed_port/path policy
+~~~
+
+The plaintext connection capability is short-lived and delivered only to the bound Browser Worker through the worker protocol.
+
+route_ref by itself never authorizes access.
+
+
+### 35.16 Project execution-disclosure policy
+
+Project disclosure_policy must resolve an explicit placement rule by sensitivity/trust domain rather than relying on names alone.
+
+Conceptual policy:
+
+~~~json
+{
+  "community_cloud": {
+    "PUBLIC": true,
+    "PROJECT_PRIVATE": false,
+    "USER_PRIVATE": false,
+    "SECRET_ADJACENT": false,
+    "RESTRICTED": false
+  },
+  "external_api": {
+    "PUBLIC": true,
+    "PROJECT_PRIVATE": false,
+    "USER_PRIVATE": false,
+    "SECRET_ADJACENT": false,
+    "RESTRICTED": false
+  }
+}
+~~~
+
+The above is the **safe default shape**, not a prohibition on the selected Community baseline.
+
+A Project owner may explicitly opt normal Project-private engineering material into COMMUNITY_CLOUD_WORKER execution through a versioned ProjectPolicy. Such opt-in:
+
+- never includes Secret values;
+- does not automatically authorize EXTERNAL_API;
+- is visible in Project/Run UI;
+- is included in context/placement provenance;
+- can be tightened later, causing subsequent Jobs to require stronger placement.
+
+Sensitivity labels describe data; disclosure policy determines where that data may go.
+
+
+---
+
+## 36. Specification Packages & Run Pinning
+
+The primary Cloud v1 operating mode is specification-driven implementation.
+
+A detailed external or human-authored design is not passed to a model as one giant prompt. It is ingested into a versioned **SpecificationPackage** and normalized into durable Project truth.
+
+### 36.1 SpecificationPackage
+
+~~~sql
+specification_packages(
+  specification_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  version BIGINT NOT NULL,
+  title TEXT NOT NULL,
+  objective TEXT NOT NULL,
+  source_kind TEXT NOT NULL CHECK (
+    source_kind IN ('HUMAN','EXTERNAL_DESIGN_MODEL','REVEREND_DESIGN','IMPORTED_DOCUMENT')
+  ),
+  source_ref TEXT,
+  status TEXT NOT NULL CHECK (
+    status IN ('DRAFT','VALIDATING','ACCEPTED','SUPERSEDED','REJECTED')
+  ),
+  package_manifest_ref TEXT NOT NULL,
+  package_hash TEXT NOT NULL,
+  created_by UUID NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  accepted_by UUID REFERENCES users(user_id),
+  accepted_at TIMESTAMPTZ,
+  supersedes_specification_id UUID REFERENCES specification_packages(specification_id),
+  UNIQUE(project_id,version),
+  UNIQUE(project_id,package_hash)
+)
+~~~
+
+The package manifest may reference typed files/Artifacts such as:
+
+~~~text
+objective
+requirements
+non-goals
+architecture
+component contracts
+data model
+API contracts
+security model
+failure semantics
+performance requirements
+testing strategy
+acceptance criteria
+development plan
+references
+machine-readable requirements/interfaces/acceptance/constraints
+~~~
+
+Package content is immutable after ACCEPTED. A change creates a new version.
+
+### 36.2 Specification compilation
+
+Specification ingestion produces normalized durable objects:
+
+~~~text
+SpecificationPackage
+→ SpecificationValidationReport
+→ Requirements
+→ accepted Decisions / architecture constraints
+→ AcceptanceCriteria
+→ interface/contract Artifacts
+→ implementation guidance
+~~~
+
+The original package remains preserved for provenance.
+
+Normalization does not silently invent missing requirements. Ambiguity becomes a ClarificationRequest or explicit unresolved item.
+
+### 36.3 Acceptance criteria
+
+Add first-class acceptance criteria:
+
+~~~sql
+acceptance_criteria(
+  acceptance_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  specification_id UUID REFERENCES specification_packages(specification_id),
+  requirement_id UUID REFERENCES requirements(requirement_id),
+  title TEXT NOT NULL,
+  criterion_text TEXT NOT NULL,
+  verification_kind TEXT NOT NULL,
+  verification_ref TEXT,
+  priority INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL CHECK (
+    status IN ('ACTIVE','SATISFIED','SUPERSEDED','REJECTED')
+  ),
+  created_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+Where possible, verification_kind points to deterministic tests/benchmarks/contracts.
+
+### 36.4 Run specification pin
+
+Add to runs:
+
+~~~sql
+specification_id UUID REFERENCES specification_packages(specification_id),
+specification_version BIGINT,
+~~~
+
+At Run creation, the selected SpecificationPackage is pinned immutably.
+
+A Run never silently switches to a newer specification version.
+
+A later amendment creates:
+
+~~~text
+SpecificationPackage v2
+→ new Run
+or
+→ explicit scoped change/amendment workflow with preserved provenance
+~~~
+
+### 36.5 Objective-only mode
+
+A Run may still begin from a high-level objective with no accepted SpecificationPackage.
+
+In that mode Reverend may research, clarify, design and produce a candidate SpecificationPackage/Requirements/Decisions before implementation.
+
+This preserves the broader autonomous-engineering capability while making specification-driven implementation the preferred high-reliability path.
+
+### 36.6 Specification authority ordering
+
+For a Run pinned to a SpecificationPackage:
+
+~~~text
+human / Project policy
+> accepted SpecificationPackage
+> normalized Requirements / Decisions / AcceptanceCriteria
+> Run/Task orchestration
+> Agent/model proposals
+> deterministic verification evidence
+~~~
+
+If normalized Project state conflicts with the pinned package, the Run blocks for reconciliation rather than choosing one silently.
