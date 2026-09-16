@@ -797,3 +797,98 @@ Must prove:
 ## 36. Exit Condition
 
 C7 is ready when Reverend can provision one A100 SXM worker from zero, authenticate/register it, load a pinned vLLM/Qwen profile, grant a Job-owned lease, execute one inference Job, collect metrics, release, drain/stop, and recover correctly from worker disappearance.
+
+
+---
+
+## 37. Recursive Architecture Hardening — Worker Data Plane and Lease Atomicity
+
+The original worker protocol defined assignment control but left payload/blob transfer and several race conditions implicit. Cloud v1 freezes the following additional contract.
+
+### Job-scoped worker data plane
+
+Workers never receive filesystem paths into Control Plane storage.
+
+For an assigned Job, the Control Plane issues short-lived, job-scoped data capabilities for only the referenced inputs and outputs.
+
+Conceptual endpoints:
+
+~~~text
+GET  /internal/v1/workers/{node_id}/jobs/{job_id}/inputs/{ref}
+POST /internal/v1/workers/{node_id}/jobs/{job_id}/outputs
+~~~
+
+Every transfer validates:
+
+- current worker session;
+- current runtime epoch;
+- assigned node;
+- active lease;
+- Job identity;
+- Artifact/Blob allowlist;
+- maximum bytes/media type;
+- expected hash where known.
+
+Output upload is:
+
+~~~text
+stream to bounded temporary object
+→ compute SHA-256
+→ verify declared size/type
+→ publish to BlobStore
+→ return opaque BlobRef
+~~~
+
+A worker may not choose an arbitrary `content_ref` or server path.
+
+### Assignment delivery is idempotent
+
+Until ACK or lease expiry, repeated long-poll delivery for the same assigned Job returns the same assignment identity. A Job is not concurrently delivered to a second node while its current lease remains ACTIVE.
+
+### Worker-session renewal
+
+Worker sessions are short lived and rotated through an authenticated renewal operation bound to:
+
+~~~text
+node_id
+runtime_epoch_id
+provider_instance_id
+current worker credential
+~~~
+
+Renewal cannot widen endpoint scope or trust class. Failure to renew causes the worker to stop accepting new assignments and eventually lose lease authority.
+
+### Lease renewal
+
+A worker heartbeat may renew an ACTIVE lease only when the server independently verifies that:
+
+- the lease belongs to that node and Job;
+- the Job is still executable;
+- the runtime epoch is current;
+- no cancellation/drain/revocation applies.
+
+A worker-reported `active_lease_ids` list is telemetry, not authority.
+
+### Atomic placement and overcommit prevention
+
+Granting a ResourceLease is one PostgreSQL transaction that locks the selected ComputeNode/resource-accounting rows, recomputes currently ACTIVE capacity, verifies budget reservation, creates the lease and updates Job assignment state.
+
+The scheduler must not rely on a previously read capacity snapshot to grant resources.
+
+D1 additionally enforces at most one ACTIVE lease per Job and per ResourceRequest.
+
+### Atomic result finalization
+
+Accepting a terminal worker result atomically:
+
+1. validates current lease/epoch/attempt;
+2. records result Artifact references;
+3. transitions the Job;
+4. releases the ResourceLease;
+5. emits the terminal Event.
+
+If the transaction fails, the Job is not authoritatively complete and recovery may safely retry/reconcile.
+
+### Provider-instance uniqueness
+
+A live provider instance maps to at most one ComputeNode identity. D1 enforces uniqueness for `(provider, provider_instance_id)` when a provider instance ID is present.
