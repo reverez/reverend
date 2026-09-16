@@ -1720,3 +1720,40 @@ Operations track and quota:
 - temporary browser cache.
 
 Sanitized retained test/research Artifacts follow Project retention policy. Disposable browser state is cleaned at Job/worker termination.
+
+
+---
+
+## 63. Large Blob & Research-Service Economics
+
+### Large Artifact storage
+
+Track:
+
+- durable Blob bytes by Project/type;
+- temporary upload bytes;
+- object-store request/egress cost where applicable;
+- failed/abandoned upload bytes;
+- retention class.
+
+Control Plane local disk is not assumed sufficient for future multi-GB simulation/media outputs.
+
+### Research paid services
+
+Paid search/academic/model/provider APIs are explicit external-service CostEvents.
+
+Self-hosted SearXNG CPU/network use remains operational/shared or attributable resource telemetry according to deployment, not a fabricated vendor API invoice.
+
+### Local capability resource accounting
+
+A Run-specific local CPU/browser sandbox may record CPU/RAM/wall-time attribution even when it creates no incremental provider bill.
+
+Economic dashboards distinguish:
+
+~~~text
+measured resource usage
+estimated allocation
+actual payable external cost
+~~~
+
+rather than presenting internal CPU seconds as fake provider spend.
