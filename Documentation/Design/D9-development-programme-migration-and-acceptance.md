@@ -1283,7 +1283,7 @@ D10–D14 do not reopen A12. Future changes to frozen authority/security/durabil
 
 ## 55. Capability Modernization Integration into C0–C9
 
-__D20__–D22 refine the implementation programme.
+D15–D22 refine the implementation programme.
 
 ### C0 additions
 
