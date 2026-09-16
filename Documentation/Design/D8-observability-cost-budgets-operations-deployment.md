@@ -1455,3 +1455,54 @@ Requirements:
 - lifecycle/retention must preserve objects referenced by retained generations/intents.
 
 Selecting a concrete object-store provider is an operational deployment choice, not a new authority model.
+
+
+---
+
+## 57. Recursive Audit Cycle 13 — Static Economic Kill Limits
+
+Cloud v1 deployment configuration contains operator-owned hard ceilings such as:
+
+~~~text
+REVEREND_MAX_PAID_GPU_WORKERS_TOTAL=1
+REVEREND_MAX_PROVISIONING_GPU_WORKERS_TOTAL=1
+REVEREND_MAX_GPU_HOURLY_RATE_GBP=<operator ceiling>
+REVEREND_MAX_PROVIDER_DAILY_SAFETY_GBP=<operator ceiling>
+~~~
+
+Exact names may be normalized in Development.
+
+Properties:
+
+- values are validated at startup;
+- they are not writable by Agents/models/Project policies;
+- a dynamic user/Run/system budget cannot exceed them;
+- lowering a ceiling triggers reconciliation/drain policy, not abrupt unsafe process kill;
+- raising a ceiling is an operator-controlled configuration/deployment action.
+
+### Provider-wide daily circuit breaker
+
+Capacity Controller derives provider spend from reconciled/estimated PowerSessions.
+
+When the system safety ceiling is reached:
+
+- no new paid capacity is provisioned;
+- currently necessary safety cleanup may continue;
+- existing productive leases follow configured safe drain/budget policy;
+- operator alert is raised.
+
+This circuit breaker is defence against both software bugs and compromised high-level orchestration.
+
+### Orphan inventory audit
+
+Periodic provider reconciliation compares:
+
+~~~text
+provider inventory tagged as Reverend
+vs
+ComputeNode + PowerSession + ActionJournal state
+~~~
+
+Any orphan/unrecognized billed resource is treated as a high-severity operational incident and safely terminated after identity/reconciliation checks.
+
+Do not wait for the user's Run dashboard to reveal it.
