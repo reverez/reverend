@@ -132,8 +132,7 @@ repository_identity should be server-resolved and may contain:
 {
   "provider": "github",
   "owner": "reverez",
-  "repository": "example",
-  "canonical_remote": "git@github.com:reverez/example.git"
+  "repository": "example"
 }
 ~~~
 
@@ -1731,3 +1730,64 @@ Such spend is:
 - reconciled to actual provider cost.
 
 It is never used to continue ordinary engineering work after a hard limit.
+
+
+---
+
+## 28. Recursive Audit Cycle 6 — Sensitivity and Repository Identity Normalization
+
+### Project disclosure policy
+
+Add to `projects`:
+
+```sql
+disclosure_policy JSONB NOT NULL DEFAULT '{}'::jsonb
+```
+
+This defines the default trust ceiling for repository/project material.
+
+### Artifact sensitivity
+
+Add to `artifacts`:
+
+```sql
+sensitivity_label TEXT NOT NULL DEFAULT 'PROJECT_PRIVATE'
+  CHECK (sensitivity_label IN (
+    'PUBLIC',
+    'PROJECT_PRIVATE',
+    'USER_PRIVATE',
+    'SECRET_ADJACENT',
+    'RESTRICTED'
+  ))
+```
+
+Sensitivity propagates conservatively through derived Artifacts:
+
+- derived output inherits the strongest mandatory input sensitivity unless a trusted declassification rule applies;
+- models/Agents may request a stronger label;
+- models/Agents cannot autonomously weaken a label;
+- Context Broker uses the durable label plus Project disclosure policy for trust admission.
+
+Secret values themselves still belong in Secret Broker, not Artifacts.
+
+### Repository identity contains no credential transport
+
+Canonical `projects.repository_identity` and `run_repository_bindings.repository_identity` contain provider identity such as:
+
+~~~json
+{
+  "provider": "github",
+  "owner": "reverez",
+  "repository": "example"
+}
+~~~
+
+They do not store token-bearing URLs or a user-specific SSH/HTTPS credential transport.
+
+Trusted Git adapter constructs the transport per action from canonical identity plus the immutable Run owner's GitHubIdentity.
+
+### Human-input sensitivity
+
+`human_input_requests` may declare an expected sensitivity ceiling.
+
+Accepted answers become sensitivity-labelled Artifacts. A human input containing sensitive material therefore participates in the same Context Broker trust filtering rather than bypassing it.
