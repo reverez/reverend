@@ -2755,3 +2755,41 @@ allowed_port/path policy
 The plaintext connection capability is short-lived and delivered only to the bound Browser Worker through the worker protocol.
 
 route_ref by itself never authorizes access.
+
+
+### 35.16 Project execution-disclosure policy
+
+Project disclosure_policy must resolve an explicit placement rule by sensitivity/trust domain rather than relying on names alone.
+
+Conceptual policy:
+
+~~~json
+{
+  "community_cloud": {
+    "PUBLIC": true,
+    "PROJECT_PRIVATE": false,
+    "USER_PRIVATE": false,
+    "SECRET_ADJACENT": false,
+    "RESTRICTED": false
+  },
+  "external_api": {
+    "PUBLIC": true,
+    "PROJECT_PRIVATE": false,
+    "USER_PRIVATE": false,
+    "SECRET_ADJACENT": false,
+    "RESTRICTED": false
+  }
+}
+~~~
+
+The above is the **safe default shape**, not a prohibition on the selected Community baseline.
+
+A Project owner may explicitly opt normal Project-private engineering material into COMMUNITY_CLOUD_WORKER execution through a versioned ProjectPolicy. Such opt-in:
+
+- never includes Secret values;
+- does not automatically authorize EXTERNAL_API;
+- is visible in Project/Run UI;
+- is included in context/placement provenance;
+- can be tightened later, causing subsequent Jobs to require stronger placement.
+
+Sensitivity labels describe data; disclosure policy determines where that data may go.
