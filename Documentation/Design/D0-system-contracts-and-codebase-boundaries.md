@@ -909,3 +909,31 @@ This is not a full checkpoint/RecoveryGeneration on every action. It is a compac
 D5/D1 define the exact semantics.
 
 A remote action that requires this barrier must remain BLOCKED if no required durable target is available. Availability must never silently weaken durability policy.
+
+
+---
+
+## 2026-09-16 Product Boundary Extension
+
+The production Cloud client boundary is further frozen by ADR-001 and D15:
+
+- browser/desktop shells are thin presentation/input clients only;
+- all inference, retrieval, indexing, builds, tests, sandbox execution, media generation and durable state execute in cloud infrastructure;
+- local 0.4.0 remains compatibility/development history, not the Cloud product execution topology.
+
+Additional logical packages/services may be introduced behind the existing authority boundaries:
+
+~~~text
+conversation/
+  durable Conversation / Message interaction state
+
+specifications/
+  BuildSpecification validation / acceptance / versioning
+
+media/
+  MediaGenerationRequest / MediaAsset orchestration
+~~~
+
+These packages consume Control Plane, Artifact, Policy, Model Router and Compute Scheduler contracts. They do not create new workflow authority.
+
+Cloud v1 still permits a modular-monolith Control Plane; media/build/inference workers remain outside the authority process.
