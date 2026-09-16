@@ -1203,3 +1203,45 @@ A DEGRADED system may continue bounded work but planned host shutdown remains in
 A surviving worker reconnect may reduce unnecessary provider cost, but no previous-epoch lease is revived.
 
 Cost attribution for idle time during backend recovery remains a PowerSession/provider cost, not fabricated Run lease usage.
+
+
+---
+
+## 50. Recursive Audit Cycle 3 — Authority-Host Resource Reservation and Time Integrity
+
+### Control Plane resource reservation
+
+The persistent host maintains explicit headroom for authority services.
+
+Configuration defines minimum reserved:
+
+~~~text
+CPU capacity
+RAM
+filesystem free bytes
+PostgreSQL/WAL free bytes
+process/file descriptor headroom
+~~~
+
+The local bounded sandbox may use only the remainder.
+
+If admitting a local Job would violate these reserves, Compute Scheduler keeps it queued or targets a remote CPU worker.
+
+### Disk pressure priority
+
+When storage pressure crosses safety threshold, stop/admit in this order:
+
+1. stop new cache/model/index growth;
+2. stop new large Artifact/workspace creation;
+3. pause non-critical execution at safe boundaries;
+4. preserve PostgreSQL/WAL, Action Journal, checkpoints and recovery writes.
+
+Authority durability has priority over throughput.
+
+### Clock integrity
+
+The host runs reliable time synchronization.
+
+Durable expiry/auth/billing timestamps use UTC wall clock, while in-process elapsed durations use monotonic clocks.
+
+A detected material backward/forward wall-clock jump creates an operational warning and security-sensitive expiry checks use conservative behavior until time health is restored.
