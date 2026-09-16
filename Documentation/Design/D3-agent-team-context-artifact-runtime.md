@@ -978,3 +978,43 @@ CapabilityExecutionReport
 ~~~
 
 These remain normal D3 Artifacts with provenance/validation/promotion semantics.
+
+
+---
+
+## 42. Capability Result Validity & Late-Result Semantics
+
+Cloud capabilities are asynchronous and may finish after the originating Task was cancelled, replanned, retried or superseded.
+
+Every capability execution result therefore carries:
+
+~~~text
+run_id
+task_id
+job_id
+attempt_number
+agent_instance_id?
+input snapshot/version refs
+capability id/version
+result digest
+completed_at
+~~~
+
+Before any result can affect current Task/Run state, trusted orchestration revalidates:
+
+- the Job attempt is still current/eligible;
+- required RepositorySnapshot/SourceSnapshot/policy versions still match;
+- Task has not been cancelled/superseded;
+- result scope matches Run/Project;
+- result Artifact passed schema/policy validation.
+
+A late valid result may be retained as historical evidence/cache material, but **cannot silently complete or promote a newer Task attempt**.
+
+This applies equally to:
+
+- web research;
+- browser tests;
+- repository indexing/LSP queries;
+- build/test workers;
+- model inference;
+- simulations/media workers.
