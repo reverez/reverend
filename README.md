@@ -14,7 +14,7 @@ The current stable implementation is **Reverend 0.4.0**, a local-first Linux/WSL
 |---|---|
 | Local Reverend 0.4.0 | Accepted baseline |
 | Cloud Analysis A0–A12 | Complete / accepted |
-| Cloud Design D0–D16 | Complete / ready for Development |
+| Cloud Design D0–D17 | Complete / ready for Development |
 | Cloud implementation | Next phase |
 | Current local inference | Ollama-based |
 | Accepted Cloud v1 inference target | vLLM + Qwen3.8-27B |
@@ -335,3 +335,26 @@ See:
 - [ADR-001](Documentation/Design/Decisions/ADR-001-cloud-only-client-and-cloud-recovery.md)
 - [ADR-002](Documentation/Design/Decisions/ADR-002-conversation-specification-and-priority-handoff.md)
 - [ADR-003](Documentation/Design/Decisions/ADR-003-developer-media-asset-fabric.md)
+
+
+### Cold-start model policy
+
+Cloud v1 treats model weights as **reconstructible worker state**, not persistent authority.
+
+Default cold start:
+
+~~~text
+provision disposable worker
+→ boot pinned Reverend runtime image
+→ hydrate exact pinned model revision from approved upstream repository
+→ verify model artifact manifest
+→ load runtime
+→ smoke-test
+→ READY
+~~~
+
+Paid persistent model storage is disabled by default. Reverend measures hydration time/cost and may later recommend persistent caching only when repeated cold starts make it economically superior.
+
+Developer laptops are not required model sources. Personal local copies may be kept for archival convenience, but normal Cloud startup never waits for a user's Wi-Fi upload.
+
+See [D17 — Model Hydration, Cold Start & Cache Economics](Documentation/Design/D17-model-hydration-cold-start-and-cache-economics.md) and [ADR-004](Documentation/Design/Decisions/ADR-004-ephemeral-model-hydration-and-cache-economics.md).
