@@ -1,0 +1,24 @@
+flowchart TB
+  U1["Developer A"] --> CHAT["Thin Chat Client"]
+  U2["Developer B"] --> CHAT
+  CHAT --> API["Authenticated /api/v1 + SSE"]
+  API --> CONV["Conversation / Message Store"]
+  CHAT --> UP["Upload"]
+  UP --> ART["Artifact + BlobStore"]
+
+  EXT["External reasoning tool<br/>manual only"] -->|paste/upload| DRAFT["Specification draft"]
+  DRAFT --> ACCEPT["Explicit human acceptance"]
+  ACCEPT --> SPEC["BuildSpecification/v1<br/>immutable version"]
+  SPEC --> RUNQ["Global Run Queue"]
+
+  RUNQ --> ACTIVE["Exactly one active top-level Run"]
+  HIGH["Higher-priority queued Run"] --> PRE["PREEMPT_REQUESTED"]
+  ACTIVE --> PRE
+  PRE --> SAFE["Reach safe boundary<br/>settle Action Journal"]
+  SAFE --> CP["Persist worktree/patch/commit metadata<br/>publish checkpoint"]
+  CP --> RESUME["Interrupted Run → RESUME_QUEUED"]
+  RESUME --> START["Higher-priority Run starts"]
+  START --> LATER["Interrupted Run later resumes"]
+
+  CONV -. non-authoritative context .-> SPEC
+  ART --> SPEC
