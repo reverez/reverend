@@ -783,9 +783,9 @@ Key documents:
 | [D7](Documentation/Design/D7-model-profiles-routing-serving-and-reverendbench.md) | model profiles/routing |
 | [D8](Documentation/Design/D8-observability-cost-budgets-operations-deployment.md) | operations/cost/budgets |
 | [D9](Documentation/Design/D9-development-programme-migration-and-acceptance.md) | implementation programme |
-| [__D20__](Documentation/Design/__D20__-capability-modernization-audit.md) | laptop → cloud capability audit |
-| [__D21__](Documentation/Design/__D21__-research-fabric-and-web-context-acquisition.md) | Research Fabric |
-| [__D22__](Documentation/Design/__D22__-repository-intelligence-and-code-context.md) | Repository Intelligence |
+| [D15](Documentation/Design/D15-capability-modernization-audit.md) | laptop → cloud capability audit |
+| [D16](Documentation/Design/D16-research-fabric-and-web-context-acquisition.md) | Research Fabric |
+| [D17](Documentation/Design/D17-repository-intelligence-and-code-context.md) | Repository Intelligence |
 | [D18](Documentation/Design/D18-model-fabric-serving-and-optimization.md) | Model Fabric |
 | [D19](Documentation/Design/D19-worker-capability-fabric-and-ephemeral-bootstrap.md) | Worker Capability Fabric |
 | [D20](Documentation/Design/D20-context-broker-and-knowledge-retrieval-v2.md) | Context Broker v2 |
