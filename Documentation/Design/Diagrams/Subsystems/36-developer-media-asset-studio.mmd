@@ -1,0 +1,25 @@
+flowchart TB
+  USER["User / Frontend Agent"] --> REQ["MediaGenerationRequest"]
+  REQ --> ROUTE{"Asset type?"}
+
+  ROUTE -->|raster / illustration| FLUX["Eligible media model<br/>FLUX-class candidate"]
+  ROUTE -->|reference edit| FLUX
+  ROUTE -->|icon / vector| SVG["SVG / icon library"]
+  ROUTE -->|chart| CHART["Deterministic chart code"]
+  ROUTE -->|diagram| DIA["Mermaid / Graphviz / SVG"]
+  ROUTE -->|UI layout| UI["HTML/CSS/components"]
+
+  FLUX --> MGPU["Elastic media GPU worker<br/>independent scale-to-zero"]
+  MGPU --> CAND["Media candidate"]
+  SVG --> CAND
+  CHART --> CAND
+  DIA --> CAND
+  UI --> BROWSER["Browser render"]
+  BROWSER --> SHOT["Screenshot Artifact"]
+  SHOT --> VISION["Multimodal engineering review"]
+  VISION --> UI
+
+  CAND --> CHECK["format / policy / visual checks"]
+  CHECK --> ASSET["MediaAsset/v1<br/>BlobStore + provenance"]
+  ASSET --> USE["Project/repository usage relation"]
+  USE --> VERIFY["UI / project verification"]
