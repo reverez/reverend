@@ -14,7 +14,7 @@ The current stable implementation is **Reverend 0.4.0**, a local-first Linux/WSL
 |---|---|
 | Local Reverend 0.4.0 | Accepted baseline |
 | Cloud Analysis A0–A12 | Complete / accepted |
-| Cloud Design D0–D14 | Complete / ready for Development |
+| Cloud Design D0–D16 | Complete / ready for Development |
 | Cloud implementation | Next phase |
 | Current local inference | Ollama-based |
 | Accepted Cloud v1 inference target | vLLM + Qwen3.8-27B |
