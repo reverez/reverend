@@ -964,3 +964,51 @@ A node enters `STOPPED` for economic purposes only after provider state confirms
 If provider “stop” continues material compute billing, Capacity Controller must terminate instead when scale-to-zero policy requires zero compute charge.
 
 Persistent volume/storage charges remain separately represented in the cost ledger.
+
+
+---
+
+## 39. Recursive Audit Cycle 3 — CPU Execution Baseline and Authority-Host Protection
+
+The original Design required heavy/untrusted CPU work to leave the authority process but left its Cloud v1 baseline ambiguous.
+
+Cloud v1 therefore freezes two CPU execution classes.
+
+### CONTROL_HOST_BOUNDED_SANDBOX
+
+For small, bounded repository operations only:
+
+~~~text
+separate subprocess
+separate OS user where practical
+bubblewrap / namespace isolation
+cgroup or equivalent CPU/RAM/PID limits
+no PostgreSQL credential
+no Secret Broker socket/key
+no Docker socket
+no host home
+network OFF unless explicit tool policy permits
+bounded Run/Task workspace
+~~~
+
+The authority process itself never executes untrusted build/test commands inline.
+
+The persistent host reserves enough CPU/RAM/disk for PostgreSQL, API, scheduler and recovery. If safe quota cannot be granted, the Job remains queued rather than risking Control Plane liveness.
+
+### REMOTE_CPU_WORKER
+
+A dedicated remote CPU worker uses the same worker identity, assignment, ResourceLease, payload and recovery protocol as GPU workers.
+
+It is the required path for work that exceeds the bounded local sandbox envelope.
+
+The initial implementation may defer a specific paid CPU provider until measured workloads require one, but the scheduler must fail/queue explicitly rather than silently executing an oversized untrusted workload on the authority host.
+
+### GPU worker CPU is not free fallback
+
+CPU tasks may execute on an already-leased GPU worker only when:
+
+- the Task is part of the same admitted Job/workload;
+- resource accounting includes its CPU/RAM consumption;
+- doing so does not retain/extend an expensive GPU PowerSession solely for CPU work.
+
+Reverend must not keep an A100 alive just to run generic tests that could wait for an appropriate CPU executor.
