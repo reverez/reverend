@@ -452,3 +452,38 @@ Do not begin paid-provider implementation until:
 - repository CI is green.
 
 After those checks, C0 is the next implementation milestone.
+
+
+---
+
+## 13. Primary Product Workflow — Specification-Driven Engineering
+
+Cloud v1 supports two Run entry modes.
+
+### Preferred: specification-driven
+
+~~~text
+Human / design intelligence
+→ versioned SpecificationPackage
+→ Requirements / Decisions / AcceptanceCriteria
+→ Run / Task DAG
+→ Agent/Team implementation
+→ deterministic verification
+~~~
+
+This is the highest-reliability path for large engineering work.
+
+### Supported: objective-driven
+
+~~~text
+Human objective
+→ Reverend research / clarification / architecture
+→ candidate SpecificationPackage / Project truth
+→ implementation
+~~~
+
+The product does not depend on any specific frontier-model provider.
+
+A common workflow may use an external frontier model as a design office and Reverend as the long-running implementation organization, but external output becomes authoritative only after normal acceptance/promotion.
+
+See D1 §36, D2 §36, D3 §43 and D17 §20.
