@@ -1138,7 +1138,7 @@ A provisional value must never be presented as final actual spend.
 
 The persistent host reserves minimum free space for PostgreSQL/WAL and critical recovery writes.
 
-Workspace, model cache, logs and BlobStore growth are subject to quotas/GC thresholds that stop non-critical work before the authority store can be starved of disk.
+Workspace, derived indexes, logs and BlobStore growth are subject to quotas/GC thresholds that stop non-critical work before the authority store can be starved of disk. Production model weights are not cached on the persistent Control Plane host by default.
 
 ### Time and monotonic measurement
 
@@ -1588,3 +1588,66 @@ No Cloud budget calculation relies on user laptop GPU/CPU capacity.
 Cloud v1 has no required frontier-model API spend.
 
 If future external-model support is added, it requires a new accepted deployment/profile decision and normal D8 rate/budget/reconciliation integration before use.
+
+
+---
+
+## 2026-09-16 Model Hydration Economics Extension
+
+D17 makes model hydration a first-class startup cost.
+
+### Hydration telemetry
+
+Per PowerSession/profile record:
+
+~~~text
+model_hydration_source
+model_hydration_bytes
+model_hydration_seconds
+model_verify_seconds
+model_load_seconds
+model_smoke_seconds
+cold_start_total_seconds
+hydration_estimated_cost_gbp
+hydration_reconciled_cost_gbp
+~~~
+
+### Cost attribution
+
+If provisioning/hydration occurs solely because one Run needs the profile, policy may attribute the startup overhead to that Run.
+
+If it occurs before ownership is uniquely attributable, use the existing shared-transient overhead policy.
+
+Whichever rule applies, hydration cost remains separately queryable.
+
+### Default no-persistent-cache policy
+
+Cloud v1 begins with:
+
+~~~text
+persistent_model_cache = DISABLED
+~~~
+
+The baseline may pay compute during cold hydration but incurs no recurring model-weight storage requirement between terminated workers.
+
+### Cache break-even analysis
+
+Operations computes:
+
+~~~text
+observed_monthly_hydration_cost
+vs
+candidate_monthly_persistent_cache_cost
+~~~
+
+using captured provider/storage RateSnapshots rather than hard-coded prices.
+
+A recommendation may be shown when a persistent cache is projected to materially reduce total verified-task cost.
+
+Reverend does **not** automatically create recurring paid storage from that recommendation. An authorized operator must enable it explicitly.
+
+### Control Plane disk protection
+
+Large model downloads are prohibited on the persistent authority host under the baseline profile.
+
+Failure to provision adequate worker ephemeral disk blocks hydration rather than falling back to Control Plane disk.
