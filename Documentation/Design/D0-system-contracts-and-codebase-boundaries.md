@@ -821,3 +821,34 @@ Ordinary object IDs/counters that are not replay cursors may still use PostgreSQ
 D1 defines the concrete cursor counters.
 
 LISTEN/NOTIFY remains a wake-up only; consumers always replay from commit-safe durable cursors.
+
+
+---
+
+## 27. Recursive Audit Cycle 9 — Transaction Lock Ordering and Idempotent Command Admission
+
+### Canonical lock ordering
+
+To reduce deadlocks in transactions that combine domain state, Action cursors and Event cursors, Cloud v1 uses a consistent lock order:
+
+~~~text
+1. primary aggregate row (normally Run / Project)
+2. subordinate domain rows in deterministic table + UUID order
+3. per-Run Action sequence row when needed
+4. global Event sequence row
+5. append records / commit
+~~~
+
+No code path intentionally acquires the Event counter first and later waits for a Run/Task row.
+
+PostgreSQL deadlocks are still treated as possible operational failures; transaction services may perform bounded safe retries only before any external side effect.
+
+### Command idempotency is reserved before execution
+
+A mutating HTTP command does not “check idempotency, do work, then insert a record”.
+
+It atomically reserves/locks the idempotency key before creating the authoritative command/resource.
+
+Concurrent requests with the same key therefore converge on one command outcome rather than racing duplicate creation.
+
+D1/D2 define the record state and behavior.
