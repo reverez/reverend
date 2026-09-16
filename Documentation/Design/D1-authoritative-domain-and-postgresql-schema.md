@@ -2312,3 +2312,114 @@ These checks are database-backed with constraint triggers where a single declara
 ### Recovery-recipient integrity
 
 Recovery recipient/device references are explicit. A recovery-enabled Device must be non-revoked at generation creation time to receive a new key envelope/replica target.
+
+
+---
+
+## 34. Recursive Audit Cycle 12 — Recovery Action-Intent Replication
+
+### 34.1 Recovery replica targets
+
+Add:
+
+```sql
+recovery_replica_targets(
+  target_id UUID PRIMARY KEY,
+  target_type TEXT NOT NULL CHECK (target_type IN ('DEVICE','OBJECT_STORE')),
+  device_id UUID REFERENCES devices(device_id),
+  config_ref TEXT,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','REVOKED','UNHEALTHY')),
+  durability_class TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ
+)
+```
+
+`config_ref` contains no plaintext credential; object-store credentials remain Secret references/enforcement-boundary configuration.
+
+### 34.2 Action intent recovery envelope
+
+For an Action requiring off-host write-ahead safety, construct an authenticated compact envelope:
+
+~~~text
+RecoveryActionIntent/v1
+├── action_id
+├── global_sequence
+├── scope_type / project_id? / run_id?
+├── tool / operation
+├── arguments_digest
+├── idempotency_key?
+├── side_effect_class
+├── resume_strategy
+├── reconciliation metadata required to identify external result
+├── expected remote precondition/result identity where applicable
+├── created_at
+├── payload_hash
+├── integrity_key_id
+└── authenticator
+~~~
+
+The envelope contains no raw secret values.
+
+### 34.3 Durable intent ACK
+
+Add:
+
+```sql
+recovery_action_intent_acks(
+  action_id UUID NOT NULL REFERENCES action_records(action_id),
+  target_id UUID NOT NULL REFERENCES recovery_replica_targets(target_id),
+  payload_hash TEXT NOT NULL,
+  acknowledged_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(action_id,target_id)
+)
+```
+
+An ACK means the target has durably written and hash/authenticator-verified the envelope.
+
+### 34.4 Action durability class
+
+Add to `action_records`:
+
+```sql
+durability_barrier TEXT NOT NULL DEFAULT 'LOCAL'
+  CHECK (durability_barrier IN ('LOCAL','OFF_HOST_INTENT_ACK'))
+```
+
+Default policy:
+
+~~~text
+PURE_READ                 → LOCAL
+REPEATABLE_COMPUTE        → LOCAL
+LOCAL_MUTATION            → LOCAL if recoverable from durable workspace/checkpoint rules
+REMOTE_IDEMPOTENT         → OFF_HOST_INTENT_ACK unless provider idempotency + deterministic restored identity is explicitly proven by the Tool Recovery Registry
+REMOTE_RECONCILABLE       → OFF_HOST_INTENT_ACK
+IRREVERSIBLE_OR_HIGH_RISK → OFF_HOST_INTENT_ACK
+~~~
+
+No Action with `OFF_HOST_INTENT_ACK` may move from PLANNED into external-effect execution until the required ACK policy is satisfied.
+
+### 34.5 Post-generation recovery deltas
+
+A RecoveryGeneration manifest records:
+
+~~~text
+global_action_high_watermark
+included_action_intent_delta_watermark / target state
+~~~
+
+After restoring generation G, Recovery Controller queries/imports every newer authenticated RecoveryActionIntent available from recovery targets before resuming productive work.
+
+An imported intent whose full local ActionRecord was lost causes reconstruction of a recovery-only Action record/state sufficient to reconcile the external effect.
+
+It never causes blind re-execution.
+
+### 34.6 Target policy
+
+Cloud v1 requires at least one ACTIVE durable target for `OFF_HOST_INTENT_ACK` operations.
+
+A connected recovery-enabled client may satisfy this.
+
+For unattended autonomous operation, an always-available encrypted object-store recovery target is strongly recommended so external actions do not depend on a laptop remaining online.
+
+The target abstraction is provider-neutral.
