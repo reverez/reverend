@@ -3,7 +3,7 @@
 > **Phase:** Design  
 > **Status:** READY FOR DEVELOPMENT  
 > **Accepted architecture input:** Documentation/Analysis/A12-cloud-architecture-acceptance.md  
-> **Design closure baseline:** A12 + D0–D16 on main; executable C0 baseline is recorded separately under Design/Baselines  
+> **Design closure baseline:** A12 + D0–D17 on main; executable C0 baseline is recorded separately under Design/Baselines  
 > **Purpose:** Turn the accepted A0–A12 architecture into concrete implementation contracts without changing the accepted authority, durability, security, scheduling, model, or cost semantics.
 
 ---
@@ -104,6 +104,7 @@ These are deployment defaults, not permanent semantic bindings.
 | D14 | Design closure, baseline and PostgreSQL test strategy | C0 Development entry |
 | D15 | conversation-first UX, BuildSpecification and global Run priority handoff | interaction/specification contract |
 | D16 | developer media generation/editing and Asset Studio | media/asset fabric |
+| D17 | model hydration, cold-start lifecycle and cache economics | reconstructible model delivery/cost contract |
 
 ### Architecture diagrams
 
@@ -323,7 +324,7 @@ Exact file names are specified by the focused design documents.
 
 Development may begin when:
 
-- D0–D16 plus the ADR and baseline-control documents are present;
+- D0–D17 plus the ADR and baseline-control documents are present;
 - README points to the accepted Analysis and Design specifications;
 - no Design document contradicts A12;
 - C0 contract work can be implemented without inventing missing authority rules;
@@ -339,7 +340,7 @@ This document set is intended to satisfy that gate.
 When implementation questions conflict, resolve them in this order:
 
 1. A12 accepted invariants;
-2. D0–D16 and accepted ADRs;
+2. D0–D17 and accepted ADRs;
 3. accepted A0–A11 analysis details;
 4. current code semantics where compatible;
 5. implementation convenience.
@@ -383,4 +384,4 @@ They freeze:
 - a developer-oriented Studio/Media Fabric for raster generation/editing plus deterministic SVG/chart/diagram/UI generation;
 - cloud-only recovery using an encrypted off-host target rather than required client-device replicas.
 
-See ADR-001, ADR-002, ADR-003, D15 and D16.
+See ADR-001, ADR-002, ADR-003, ADR-004, D15, D16 and D17.
