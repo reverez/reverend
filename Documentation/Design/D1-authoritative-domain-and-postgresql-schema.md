@@ -80,7 +80,6 @@ devices(
   user_id UUID NOT NULL REFERENCES users(user_id),
   label TEXT NOT NULL,
   public_key_or_credential_ref TEXT,
-  recovery_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL,
   last_seen_at TIMESTAMPTZ,
   revoked_at TIMESTAMPTZ
