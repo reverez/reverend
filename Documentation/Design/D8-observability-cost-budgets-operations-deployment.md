@@ -1055,3 +1055,90 @@ Must prove:
 ## 47. Exit Condition
 
 C8 is ready when operators can observe identity-to-cost lineage for a Run, enforce budgets safely, recover/backup authoritative state, operate the persistent host without exposing worker/model internals publicly, and distinguish estimated from provider-reconciled cost.
+
+
+---
+
+## 48. Recursive Architecture Hardening — Durable Economics and Recovery Operations
+
+### PowerSession and ComputeLeaseUsage are mandatory
+
+The ambiguity in Section 9 is resolved: Cloud v1 persists both `PowerSession` and `ComputeLeaseUsage` as first-class D1 records.
+
+They are not optional projections because provider reconciliation and owner attribution require stable lifecycle identities.
+
+### Budget reservations are durable
+
+The Section 21 reservation is implemented with D1 `budget_reservations`.
+
+Reservation creation is transactional with paid-operation admission.
+
+A crash cannot leave unbounded phantom reservations:
+
+- ACTIVE reservations have explicit expiry;
+- startup reconciliation releases/settles expired reservations only after checking related Job/lease/provider state;
+- settlement references immutable CostEvents.
+
+### Cost reconciliation is idempotent
+
+Every provider-derived CostEvent uses a stable `external_event_key` or deterministic reconciliation key.
+
+Repeated provider polling with the same billable event therefore returns the existing ledger effect rather than appending another charge.
+
+Corrections remain compensating immutable events.
+
+### Off-host recovery freshness target
+
+Nightly database backup alone is not sufficient for the accepted durability goal.
+
+Initial Cloud v1 recovery policy:
+
+~~~text
+RecoveryGeneration target age <= 15 minutes while authoritative state is changing
++
+immediate generation after a high-value safe boundary when practical:
+  Run pause
+  approval wait
+  high-level Task completion
+  protected external side effect
+  planned Control Plane shutdown
+~~~
+
+Implementation may optimize with incremental/WAL-aware techniques later, but user-visible recovery health is measured against the effective off-host acknowledged generation age.
+
+If no authorized recovery peer/object target acknowledges within the target:
+
+- system remains operational;
+- recovery health becomes DEGRADED;
+- operator/UI receives an alert;
+- planned authoritative-host shutdown remains inhibited.
+
+### Backup independence
+
+A local backup on the persistent host is not counted as off-host disaster recovery.
+
+At least one acknowledged encrypted off-host copy is required to claim healthy control-host disaster recovery.
+
+### Billing uncertainty
+
+When provider actual usage is not yet available, the UI and APIs must distinguish:
+
+~~~text
+estimated
+provisional
+reconciled_actual
+~~~
+
+A provisional value must never be presented as final actual spend.
+
+### Disk-exhaustion protection
+
+The persistent host reserves minimum free space for PostgreSQL/WAL and critical recovery writes.
+
+Workspace, model cache, logs and BlobStore growth are subject to quotas/GC thresholds that stop non-critical work before the authority store can be starved of disk.
+
+### Time and monotonic measurement
+
+Wall-clock timestamps are authoritative for durable audit/billing records.
+
+Process duration measurements use a monotonic clock and are converted into durable duration fields; elapsed-time calculations must not rely on wall-clock subtraction across clock adjustments.
