@@ -1165,3 +1165,17 @@ Mandatory tests:
 - shared SOURCE_COST allocated 50/50 sums correctly without double-counting system cost;
 - self-hosted model tokens do not create a second payable GPU charge;
 - duplicate worker result retry is idempotent; conflicting second result is rejected.
+
+
+---
+
+## 44. Recursive Audit Cycle 10 — System Action-Journal Tests
+
+Mandatory tests:
+
+- provider idle termination can be journalled when no Run is active;
+- backup/recovery replication ActionRecord does not require a fake Run;
+- global Action cursor is commit ordered under concurrency;
+- Run checkpoint uses per-Run cursor and ignores unrelated system Actions;
+- RecoveryGeneration global watermark detects an unresolved post-backup provider Action;
+- system UNKNOWN action that risks duplicate paid resource blocks productive readiness until reconciled.
