@@ -1535,3 +1535,53 @@ Operations should periodically review:
 - model repository revision/license changes.
 
 Production never auto-upgrades a model/runtime dependency merely because a newer mutable tag/revision exists.
+
+
+---
+
+## 2026-09-16 Cloud Recovery and Media Economics Extension
+
+### Off-host recovery storage
+
+Cloud v1 production disaster recovery uses encrypted off-host cloud/object storage.
+
+Client devices are not counted toward required recovery health.
+
+Operational metrics include:
+
+~~~text
+recovery_target_last_ack_at
+recovery_target_generation
+recovery_target_age_seconds
+recovery_target_integrity_status
+~~~
+
+A planned authoritative-host shutdown is inhibited when the required off-host generation is stale/unverified.
+
+### Media economics
+
+D16 media capacity has separate cost lineage.
+
+Add/extend CostEvent category:
+
+~~~text
+MEDIA_GPU
+~~~
+
+or represent media under GPU PowerSession/Lease with workload_class=`MEDIA_GENERATION`.
+
+Whichever representation is implemented, UI must distinguish engineering inference cost from media-generation cost.
+
+Media worker idle grace is tuned separately and may scale to zero while engineering inference remains active, and vice versa.
+
+### Client resource assumption
+
+Production cost planning assumes **zero required client compute contribution**.
+
+No Cloud budget calculation relies on user laptop GPU/CPU capacity.
+
+### External model APIs
+
+Cloud v1 has no required frontier-model API spend.
+
+If future external-model support is added, it requires a new accepted deployment/profile decision and normal D8 rate/budget/reconciliation integration before use.
