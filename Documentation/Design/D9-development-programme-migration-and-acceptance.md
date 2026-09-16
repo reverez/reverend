@@ -1082,3 +1082,20 @@ Add the following mandatory pre-C9 acceptance coverage:
 - if no safe CPU executor exists, Job remains queued/blocked explicitly;
 - ModelProfile/DeploymentProfile semantic mutation after use is rejected in favor of a new versioned profile;
 - RateSnapshot/BenchmarkResultSet history is immutable.
+
+
+---
+
+## 39. Recursive Audit Cycle 5 — Authority, Queue and Safety Tests
+
+Mandatory tests:
+
+- Project member can read another member's Run but cannot resume/run-now it by default;
+- Project owner emergency-stop does not imply authority to resume using another owner's credentials;
+- repeated run-now requests cannot starve an existing RESUME_NEXT chain;
+- ordinary client cannot choose arbitrary queue priority;
+- queued-Run quota prevents unbounded queue flooding;
+- production application DB role cannot ALTER/DROP schema or hard-delete immutable history;
+- migration role is not used by runtime API/scheduler;
+- hard budget stops productive work but still permits narrowly classified safety cleanup;
+- STOP_GLOBAL blocks new productive actions while allowing provider termination, lease release and journal reconciliation.
