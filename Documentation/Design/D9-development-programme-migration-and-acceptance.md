@@ -1280,3 +1280,218 @@ C2/C8 clients preserve lifecycle intermediate states and never present request s
 D14 closes Design. C0 may start after a fresh current-main baseline run is recorded using Documentation/Design/Baselines.
 
 D10–D14 do not reopen A12. Future changes to frozen authority/security/durability semantics use an ADR and, where necessary, explicit architecture re-acceptance.
+
+## 55. Capability Modernization Integration into C0–C9
+
+__D20__–D22 refine the implementation programme.
+
+### C0 additions
+
+Freeze executable contracts for:
+
+~~~text
+CapabilitySpec
+WorkerProfile
+StorageProfile
+BootstrapSpec
+ResearchRequest
+SearchResult
+SourceRecord / SourceSnapshot
+EvidenceClaim / ResearchEvidencePack
+RepositorySnapshot / RepositoryQuery
+ContextNeed
+generalized BenchmarkScenario/BenchmarkRun
+~~~
+
+### C1 additions
+
+Persist:
+
+- source/evidence metadata;
+- retained SourceSnapshot Blob references;
+- RepositorySnapshot/index-build metadata;
+- capability/worker/storage profiles;
+- generalized benchmark registry.
+
+### C4 additions
+
+C4 includes the logical intelligence services:
+
+~~~text
+Context Broker v2
+Repository Intelligence facade
+Research Fabric facade
+Evidence/Memory integration
+typed ContextRequest
+~~~
+
+Do not require remote workers yet; fake/local bounded adapters are sufficient for contract testing.
+
+### C5 additions
+
+Security gates include:
+
+- research/browser SSRF/network policy;
+- prompt-injection trust boundary;
+- LSP/repository-analysis sandbox;
+- source/repository sensitivity propagation;
+- browser credential isolation.
+
+### C7 becomes Capability Execution Fabric
+
+Suggested sub-order:
+
+~~~text
+C7A fake worker/provider protocol
+C7B CPU worker
+C7C Browser Worker
+C7D RunPod ephemeral Model GPU
+C7E vLLM + baseline model
+C7F StorageProfile / cache / cold-start / drain / terminate
+C7G capability-worker loss/replacement
+~~~
+
+The final code may reorder CPU/browser/GPU integration if frozen interfaces remain intact.
+
+### C8 additions
+
+Add:
+
+- Research/Browser/CPU cost attribution;
+- cold-start/cache/storage telemetry;
+- ReverendBench v2 registry/reporting;
+- benchmark-driven idle/cache/profile policy.
+
+### C9 additions
+
+Full acceptance must include:
+
+- Research Fabric static + browser acquisition;
+- SourceSnapshot/Evidence provenance;
+- Repository Intelligence snapshot correctness;
+- Context Broker authority-first selection;
+- Browser Worker frontend test;
+- CPU worker isolation;
+- zero-GPU → model-worker → zero-GPU lifecycle;
+- cache-loss and worker-replacement tests;
+- capability benchmark/promotion controls.
+
+D22 is the final documentation gate before C0 begins.
+
+
+---
+
+## 50. Capability Async/Browser Isolation Tests
+
+Mandatory tests:
+
+- research result returned after Task cancellation is retained only as permitted historical/cache data and cannot complete the Task;
+- repository query for snapshot X cannot enter a newer snapshot Y context without explicit revalidation;
+- stale model/browser/build result cannot overwrite newer Job attempt;
+- private TestEndpoint rejects an unbound Browser Worker;
+- TestEndpoint credential becomes invalid when either lease ends;
+- Browser Worker cannot use TestEndpoint route to scan unrelated producer-worker ports;
+- real user browser session/cookie is not copied into frontend-test worker by default.
+
+
+---
+
+## 51. Background/Auth-Research/Browser Artifact Tests
+
+Mandatory tests:
+
+- idle Control Plane does not spontaneously launch Research/Agent work;
+- stale Evidence is refreshed on-demand, not by uncontrolled crawler;
+- Project-specific repository index refresh is bound to an active Run/Job when compute is required;
+- Research Fabric cannot automatically reuse Run-owner GitHub credential for private search;
+- authenticated research source receives non-PUBLIC access partition and sensitivity;
+- Browser trace does not retain Authorization/cookies in normal Artifact output;
+- screenshot/trace/download from private TestEndpoint inherits Project sensitivity;
+- temporary browser profile/cache is destroyed after Job;
+- source/browser storage quota cannot evict retained recovery/evidence roots.
+
+
+---
+
+## 52. Evidence, LSP & Large-Artifact Tests
+
+Mandatory tests:
+
+- Brave/other credentialed SearchProvider key never enters Agent/Browser worker/log;
+- paid research call passes budget admission and creates idempotent cost usage;
+- Research Team per-origin fanout obeys concurrency/rate policy;
+- forged EvidenceClaim quote that is absent from SourceSnapshot is rejected;
+- HTML publication date is recorded with provenance rather than treated as verified fact;
+- malicious compile_commands/tsconfig cannot make LSP load arbitrary plugin/execute host binary;
+- retained RepositoryContext for uncommitted state blocks worker destruction until snapshot is reconstructible;
+- large worker output can stream/direct-upload without loading entire object into Control Plane memory;
+- incomplete large upload never creates a valid Artifact;
+- worker receives object-scoped upload authority, not general BlobStore credential.
+
+
+---
+
+## 53. Disclosure / Inference-Logging Tests
+
+Mandatory tests:
+
+- safe-default Project policy refuses PROJECT_PRIVATE context on Community worker;
+- explicit versioned Project opt-in permits PROJECT_PRIVATE Community placement without authorizing EXTERNAL_API;
+- SECRET_ADJACENT/RESTRICTED mandatory context remains blocked from Community under default policy;
+- Agent/model cannot modify disclosure policy;
+- policy tightening affects subsequent placement without rewriting historical provenance;
+- model runtime logs contain seeded request IDs/metrics but not seeded private prompt/source strings;
+- Qdrant/derived indexes are inaccessible outside intended private interface/Project scope.
+
+
+---
+
+## 54. Specification-Driven Development Addendum
+
+### C0
+
+Freeze contracts for:
+
+~~~text
+SpecificationPackage
+SpecificationManifest
+SpecificationValidationReport
+AcceptanceCriteria
+EscalationArtifact
+SpecificationAmendment
+~~~
+
+### C1
+
+Persist SpecificationPackage versions, hashes, acceptance state and Run pinning.
+
+### C2
+
+Expose bounded specification upload/validate/accept/read APIs.
+
+### C3
+
+Run admission supports:
+
+~~~text
+specification-driven Run
+or
+objective-driven Run
+~~~
+
+without conflicting input authority.
+
+### C4
+
+Implement SpecificationCompiler integration with Requirements/Decisions/AcceptanceCriteria, Context Broker and initial Task decomposition.
+
+### C9
+
+Acceptance must prove:
+
+- accepted package is immutable;
+- Run pins exact specification version/hash;
+- only relevant specification slices reach individual model calls;
+- specification conflict creates blocker/escalation rather than silent reinterpretation;
+- external design model output cannot self-accept a package;
+- amendment creates new version and preserves historical Run provenance.
