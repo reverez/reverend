@@ -924,16 +924,16 @@ Until then, README must describe Cloud v1 as Design/Development target, not impl
 
 Before opening C0 branch:
 
-- [ ] Design docs D0–D14 plus ADR framework merged to main.
-- [ ] README points to Design index.
+- [x] Design docs D0–D14 plus ADR framework merged to main.
+- [x] README points to Design index.
 - [ ] main is clean/stable.
 - [ ] current Python suite run and result recorded.
-- [ ] PostgreSQL test strategy agreed.
+- [x] PostgreSQL test strategy documented and accepted in D14.
 - [ ] both developers use current main as branch base.
 - [ ] no real RunPod/GitHub credentials placed in repo.
 - [ ] C0 issue/PR scope contains only contracts/migration skeleton.
-- [ ] A12 invariants available to reviewers.
-- [ ] live paid-provider work deferred until C7.
+- [x] A12 invariants available to reviewers.
+- [x] live paid-provider work deferred until C7 by the accepted phase gates.
 
 ---
 
