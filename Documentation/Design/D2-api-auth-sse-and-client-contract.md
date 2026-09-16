@@ -789,3 +789,67 @@ Development must prove:
 ## 29. Exit Condition
 
 Frontend and backend can be developed independently once /api/v1 schemas, authentication/session behavior, lifecycle commands, idempotency, authorization, and SSE v1 are represented in executable contract tests.
+
+
+---
+
+## 29. Recursive Architecture Hardening — Authentication, Replay and Mutation Safety
+
+These requirements close ambiguities identified during the pre-development recursive review.
+
+### Credential-backed login identity
+
+The `username` accepted by `POST /api/v1/auth/login` is backed by the D1 `auth_credentials` record. `users.display_name` is presentation only and is never a login identifier.
+
+Rules:
+
+- normalized login names are unique;
+- Argon2id hashes are stored only in `auth_credentials.secret_hash`;
+- disabled/revoked credentials fail closed;
+- successful login always creates fresh session material;
+- credential rotation invalidates sessions according to policy.
+
+### Login abuse controls
+
+Even on the private network, password login is rate limited.
+
+Initial policy must provide:
+
+- per-login-name exponential backoff;
+- coarse source/device throttling;
+- constant-shape authentication failure responses that do not reveal whether a login exists;
+- durable security/audit events for repeated failures without logging submitted passwords.
+
+The exact thresholds are configuration, not model-controlled values.
+
+### SSE authorization and cursor semantics
+
+`Last-Event-ID` is a global durable sequence cursor, not proof of authorization.
+
+For every replay and live Event:
+
+1. authenticate the session;
+2. evaluate current visibility for the referenced Project/Run;
+3. omit unauthorized payloads;
+4. still advance the internal global cursor over invisible Events;
+5. emit only authorized presentation-safe Events.
+
+A client may not infer or retrieve another Project's Event payload by supplying an arbitrary sequence.
+
+### Idempotency storage restrictions
+
+Idempotency records may persist only bounded, non-secret response representations.
+
+Never persist in `idempotency_records.response_body`:
+
+- session or bearer tokens;
+- CSRF secrets;
+- credentials;
+- raw secret values;
+- recovery keys.
+
+Authentication/token issuance endpoints use dedicated replay-safe semantics rather than generic response-body idempotency caching.
+
+### Optimistic concurrency
+
+Mutable Project/Run policy endpoints must support an expected version/ETag equivalent once exposed. A stale client update returns conflict rather than silently overwriting a newer human or scheduler decision.
