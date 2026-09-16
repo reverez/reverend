@@ -513,3 +513,20 @@ A fourth pass closed persistent-server behavior that could otherwise create hidd
 4. **Unbounded web mirroring:** source retention is policy/evidence driven; cache is not a permanent mirror.
 
 No new Project truth is created merely because the Control Plane is always online.
+
+
+---
+
+## 18. Capability Modernization Recursive Audit — Cycle 5
+
+A fifth pass closed additional production-scale and tool-boundary gaps:
+
+1. **Credentialed SearchProvider secrets:** credential-bearing search is now a trusted Secret-Broker-backed adapter operation.
+2. **Research fanout abuse:** per-origin/provider rate/concurrency policy is explicit.
+3. **Evidence quote fabrication:** EvidenceClaim spans/quotes must structurally resolve against the exact retained SourceSnapshot.
+4. **LSP configuration escape:** compiler/plugin/driver/plugin settings are sanitized; richer execution moves to explicit CPU capability.
+5. **Uncommitted repository snapshot durability:** retained repository context cannot outlive the only reconstructible copy of its source state.
+6. **Large Artifact bottleneck:** BlobStore now permits object-backed, object-scoped direct upload so future simulation/media output does not depend on Control Plane RAM/local disk.
+7. **Internal resource cost confusion:** measured CPU usage is distinguished from actual payable provider cost.
+
+These close the main remaining capability-layer architecture gaps found in the fifth pass.
