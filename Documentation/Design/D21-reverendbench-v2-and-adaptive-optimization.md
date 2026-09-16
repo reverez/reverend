@@ -1,7 +1,7 @@
 # D21 — ReverendBench v2 & Adaptive Optimization
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
-> **Depends on:** A1, A9, A11, D7, __D20__–D20  
+> **Depends on:** A1, A9, A11, D7, D15–D20  
 > **Purpose:** Expand ReverendBench from model/runtime validation into the evidence system used to choose models, retrieval methods, context policies, Team structures, worker/cache policies and capability implementations.
 
 ---
