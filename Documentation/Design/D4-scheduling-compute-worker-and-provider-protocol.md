@@ -892,3 +892,75 @@ If the transaction fails, the Job is not authoritatively complete and recovery m
 ### Provider-instance uniqueness
 
 A live provider instance maps to at most one ComputeNode identity. D1 enforces uniqueness for `(provider, provider_instance_id)` when a provider instance ID is present.
+
+
+---
+
+## 38. Recursive Audit Cycle 2 — Worker Reconnect, Capability Validation and Provider-Side-Effect Recovery
+
+### Worker reconnect after Control Plane restart
+
+Bootstrap is one-time, but a healthy provider instance may outlive a Control Plane process.
+
+At initial registration the server exchanges bootstrap authority for a D1 `worker_identities` credential plus the short-lived epoch session.
+
+After runtime-epoch change:
+
+~~~text
+worker detects 401/epoch change
+→ POST /internal/v1/workers/reconnect
+→ present worker identity credential + provider instance identity
+→ server verifies node/provider state
+→ issue fresh current-epoch session
+→ worker resumes heartbeat
+~~~
+
+Old ResourceLeases remain stale and are never resurrected. The node may be reused only for newly granted leases after recovery.
+
+### Capability validation
+
+Worker self-report is never sufficient to establish hardware/runtime capability.
+
+Effective node capabilities are the intersection of:
+
+1. trusted expected launch profile;
+2. provider API metadata where available;
+3. worker telemetry/probes;
+4. Reverend functional health checks.
+
+A contradiction marks the capability/node unhealthy or lowers eligibility; self-report cannot strengthen trust.
+
+### Provider lifecycle actions use the Action Journal
+
+`provision/start/stop/terminate` are external side effects even though they are initiated by Capacity Controller rather than an Agent tool.
+
+Before every charge-bearing provider mutation:
+
+~~~text
+persist provider ActionRecord / PowerSession intent
+→ reserve budget
+→ call provider
+→ reconcile provider instance
+→ persist result
+→ settle reservation/cost state
+~~~
+
+On process crash, Capacity Controller queries provider inventory using Reverend tags/IDs before issuing another provisioning call.
+
+This prevents duplicate paid Pods after “provider accepted request, local process died”.
+
+### Capacity demand aggregation
+
+Capacity Controller derives desired capacity from the set of admitted ResourceRequests plus explicit concurrency/budget ceilings.
+
+It does not provision one new worker blindly per scheduler wake-up.
+
+Provisioning intents are deduplicated by deployment/resource profile and recorded durably through provider ActionRecords/PowerSessions.
+
+### Billing-aware stop semantics
+
+A node enters `STOPPED` for economic purposes only after provider state confirms that chargeable compute has stopped under the captured provider billing model.
+
+If provider “stop” continues material compute billing, Capacity Controller must terminate instead when scale-to-zero policy requires zero compute charge.
+
+Persistent volume/storage charges remain separately represented in the cost ledger.
