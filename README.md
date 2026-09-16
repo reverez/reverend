@@ -171,7 +171,7 @@ Requirements:
 Install:
 
 ~~~bash
-git clone <repository-url>
+git clone https://github.com/reverez/reverend
 cd reverend
 
 python3 -m venv .venv
