@@ -2423,3 +2423,100 @@ A connected recovery-enabled client may satisfy this.
 For unattended autonomous operation, an always-available encrypted object-store recovery target is strongly recommended so external actions do not depend on a laptop remaining online.
 
 The target abstraction is provider-neutral.
+
+
+---
+
+## 2026-09-16 Conversation, Specification and Media Persistence Extension
+
+D15/D16 add durable interaction/specification/media records without changing Workflow authority.
+
+### conversations
+
+~~~sql
+conversations(
+  conversation_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  created_by_user_id UUID NOT NULL REFERENCES users(user_id),
+  title TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  archived_at TIMESTAMPTZ,
+  metadata JSONB NOT NULL
+)
+~~~
+
+Initial visibility values:
+
+~~~text
+PROJECT
+PRIVATE
+~~~
+
+### messages
+
+~~~sql
+messages(
+  message_id UUID PRIMARY KEY,
+  conversation_id UUID NOT NULL REFERENCES conversations(conversation_id),
+  author_kind TEXT NOT NULL,
+  author_user_id UUID REFERENCES users(user_id),
+  inline_body TEXT,
+  body_ref TEXT,
+  content_hash TEXT NOT NULL,
+  edited_from_message_id UUID REFERENCES messages(message_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  metadata JSONB NOT NULL,
+  CHECK ((inline_body IS NOT NULL) <> (body_ref IS NOT NULL))
+)
+~~~
+
+Message↔Artifact and Message↔Run references use explicit relation tables or equivalent normalized relations.
+
+Conversation/Message rows are **interaction history**, not Run/Task/Decision authority.
+
+### BuildSpecification
+
+`BuildSpecification/v1` is stored through the existing immutable Artifact envelope.
+
+The accepted specification version/hash referenced by a Run is immutable for that Run. Later changes produce a new Artifact linked by `supersedes`.
+
+Recommended Run additions:
+
+~~~text
+build_specification_artifact_id UUID?
+created_from_conversation_id UUID?
+created_from_message_id UUID?
+requested_priority TEXT
+preemption_requested_at TIMESTAMPTZ?
+~~~
+
+### Media assets
+
+`MediaAsset/v1` remains an Artifact with binary bytes in BlobStore.
+
+Optional normalized usage relations may record repository consumers:
+
+~~~text
+media_asset_usage(
+  artifact_id,
+  project_id,
+  repository_ref,
+  path_or_symbol,
+  relation,
+  discovered_at
+)
+~~~
+
+The Artifact itself remains the durable content/provenance authority.
+
+### Schema invariants
+
+Must prove:
+
+- PRIVATE Conversation cannot be read by another user;
+- cross-Project Message/Artifact linkage is rejected;
+- accepted BuildSpecification content is immutable;
+- Run specification reference cannot silently change after Run creation;
+- media usage relation cannot cross Project;
+- Conversation deletion/archive cannot delete authoritative Artifacts/Decisions derived from explicit promotion.
