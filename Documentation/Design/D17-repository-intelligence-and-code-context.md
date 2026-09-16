@@ -1,8 +1,8 @@
-# __D22__ — Repository Intelligence & Code Context
+# D17 — Repository Intelligence & Code Context
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
 > **Research snapshot:** 2026-09-16  
-> **Depends on:** A1, A5, D3, __D20__  
+> **Depends on:** A1, A5, D3, D15  
 > **Purpose:** Generalize the accepted Python-oriented local codeintel implementation into persistent, version-aware, multi-language Repository Intelligence for autonomous software engineering.
 
 ---
