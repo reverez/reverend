@@ -1116,3 +1116,20 @@ Mandatory coverage:
 - semantic retrieval cannot downgrade sensitivity;
 - Git credential is absent from remote URL, argv, logs and committed config;
 - production storage/security deployment verifies intended at-rest encryption/firewall/service ownership assumptions.
+
+
+---
+
+## 41. Recursive Audit Cycle 7 — Policy/Control/Restore Tests
+
+Mandatory tests:
+
+- Project policy update creates a new version and stale Approval fingerprint fails;
+- Project owner is not implicitly SYSTEM_ADMIN;
+- at least one active SYSTEM_ADMIN lockout invariant is enforced;
+- STOP_GLOBAL/MAINTENANCE survives backend restart;
+- restarting server cannot clear Run/Project emergency stop;
+- stale shutdown inhibitor is reconciled, not blindly cleared;
+- migration activates durable maintenance/inhibitor state;
+- full disaster restore revokes all restored human sessions before API readiness;
+- recovered external credential is revalidated/fails closed if provider rejects it.
