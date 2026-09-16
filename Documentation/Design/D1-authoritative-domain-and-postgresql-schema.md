@@ -2004,3 +2004,117 @@ The singleton Event counter serializes only the small authoritative append trans
 For the private two-user v1 this correctness tradeoff is preferred over a more complex distributed-log design.
 
 A later scale-out architecture may replace it with a log that has equivalent commit-order semantics.
+
+
+---
+
+## 31. Recursive Audit Cycle 9 — Cross-Scope Lineage, Idempotency Concurrency and Cost Attribution
+
+### 31.1 Idempotency record state
+
+Extend `idempotency_records`:
+
+```sql
+state TEXT NOT NULL CHECK (state IN ('IN_PROGRESS','COMPLETED','FAILED')),
+owner_request_id UUID,
+updated_at TIMESTAMPTZ NOT NULL
+```
+
+Admission transaction:
+
+~~~text
+INSERT key/hash/state=IN_PROGRESS
+ON CONFLICT → lock existing row
+→ compare request_hash
+→ if COMPLETED return stored result
+→ if IN_PROGRESS return/await canonical operation status
+→ if different hash return idempotency_conflict
+~~~
+
+For Run/Project command creation, the authoritative resource/transition and idempotency completion record are committed atomically whenever possible.
+
+A crashed IN_PROGRESS record is reconciled from its `resource_ref`/command state; it is not blindly executed again.
+
+### 31.2 Artifact lineage integrity
+
+Add:
+
+```sql
+CHECK(artifact_id <> parent_artifact_id)
+```
+
+to `artifact_parents`.
+
+Application/constraint validation rejects transitive Artifact-parent cycles.
+
+Mandatory same-scope checks include:
+
+- `artifacts.run_id` belongs to `artifacts.project_id`;
+- producer Job/Agent belongs to the Artifact Run/Project;
+- parent Artifact belongs to the same Project unless a future explicit cross-Project import Artifact type is introduced.
+
+### 31.3 Approval scope integrity
+
+Constraint trigger verifies:
+
+~~~text
+Approval.run_id → Run.project_id == Approval.project_id
+Approval.effective_external_identity_ref
+  belongs to Run.owner_user_id when USER-scoped
+```
+
+Approval scope is never trusted from duplicated caller fields.
+
+### 31.4 Billing lineage is derived, not caller supplied
+
+For Run-specific CostEvents and BudgetReservations:
+
+~~~text
+project_id = Run.project_id
+user_id    = Run.owner_user_id
+```
+
+are server-derived under transaction and cross-checked against Job/Lease lineage.
+
+A worker/provider/client cannot choose the billed user by submitting `user_id`.
+
+`compute_lease_usage` values are created from authoritative ResourceLease → Job → Task → Workflow → Run lineage.
+
+### 31.5 Cost allocation without double counting
+
+Add to `cost_events`:
+
+```sql
+ledger_role TEXT NOT NULL CHECK (ledger_role IN ('SOURCE_COST','ALLOCATION','ADJUSTMENT')),
+parent_cost_event_id UUID REFERENCES cost_events(cost_event_id)
+```
+
+Rules:
+
+- SOURCE_COST represents provider/system economic truth;
+- ALLOCATION assigns all or part of a source cost to users/Projects;
+- ADJUSTMENT corrects prior ledger effects;
+- user dashboards sum allocations/Run-variable charges according to ledger policy, not both the source and its allocation;
+- system total and allocation total are reconciled separately;
+- allocation children for a settled shared source must sum to the intended allocatable amount within decimal tolerance.
+
+This prevents the accepted 50/50 shared split from accidentally counting the same provider charge three times.
+
+### 31.6 GPU/model cost source
+
+Self-hosted model invocations running inside a GPU ResourceLease do not create a second token-priced charge unless the provider actually bills that way.
+
+Their model invocation record carries metrics/estimated attribution, while economic source cost comes from PowerSession/ComputeLeaseUsage.
+
+EXTERNAL_API deployments may generate usage-priced SOURCE_COST events.
+
+### 31.7 Monetary validation
+
+Use fixed precision suitable for provider billing, for example `NUMERIC(20,10)`, and validate:
+
+- FX rates > 0;
+- native unit price >= 0 except explicit adjustment representation;
+- reservation amount >= 0;
+- billing durations/quantities non-negative.
+
+Credits/refunds are represented as explicit ADJUSTMENT semantics, not malformed negative source usage.
