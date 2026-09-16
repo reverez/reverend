@@ -1095,3 +1095,29 @@ A system Action is never hidden merely because no Run existed to own it.
 ### Control-host readiness gate
 
 If a SYSTEM-scoped UNKNOWN action can cause unsafe duplicate external effect or ongoing paid resource leakage, Control Plane may serve read/status APIs but productive scheduler readiness remains blocked until the action is reconciled or explicitly moved to an authorized recovery-blocked operator state.
+
+
+---
+
+## 41. Recursive Audit Cycle 11 — Git TOCTOU Recovery
+
+For a protected Git/GitHub Action, the ActionRecord reconciliation metadata includes:
+
+~~~text
+repository identity
+source commit
+target ref
+expected target head
+provider request/idempotency correlation where available
+observed result commit/ref
+~~~
+
+Recovery behavior:
+
+1. query current remote state;
+2. if remote equals the recorded successful result, mark COMPLETED;
+3. if remote remains at the expected precondition and retry is safe, retry through the same bounded Action intent;
+4. if remote moved to an unrelated/new state, do not guess whether a retry is safe;
+5. mark conflict/recovery-blocked or replan according to operation semantics.
+
+This prevents crash recovery from overwriting valid work that landed after the original approval.
