@@ -1,9 +1,9 @@
 # Reverend Cloud v1 — Design Specification Index
 
 > **Phase:** Design  
-> **Status:** READY FOR DEVELOPMENT  
+> **Status:** HARDENED CAPABILITY DESIGN — PRE-C0 CLOSURE IN PROGRESS  
 > **Accepted architecture input:** Documentation/Analysis/A12-cloud-architecture-acceptance.md  
-> **Repository baseline:** main@cc45be4780374b70d9b09fd041c7217d6b890331  
+> **Repository baseline:** main@5390abe2a8c3c275afeef0a18edaefe633eaf4bc  
 > **Purpose:** Turn the accepted A0–A12 architecture into concrete implementation contracts without changing the accepted authority, durability, security, scheduling, model, or cost semantics.
 
 ---
@@ -340,3 +340,115 @@ If development discovers a necessary design correction:
 The Design phase is successful only if the Development phase can work in narrow branches with concrete contracts and objective acceptance gates.
 
 The final Cloud v1 implementation is not accepted until D9/C9 verifies the full E2E matrix inherited from A12.
+
+
+---
+
+## 9. Capability Modernization Addendum — D10–D17
+
+The original D0–D9 set remains authoritative for Control Plane, persistence, API, Agents, compute, durability, security, models, operations and the C0–C9 programme.
+
+The server-era capability pass adds the following required Design documents:
+
+| Document | Scope | Why it exists |
+|---|---|---|
+| D10 | Capability Modernization Audit | Maps every laptop-era subsystem to KEEP / GENERALIZE / REPLACE / NEW |
+| D11 | Research Fabric & Web Context Acquisition | Search, APIs, HTTP fetch, browser acquisition, SourceSnapshots and EvidencePacks |
+| D12 | Repository Intelligence & Code Context | versioned repository snapshots, Tree-sitter/LSP layers, graphs and exact-first code retrieval |
+| D13 | Model Fabric, Serving & Optimization | dynamic model fleet, vLLM optimization, ephemeral model storage and benchmarked routing |
+| D14 | Worker Capability Fabric & Ephemeral Bootstrap | CPU/browser/model/scientific/media worker taxonomy, BootstrapSpec and StorageProfile |
+| D15 | Context Broker & Knowledge Retrieval v2 | authority-first context routing across Project state, repo, Evidence, Memory and Research |
+| D16 | ReverendBench v2 & Adaptive Optimization | whole-organization benchmarking and evidence-based promotion |
+| D17 | Pre-Development Architecture Closure | final reconciliation and pre-C0 gate |
+
+Recommended complete reading order:
+
+~~~text
+D0 → D1 → D2
+       ↓
+      D3
+       ↓
+D10 Capability Modernization
+ ├── D11 Research Fabric
+ ├── D12 Repository Intelligence
+ ├── D13 Model Fabric
+ ├── D14 Worker Capability Fabric
+ └── D15 Context Broker v2
+          ↓
+        D16 ReverendBench v2
+          ↓
+        D17 Closure
+          ↓
+         D9 Development Programme
+~~~
+
+D4–D9 remain required and are amended to reference the modernized capability contracts.
+
+---
+
+## 10. Final Capability Topology
+
+~~~text
+Persistent Control Plane
+├── PostgreSQL authoritative state
+├── Git / BlobStore durable material
+├── Executive Orchestrator
+├── Agent / Team Runtime
+├── Context Broker
+│    ├── Repository Intelligence
+│    ├── Research Fabric
+│    ├── Evidence
+│    ├── Memory
+│    └── derived retrieval indexes
+├── Model Registry / Router
+├── Tool / Policy / Secret Brokers
+├── Workflow + Compute Schedulers
+├── Capacity Controller
+├── Cost / Observability
+└── Recovery
+      │
+      ▼
+Replaceable Capability Workers
+├── CPU build/test/index
+├── Browser research/test
+├── Model GPU
+├── accelerated scientific compute
+└── media/asset GPU
+~~~
+
+Core rule:
+
+> **Persistent intelligence and durable state; disposable expensive execution.**
+
+Zero GPU workers remains a healthy normal system state.
+
+---
+
+## 11. Documentation Authority After Modernization
+
+For Cloud v1 implementation conflicts, use:
+
+1. D17 closure / explicit later Design hardening;
+2. D10–D16 capability-specific contracts;
+3. D0–D9 base Design contracts;
+4. A12 and A10–A11 accepted Analysis plus their capability/ephemeral addenda;
+5. A0–A9 accepted Analysis;
+6. docs/current for local 0.4.0 behavior;
+7. docs/history for historical lineage.
+
+A later Design document may refine an Analysis-level implementation hypothesis but may not silently violate frozen authority/security/durability invariants.
+
+---
+
+## 12. Development Gate
+
+Do not begin paid-provider implementation until:
+
+- D10–D17 are merged;
+- A10–A12 are reconciled with the ephemeral worker/storage refinement;
+- D1/D4/D7/D8/D9 include the new capability contracts;
+- the system Mermaid reflects the capability layers;
+- root README reflects persistent Control Plane + disposable workers;
+- repository CI is green.
+
+After those checks, C0 is the next implementation milestone.
