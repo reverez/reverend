@@ -1401,3 +1401,18 @@ Mandatory tests:
 - large worker output can stream/direct-upload without loading entire object into Control Plane memory;
 - incomplete large upload never creates a valid Artifact;
 - worker receives object-scoped upload authority, not general BlobStore credential.
+
+
+---
+
+## 53. Disclosure / Inference-Logging Tests
+
+Mandatory tests:
+
+- safe-default Project policy refuses PROJECT_PRIVATE context on Community worker;
+- explicit versioned Project opt-in permits PROJECT_PRIVATE Community placement without authorizing EXTERNAL_API;
+- SECRET_ADJACENT/RESTRICTED mandatory context remains blocked from Community under default policy;
+- Agent/model cannot modify disclosure policy;
+- policy tightening affects subsequent placement without rewriting historical provenance;
+- model runtime logs contain seeded request IDs/metrics but not seeded private prompt/source strings;
+- Qdrant/derived indexes are inaccessible outside intended private interface/Project scope.
