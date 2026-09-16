@@ -300,3 +300,65 @@ operations:
     network: NETWORK_OFF
     secrets: []
     mutation_scope: false
+
+  - id: repository.intelligence_query
+    capability: repo.intelligence
+    risk: low
+    side_effect: PURE_READ
+    approval: none
+    journal: optional
+    resume: RESTART
+    executor: repository_intelligence
+    network: NETWORK_OFF
+    secrets: []
+    mutation_scope: false
+
+  - id: dependency.acquire
+    capability: dependency.acquire
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: project_policy
+    journal: optional
+    resume: REBUILD
+    executor: isolated_cpu_worker
+    network: PACKAGE_REGISTRY_RESTRICTED
+    secrets: [PACKAGE_REGISTRY]
+    mutation_scope: true
+
+  - id: research.browser_fetch
+    capability: network.browser_fetch
+    risk: elevated
+    side_effect: PURE_READ
+    approval: network_policy
+    journal: optional
+    resume: RESTART
+    executor: research_browser_worker
+    network: PUBLIC_BROWSER_RESTRICTED
+    secrets: []
+    mutation_scope: false
+
+  - id: browser.frontend_test
+    capability: browser.frontend_test
+    risk: elevated
+    side_effect: REPEATABLE_COMPUTE
+    approval: project_policy
+    journal: optional
+    resume: RESTART
+    executor: frontend_test_browser_worker
+    network: TASK_TEST_ENDPOINT_ONLY
+    secrets: [TEST_ONLY]
+    mutation_scope: false
+
+  - id: artifact.large_upload
+    capability: artifact.write
+    risk: elevated
+    side_effect: REMOTE_IDEMPOTENT
+    approval: job_policy
+    journal: required_when_duplicate_matters
+    resume: VERIFY_THEN_RETRY
+    reconciler: blob_hash_size_and_publication_state
+    executor: job_scoped_blob_capability
+    network: BLOB_UPLOAD_ONLY
+    secrets: []
+    mutation_scope: false
+
