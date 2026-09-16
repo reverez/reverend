@@ -1416,3 +1416,56 @@ Mandatory tests:
 - policy tightening affects subsequent placement without rewriting historical provenance;
 - model runtime logs contain seeded request IDs/metrics but not seeded private prompt/source strings;
 - Qdrant/derived indexes are inaccessible outside intended private interface/Project scope.
+
+
+---
+
+## 54. Specification-Driven Development Addendum
+
+### C0
+
+Freeze contracts for:
+
+~~~text
+SpecificationPackage
+SpecificationManifest
+SpecificationValidationReport
+AcceptanceCriteria
+EscalationArtifact
+SpecificationAmendment
+~~~
+
+### C1
+
+Persist SpecificationPackage versions, hashes, acceptance state and Run pinning.
+
+### C2
+
+Expose bounded specification upload/validate/accept/read APIs.
+
+### C3
+
+Run admission supports:
+
+~~~text
+specification-driven Run
+or
+objective-driven Run
+~~~
+
+without conflicting input authority.
+
+### C4
+
+Implement SpecificationCompiler integration with Requirements/Decisions/AcceptanceCriteria, Context Broker and initial Task decomposition.
+
+### C9
+
+Acceptance must prove:
+
+- accepted package is immutable;
+- Run pins exact specification version/hash;
+- only relevant specification slices reach individual model calls;
+- specification conflict creates blocker/escalation rather than silent reinterpretation;
+- external design model output cannot self-accept a package;
+- amendment creates new version and preserves historical Run provenance.
