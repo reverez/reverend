@@ -948,3 +948,72 @@ Checksum/profile mismatch deletes/quarantines the cache entry and prevents node 
 ### Profile admission after security update
 
 A runtime/base-image security change creates a new DeploymentProfile version and reruns the required ReverendBench/security smoke rather than silently mutating an accepted profile.
+
+
+---
+
+## 2026-09-16 Cloud v1 Model Policy Extension
+
+### Primary engineering profile
+
+The accepted Cloud baseline remains:
+
+~~~text
+Qwen/Qwen3.8-27B
+vLLM
+A100 SXM 80 GB
+64K validated serving profile initially
+~~~
+
+This profile is intended to cover coding, repository reasoning, tool use, structured output, general reasoning and validated multimodal/vision work where ReverendBench admits those roles.
+
+### Optional coding specialist
+
+A Qwen3-Coder-30B-A3B-class profile may be benchmarked for high-throughput coding/repository work.
+
+It is not required for Cloud v1 and is not admitted to `PRIMARY_ENGINEERING` merely because it is coding-specialized.
+
+Promotion requires lower cost or materially better verified task success under ReverendBench.
+
+### Retrieval
+
+BGE-M3 remains the baseline embedding profile until a repository/memory retrieval benchmark proves an alternative superior.
+
+Embedding/reranking remain reconstructible derived services.
+
+### Media generation
+
+D16 adds:
+
+~~~text
+MEDIA_GENERATION
+MEDIA_EDIT
+~~~
+
+as logical routing requirements.
+
+Initial candidate:
+
+~~~text
+FLUX.2 [klein] 4B
+~~~
+
+The candidate is independently benchmarked and may run on a cheaper elastic GPU profile than the engineering A100.
+
+### No automatic frontier API
+
+Cloud v1 does **not** automatically route to OpenAI, Anthropic or another frontier-model API.
+
+The prior `MAX_QUALITY_ESCALATION` / `EXTERNAL_API` abstractions remain future-capable architecture only and have no required Cloud v1 production deployment.
+
+If no eligible Reverend-owned model can satisfy a ModelRequirement, the system fails/blocks/escalates to the human according to D3/D15 rather than silently calling an external service.
+
+Manual user-supplied specifications produced with ChatGPT or another external reasoning system enter through D15 ingestion/acceptance, not Model Router.
+
+### Assurance
+
+Deterministic verification remains primary.
+
+Same-family LLM review is not described as independent model-family assurance.
+
+Different-family assurance is optional and benchmark/policy-driven; Cloud v1 acceptance does not require an external API verifier.
