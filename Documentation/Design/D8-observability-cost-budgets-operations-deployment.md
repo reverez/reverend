@@ -1541,7 +1541,7 @@ Production never auto-upgrades a model/runtime dependency merely because a newer
 
 ## 59. Capability Fabric Observability & Economics
 
-__D20__–D21 add required telemetry.
+D15–D21 add required telemetry.
 
 ### Research
 
