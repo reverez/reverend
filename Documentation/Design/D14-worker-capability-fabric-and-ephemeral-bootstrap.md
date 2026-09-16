@@ -721,3 +721,67 @@ Before reuse:
 - clear/quarantine unknown content.
 
 Project workspace data should default to ephemeral container/worktree state rather than shared warm cache.
+
+
+---
+
+## 28. Recursive Capability Audit — Reproducible Build Environments & Cross-Worker Tests
+
+### ExecutionEnvironmentSpec
+
+Ephemeral CPU/GPU execution must not depend on manually installed laptop state.
+
+~~~text
+ExecutionEnvironmentSpec
+├── base worker image/digest
+├── OS/toolchain profile
+├── language/runtime versions
+├── Project dependency manifest refs
+├── lockfile hashes
+├── environment variables excluding Secrets
+├── network/dependency policy
+├── resource limits
+└── provenance
+~~~
+
+Project source may propose environment requirements, but trusted policy resolves them to approved worker/toolchain profiles.
+
+### Dependency acquisition
+
+Build/test execution is network-off by default after dependencies are prepared.
+
+A separate bounded dependency-acquisition step may access allowlisted registries such as the Project's configured Python/npm/system artifact sources.
+
+Requirements:
+
+- respect Project lockfiles where present;
+- record package/version/source provenance;
+- use cache only after hash/profile validation;
+- no arbitrary curl/script execution on the Control Plane;
+- package install hooks execute only inside the isolated worker when Project policy permits;
+- network closes again for deterministic build/test when feasible.
+
+Package/wheel/npm caches are reconstructible.
+
+### Test application to Browser Worker
+
+Frontend testing may require one worker to host the application while a Browser Worker drives it.
+
+Use an ephemeral TestEndpoint:
+
+~~~text
+CPU/Test worker
+→ binds private task-scoped endpoint
+→ Control Plane records opaque TestEndpoint capability
+→ Browser Worker receives short-lived route
+→ only browser-test lease can access
+→ endpoint revoked on Job/lease completion
+~~~
+
+Do not expose development servers publicly merely so Playwright can reach them.
+
+### Control Plane sizing
+
+The persistent host baseline is protected for authority work.
+
+If PostgreSQL/API/scheduler/recovery headroom would be violated, repository indexing, search engines, Qdrant-heavy work, browser activity and builds must move to separate CPU capacity or remain queued.
