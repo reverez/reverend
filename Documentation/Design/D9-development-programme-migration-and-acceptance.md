@@ -1147,3 +1147,21 @@ Mandatory PostgreSQL concurrency tests:
 - SSE reconnect after concurrent Event writes returns every authorized Event exactly once or at-least-once according to client application semantics, never silently missing one due to allocation order;
 - per-Run Action Journal watermark cannot advance past an uncommitted earlier Action;
 - checkpoint recovery scans every committed post-watermark Action.
+
+
+---
+
+## 43. Recursive Audit Cycle 9 — Idempotency, Lineage and Ledger Tests
+
+Mandatory tests:
+
+- two concurrent Run-create requests with same Idempotency-Key create exactly one Run;
+- same key/different body conflicts;
+- crashed IN_PROGRESS idempotency record reconciles to existing resource without duplication;
+- Artifact parent self/cycle/cross-Project linkage is rejected;
+- Approval with mismatched Run/Project or wrong-owner external identity is rejected;
+- worker cannot bill another user by forging lineage;
+- ComputeLeaseUsage derives immutable Run owner/project;
+- shared SOURCE_COST allocated 50/50 sums correctly without double-counting system cost;
+- self-hosted model tokens do not create a second payable GPU charge;
+- duplicate worker result retry is idempotent; conflicting second result is rejected.
