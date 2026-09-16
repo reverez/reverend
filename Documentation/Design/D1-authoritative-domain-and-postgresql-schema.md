@@ -1917,3 +1917,90 @@ Runtime privileged actions still re-evaluate the current Project policy; the cre
 Secrets scoped to `RUN_EPHEMERAL` are revoked automatically when the Run reaches a terminal state, after required recovery/action reconciliation no longer depends on them.
 
 They are excluded from long-lived backups once retention no longer requires them.
+
+
+---
+
+## 30. Recursive Audit Cycle 8 — Commit-Safe Event and Action Sequences
+
+### 30.1 Event replay cursor
+
+Replace reliance on `GENERATED ALWAYS AS IDENTITY` as the replay-order authority.
+
+Add singleton:
+
+```sql
+event_sequence_state(
+  singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton),
+  last_sequence BIGINT NOT NULL
+)
+```
+
+Event append transaction:
+
+~~~text
+lock event_sequence_state FOR UPDATE
+→ last_sequence += 1
+→ insert Event(sequence = last_sequence)
+→ apply lifecycle mutation/Event atomically
+→ commit
+~~~
+
+Because the counter row lock is held to transaction end, another Event transaction cannot obtain a higher replay cursor until the lower cursor transaction commits or rolls back.
+
+If the transaction rolls back, its proposed sequence is not durably advanced.
+
+This provides the ordering guarantee required by `Last-Event-ID`.
+
+The original `events.sequence BIGINT GENERATED ...` example is superseded by:
+
+```sql
+sequence BIGINT PRIMARY KEY
+```
+
+with explicit transactionally allocated value.
+
+### 30.2 Per-Run Action Journal cursor
+
+A PostgreSQL identity sequence is also unsafe as a checkpoint high-water mark when Actions can be journalled concurrently.
+
+Add:
+
+```sql
+run_action_sequence_state(
+  run_id UUID PRIMARY KEY REFERENCES runs(run_id),
+  last_sequence BIGINT NOT NULL
+)
+```
+
+Action creation:
+
+~~~text
+lock run_action_sequence_state(run_id) FOR UPDATE
+→ increment
+→ insert ActionRecord(journal_sequence = value)
+→ commit
+~~~
+
+Change `action_records.journal_sequence` from generated identity to:
+
+```sql
+journal_sequence BIGINT NOT NULL,
+UNIQUE(run_id,journal_sequence)
+```
+
+`RunCheckpoint.journal_high_watermark` is explicitly the highest **committed per-Run journal sequence** included/reconciled by that checkpoint.
+
+### 30.3 Cursor gap behavior
+
+Consumers tolerate gaps caused by explicit retention only when retention metadata proves the cursor range was deliberately compacted/archived.
+
+They do not interpret a missing sequence as permission to advance past an uncommitted record.
+
+### 30.4 Event serialization scope
+
+The singleton Event counter serializes only the small authoritative append transaction, not model/tool execution.
+
+For the private two-user v1 this correctness tradeoff is preferred over a more complex distributed-log design.
+
+A later scale-out architecture may replace it with a log that has equivalent commit-order semantics.
