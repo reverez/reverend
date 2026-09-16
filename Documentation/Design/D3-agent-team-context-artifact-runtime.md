@@ -927,3 +927,22 @@ Out-of-scope mutation:
 A single Team member entering Approval/Human-input wait does not automatically suspend unrelated members.
 
 Team completion policy decides whether remaining members can proceed; the top-level Run only enters an aggregate zero-compute waiting state when no useful admitted work remains.
+
+
+---
+
+## 40. Recursive Audit Cycle 6 — Sensitivity Propagation
+
+Context trust is computed from durable source sensitivity plus execution destination trust.
+
+Rules:
+
+1. Project repository slices inherit the Project disclosure policy.
+2. Artifact-derived ContextItems inherit `Artifact.sensitivity_label`.
+3. Summaries/compressions inherit the strongest sensitivity of their source set.
+4. Combining PUBLIC and RESTRICTED material produces RESTRICTED output unless trusted declassification explicitly proves otherwise.
+5. Memory promotion preserves sensitivity/provenance.
+6. Semantic retrieval cannot downgrade a label.
+7. If mandatory context is too sensitive for an otherwise eligible DeploymentProfile/worker, the Router/Compute Scheduler rejects that destination rather than silently omitting mandatory context.
+
+External/untrusted content trust labels and confidentiality sensitivity are separate dimensions and both are preserved.
