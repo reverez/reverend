@@ -815,3 +815,39 @@ Rules:
 - TestEndpoint cannot outlive the creating Run/Jobs.
 
 Frontend tests requiring user login use explicit test-only accounts/secrets scoped to the ephemeral test environment. Real user sessions are not copied into the Browser Worker by default.
+
+
+---
+
+## 30. Recursive Capability Audit — Background Work and Browser Output Boundaries
+
+### No hidden background cognitive workers
+
+CPU/Browser/GPU workers execute admitted capability Jobs.
+
+They do not wake independently to:
+
+- crawl the web;
+- re-plan Projects;
+- refresh Memory;
+- modify repositories;
+- spawn Agent Teams.
+
+Operational controllers may run housekeeping defined by D10/D5, but cognitive/project work remains Run-owned.
+
+### Browser output handling
+
+Browser screenshot/video/trace/download output is uploaded through Job-scoped Blob capabilities.
+
+Worker performs no direct durable publication.
+
+Control Plane validates:
+
+- expected media/type;
+- maximum size;
+- content hash;
+- Artifact sensitivity;
+- current Job/attempt;
+- retention policy.
+
+Raw browser profiles, cookies and caches are destroyed with the worker/job unless a specific test Artifact contract retains sanitized output.
