@@ -2719,3 +2719,39 @@ test_endpoints(
 route_ref is an opaque private-network routing reference, not a publicly routable URL containing credentials.
 
 Authorization requires current Run/Job/lease scope. Endpoint revocation is part of Job/lease cleanup.
+
+
+### 35.14 Capability execution provenance
+
+Every remote/derived capability output is associated with the canonical Job attempt and input version identities.
+
+Where a capability produces a durable Artifact, Artifact provenance includes at least:
+
+~~~text
+run_id
+task_id
+job_id
+attempt_number
+capability_id/version
+RepositorySnapshot / SourceSnapshot refs where applicable
+policy/context version refs
+producer node/worker profile when remote
+~~~
+
+Late results are storable but cannot transition a newer Job/Task attempt.
+
+### 35.15 TestEndpoint authentication refinement
+
+Extend test_endpoints with implementation-equivalent fields for:
+
+~~~text
+consumer_job_id
+consumer_lease_id
+connection_credential_hash / channel identity
+allowed_protocol
+allowed_port/path policy
+~~~
+
+The plaintext connection capability is short-lived and delivered only to the bound Browser Worker through the worker protocol.
+
+route_ref by itself never authorizes access.
