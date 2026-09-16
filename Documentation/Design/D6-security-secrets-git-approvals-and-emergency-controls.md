@@ -956,3 +956,42 @@ Any exceptional raw resolution path is:
 Revoking a recovery Device stops future RecoveryGeneration envelopes/replication to that device.
 
 Previously stored generations cannot be cryptographically recalled, so device-loss response includes rotating recovery recipient sets and producing a new generation under the new set. Security documentation must state this residual risk explicitly.
+
+
+---
+
+## 40. Recursive Audit Cycle 5 — Control Authority and Emergency Cleanup
+
+### Run-control authority
+
+Default policy follows D2:
+
+- Project members may observe shared state;
+- a Run owner controls ordinary pause/resume/run-now/cancel for that Run;
+- a Project owner/system admin may issue safety stop/cancel according to emergency policy;
+- no user may resume/run-now another user's Run under that user's external identity or variable-cost budget without an explicit durable delegation policy.
+
+Viewing another Run never grants execution authority.
+
+### Emergency stop is deny-new-work, allow-safety-cleanup
+
+`STOP_RUN`, `STOP_PROJECT` and `STOP_GLOBAL` prevent new productive model/tool/provider work.
+
+They **must not** block the minimum trusted cleanup needed to reach safe state:
+
+- journal/reconcile an already-started Action;
+- release/revoke ResourceLeases;
+- stop/terminate paid provider resources;
+- persist checkpoint/recovery state;
+- rotate/revoke compromised credentials;
+- emit audit/cost records.
+
+Emergency cleanup capability is a separate narrow system capability unavailable to Agents/models.
+
+### Queue/pre-emption abuse
+
+Run-now is an owner action and is rate-limited.
+
+A new run-now cannot displace an already pending RESUME_NEXT chain under ordinary policy.
+
+This closes an authority/cost abuse path where one viewer could repeatedly force another owner's Run to spend or lose scheduling position.
