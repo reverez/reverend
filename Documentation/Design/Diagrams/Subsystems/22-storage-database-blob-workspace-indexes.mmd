@@ -61,7 +61,7 @@ BLOB["FileBlobStore<br/>content-addressed SHA-256 immutable objects<br/>temp wri
 WSROOT["Workspace storage<br/>Run/Task worktrees • isolated branches • recoverable diffs/untracked manifests"]:::data
 GITREF["Git checkpoint refs<br/>refs/reverend/checkpoints/{run}/{sequence}"]:::data
 QDRANT["Qdrant / vector index<br/>derived/reconstructible semantic retrieval state"]:::data
-CACHE["Reconstructible caches<br/>model weights • runtime cache • build outputs • embeddings • KV cache"]:::data
+CACHE["Reconstructible caches<br/>worker-local ephemeral model weights/runtime cache<br/>build outputs • embeddings • KV cache<br/>paid persistent model cache disabled by default"]:::data
 BACKUP["Encrypted backup storage<br/>PostgreSQL + BlobStore + recovery metadata + encrypted Secret-store material"]:::data
 KEYFILE["Protected host key material<br/>outside repository/DB"]:::security
 
@@ -71,7 +71,7 @@ ART --> BLOB
 CHECK --> BLOB
 RUN --> WSROOT --> GITREF
 CB --> QDRANT
-DPROF --> CACHE
+HYD --> CACHE
 RECGEN --> BACKUP
 MASTER --> KEYFILE
 end
