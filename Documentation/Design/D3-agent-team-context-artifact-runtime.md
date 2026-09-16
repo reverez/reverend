@@ -946,3 +946,51 @@ Rules:
 7. If mandatory context is too sensitive for an otherwise eligible DeploymentProfile/worker, the Router/Compute Scheduler rejects that destination rather than silently omitting mandatory context.
 
 External/untrusted content trust labels and confidentiality sensitivity are separate dimensions and both are preserved.
+
+
+---
+
+## 2026-09-16 BuildSpecification and Interaction Context Extension
+
+D15 adds `BuildSpecification/v1` as the preferred high-authority implementation input for substantial autonomous Runs.
+
+Context admission order is refined to:
+
+1. system/security constraints;
+2. active Task objective;
+3. accepted BuildSpecification sections relevant to the Task;
+4. accepted Project requirements/decisions;
+5. required parent Artifacts/interfaces;
+6. relevant repository slices;
+7. Evidence;
+8. accepted Memory;
+9. selected interaction-history excerpts.
+
+Conversation history remains `INTERACTION_HISTORY` and never outranks accepted specification/Project authority.
+
+### Specification compilation
+
+A trusted Specification Compiler:
+
+- validates schema/version;
+- resolves linked requirements/interfaces/references;
+- records source Artifact hashes;
+- identifies ambiguity/conflict;
+- produces bounded Task-planning context.
+
+An LLM may propose decomposition, but trusted orchestration creates authoritative Tasks.
+
+### Manual frontier-design boundary
+
+External GPT/other reasoning output enters Reverend only through normal user input/Artifact ingestion and explicit acceptance.
+
+No Agent escalation policy in Cloud v1 may assume an external frontier-model API is callable.
+
+If a local model cannot satisfy a Task:
+
+- cause-aware retry;
+- stronger eligible local/cloud-owned profile if configured;
+- clarification/human input;
+- block/escalate to user.
+
+It must not silently call an external API.
