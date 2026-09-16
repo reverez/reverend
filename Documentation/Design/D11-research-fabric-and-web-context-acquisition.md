@@ -819,3 +819,23 @@ SourceSnapshot retention:
 - deletion must not break retained evidence lineage.
 
 Research cache growth is bounded independently from durable evidence storage.
+
+
+---
+
+## 29. Recursive Capability Audit — Network Enforcement Layer
+
+Application-level URL validation and Playwright request interception are not sufficient as the sole browser/fetch isolation mechanism.
+
+RESEARCH_BROWSER and untrusted document/fetch workers require an OS/network boundary such as:
+
+- isolated network namespace plus controlled egress;
+- explicit egress proxy with destination policy;
+- firewall/nftables equivalent;
+- provider network policy where enforceable.
+
+Application interception remains useful for provenance and early rejection, but network policy must fail closed if a page/script attempts to bypass browser hooks.
+
+Document parsers run with network disabled.
+
+Frontend test browser uses a different allowlist limited to the ephemeral test target and explicitly required resources.
