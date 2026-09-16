@@ -507,3 +507,21 @@ After C9, retirement/archival of product-facing local mode should be evaluated b
 ### Conversation migration
 
 Legacy encrypted Workstation conversation history may be imported selectively into D15 Conversations, but is not required for Cloud cutover and never imports old Task authority implicitly.
+
+
+### Model cache migration
+
+Local Ollama/model caches are **not** migrated into production Cloud authority.
+
+Cloud v1 workers reconstruct approved DeploymentProfiles according to D17:
+
+~~~text
+pinned model manifest
+→ upstream hydration
+→ worker-local verified ephemeral cache
+→ runtime load
+~~~
+
+The local developer model cache may remain on developer machines for local compatibility or personal archival purposes, but Cloud scheduling does not depend on it.
+
+Do not copy local model blobs into the persistent Control Plane state directory during migration.
