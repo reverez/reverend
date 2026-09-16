@@ -1062,3 +1062,71 @@ A client timeout after request admission can safely retry the same key.
 The server does not execute the mutation twice merely because the first HTTP response was lost.
 
 Idempotency records are retained at least through the maximum supported client retry/recovery horizon for the operation class.
+
+
+---
+
+## 2026-09-16 Chat, Specification, Priority and Studio API Extension
+
+D15 makes the browser chat surface a first-class Cloud API consumer while retaining a non-authoritative client.
+
+### Conversation endpoints
+
+Equivalent v1 endpoints:
+
+~~~text
+GET/POST /api/v1/projects/{project_id}/conversations
+GET       /api/v1/conversations/{conversation_id}
+GET/POST /api/v1/conversations/{conversation_id}/messages
+POST      /api/v1/uploads
+~~~
+
+Uploads complete into server BlobStore/Artifact state before a Message may rely on them.
+
+### BuildSpecification endpoints
+
+~~~text
+POST /api/v1/projects/{project_id}/specifications
+GET  /api/v1/specifications/{artifact_id}
+POST /api/v1/specifications/{artifact_id}/accept
+~~~
+
+Acceptance is authenticated, authorized and explicit. Paste/upload origin does not imply trust or acceptance.
+
+### Priority handoff
+
+~~~text
+POST /api/v1/runs/{run_id}/priority
+~~~
+
+Raising queued priority requests scheduler pre-emption; it does not synchronously claim that the active Run has stopped.
+
+Expected server event sequence may include:
+
+~~~text
+RunPriorityChanged
+RunPreemptionRequested
+RunCheckpointPublished
+RunYielded
+RunResumed
+~~~
+
+### Media/Studio
+
+Equivalent endpoints:
+
+~~~text
+POST /api/v1/projects/{project_id}/media/generations
+GET  /api/v1/media/generations/{generation_id}
+POST /api/v1/artifacts/{asset_id}/media/edit
+POST /api/v1/artifacts/{asset_id}/accept
+GET  /api/v1/projects/{project_id}/media/assets
+~~~
+
+Binary bytes remain Artifact/blob payloads rather than SSE bodies.
+
+### Cloud-only client constraint
+
+No production client API requires local model, embedding, build, sandbox, media or recovery compute.
+
+A client disconnect never changes Run lifecycle by itself.
