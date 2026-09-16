@@ -1,7 +1,7 @@
 # D20 — Context Broker & Knowledge Retrieval v2
 
 > **Status:** DESIGN ACCEPTED FOR DEVELOPMENT  
-> **Depends on:** A5, D3, __D20__, __D21__, __D22__, D18  
+> **Depends on:** A5, D3, D15, D16, D17, D18  
 > **Purpose:** Define how Reverend assembles small, authoritative, fresh and provenance-rich context from Project state, repository intelligence, evidence, memory and external acquisition.
 
 ---
