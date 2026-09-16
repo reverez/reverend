@@ -18,7 +18,7 @@ Architecture Analysis
 D0–D9
 Concrete Cloud Design
 
-recursive hardening + __D20__–D21
+recursive hardening + D15–D21
 failure/safety/capability modernization
 ~~~
 
@@ -450,7 +450,7 @@ Before C0 begins:
 
 ## 13. Exit Condition
 
-Development may enter C0 when documentation reflects __D20__–D22 consistently and a final documentation/CI pass finds no known unresolved Cloud-v1-blocking architecture contradiction.
+Development may enter C0 when documentation reflects D15–D22 consistently and a final documentation/CI pass finds no known unresolved Cloud-v1-blocking architecture contradiction.
 
 This means **zero known blockers after repeated review**, not a claim that implementation can never reveal another defect.
 
@@ -459,9 +459,9 @@ This means **zero known blockers after repeated review**, not a claim that imple
 
 ## 14. Capability Modernization Recursive Audit Findings
 
-A fresh pass over __D20__–D21 identified and closed the following design gaps before Development:
+A fresh pass over D15–D21 identified and closed the following design gaps before Development:
 
-1. **Search-query exfiltration:** private repository facts could leak through externally submitted queries. __D21__/D20 now require QueryDisclosurePolicy.
+1. **Search-query exfiltration:** private repository facts could leak through externally submitted queries. D16/D20 now require QueryDisclosurePolicy.
 2. **Browser subresource SSRF:** protecting only top-level URLs is insufficient. Browser policy now covers every subresource, redirect, WebSocket and service worker.
 3. **Private source-cache cross-scope reuse:** canonical URL alone is not a safe cache key for future authenticated providers. Source cache now has access partitions.
 4. **Tree-sitter/LSP supply chain:** repository-defined parser/server plugins could become code execution. Only pinned Reverend-approved adapters are permitted.
@@ -481,7 +481,7 @@ After these patches, these issues are no longer open architecture blockers.
 A second pass found and closed additional laptop-to-server gaps:
 
 1. **Unreproducible build environment:** workers can no longer assume developer-laptop toolchains; D19 adds ExecutionEnvironmentSpec and bounded dependency acquisition.
-2. **Browser policy only at application layer:** __D21__/D6 now require OS/network egress enforcement as a second boundary.
+2. **Browser policy only at application layer:** D16/D6 now require OS/network egress enforcement as a second boundary.
 3. **Frontend browser connectivity:** D19 defines task-scoped private TestEndpoint instead of publicly exposing development servers.
 4. **Control host overload:** 4-vCPU/8-GB remains a baseline, but derived services must move off-host/queue when authority-service reserves would be violated.
 
@@ -507,8 +507,8 @@ These prevent stale research/index/browser/model results from mutating newer exe
 
 A fourth pass closed persistent-server behavior that could otherwise create hidden authority or data exposure:
 
-1. **Background autonomous work:** __D20__/D19/D8 now forbid unowned background research/Agents; only operational housekeeping runs outside normal Run authority.
-2. **Private research credential confusion:** __D21__/D6 separate authenticated research capabilities from Run-owner Git credentials.
+1. **Background autonomous work:** D15/D19/D8 now forbid unowned background research/Agents; only operational housekeeping runs outside normal Run authority.
+2. **Private research credential confusion:** D16/D6 separate authenticated research capabilities from Run-owner Git credentials.
 3. **Browser Artifact confidentiality:** screenshots/traces/downloads inherit Project/source sensitivity and use sanitized bounded retention.
 4. **Unbounded web mirroring:** source retention is policy/evidence driven; cache is not a permanent mirror.
 
