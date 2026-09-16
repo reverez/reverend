@@ -1561,3 +1561,253 @@ The diagram should be read from top to bottom:
 **human authority → authenticated client/server boundary → authoritative Control Plane → cognitive orchestration → bounded context/model/tool execution → deterministic assurance → replaceable compute → durable recovery → auditable cost/operations → Development and acceptance.**
 
 The most important architectural boundary is that the central PostgreSQL-backed Control Plane remains authoritative while clients, Agents, models, workers, caches and provider resources remain replaceable or derived.
+
+
+---
+
+# Capability Modernization Overlay — D10–D17
+
+The original mega-diagram above remains valid for authority, security, durability, scheduling and cost. This overlay makes the server-era **capability and context acquisition fabric** explicit.
+
+~~~mermaid
+flowchart TB
+
+classDef authority fill:#fff4d6,stroke:#a76b00,stroke-width:2px,color:#111;
+classDef context fill:#f8f3ff,stroke:#8458aa,stroke-width:1.3px,color:#111;
+classDef research fill:#edfaff,stroke:#307c93,stroke-width:1.3px,color:#111;
+classDef repo fill:#f0fff4,stroke:#3d8a55,stroke-width:1.3px,color:#111;
+classDef model fill:#f1ecff,stroke:#5f49a8,stroke-width:1.3px,color:#111;
+classDef worker fill:#eef4ff,stroke:#4f68a8,stroke-width:1.3px,color:#111;
+classDef durable fill:#fff2e5,stroke:#a6642c,stroke-width:1.3px,color:#111;
+classDef cache fill:#f4f4f4,stroke:#777,stroke-dasharray:5 3,color:#111;
+classDef verify fill:#efffe9,stroke:#4e8a3c,stroke-width:1.3px,color:#111;
+
+AG["Agent / AgentTeam"]:::authority
+CB["Context Broker v2<br/>authority-first information routing"]:::context
+TC["Tool / Capability Broker"]:::authority
+
+AG --> CB
+AG --> TC
+
+subgraph KNOW["PERSISTENT PROJECT INTELLIGENCE"]
+direction LR
+AUTH["PostgreSQL authority<br/>Requirements • Decisions • Run/Task facts"]:::durable
+ART["Artifact / BlobStore<br/>typed durable outputs"]:::durable
+MEM["Project Memory<br/>evidence-bound promoted records"]:::durable
+EVID["Retained Evidence<br/>SourceSnapshots + Claims/Packs"]:::durable
+GIT["Git / repository bindings<br/>commits + recovery refs"]:::durable
+end
+
+AUTH --> CB
+ART --> CB
+MEM --> CB
+EVID --> CB
+GIT --> CB
+
+subgraph RESEARCH["RESEARCH FABRIC"]
+direction TB
+RC["Research Coordinator"]:::research
+SB["Search Broker"]:::research
+FP["Fetch Broker"]:::research
+SP["Structured providers<br/>GitHub • Hugging Face • academic/package/provider APIs"]:::research
+SX["General search<br/>SearXNG / eligible provider"]:::research
+HF["Restricted HTTP / document fetch"]:::research
+BF["Browser Fetch<br/>Playwright worker escalation"]:::research
+SR["Source Registry"]:::research
+SS["SourceSnapshot<br/>hash • fetched/published time • trust • freshness"]:::research
+EC["EvidenceClaim"]:::research
+EP["ResearchEvidencePack"]:::research
+
+RC --> SB
+SB --> SP
+SB --> SX
+RC --> FP
+FP --> SP
+FP --> HF
+FP --> BF
+SP --> SR
+SX --> SR
+HF --> SS
+BF --> SS
+SR --> SS --> EC --> EP
+end
+
+CB -->|"missing/stale evidence"| RC
+EP --> CB
+SS --> EVID
+
+subgraph REPOINTEL["REPOSITORY INTELLIGENCE"]
+direction TB
+RS["RepositorySnapshot<br/>commit + worktree delta identity"]:::repo
+RMAP["RepoMap"]:::repo
+PY["Existing Python AST codeintel"]:::repo
+TS["Tree-sitter structural adapters"]:::repo
+LSP["LSP / type-service adapters<br/>Pyright • clangd • TypeScript • future"]:::repo
+GRAPH["Dependency / interface / test graph"]:::repo
+SEM["Semantic code retrieval<br/>derived fallback"]:::repo
+RQ["RepositoryQuery<br/>symbol • refs • diagnostics • affected tests • slices"]:::repo
+
+RS --> RMAP
+RS --> PY
+RS --> TS
+RS --> LSP
+PY --> GRAPH
+TS --> GRAPH
+LSP --> GRAPH
+RS --> SEM
+RQ --> RMAP
+RQ --> GRAPH
+RQ --> SEM
+end
+
+CB --> RQ
+RMAP --> CB
+GRAPH --> CB
+SEM --> CB
+
+subgraph DERIVED["RECONSTRUCTIBLE INTELLIGENCE"]
+direction LR
+QD["Qdrant / hybrid vectors"]:::cache
+TSIDX["syntax/index cache"]:::cache
+LSPC["LSP session/cache"]:::cache
+SRCACHE["web/source acquisition cache"]:::cache
+SUM["summary/tokenization cache"]:::cache
+end
+
+SEM --> QD
+TS --> TSIDX
+LSP --> LSPC
+SR --> SRCACHE
+CB --> SUM
+
+subgraph MODELFAB["MODEL FABRIC"]
+direction TB
+MR["ModelRequirement"]:::model
+MREG["Model Registry"]:::model
+MP["ModelProfile"]:::model
+DP["DeploymentProfile"]:::model
+ROUTER["Model Router"]:::model
+VLLM["vLLM primary runtime<br/>structured tool calls • measured prefix cache/batching"]:::model
+BASE["Baseline<br/>Qwen3.8-27B • 64K Reverend profile"]:::model
+CAND["Benchmarked candidates<br/>coding • verifier • embedding • reranker • vision"]:::model
+
+MR --> MREG --> MP --> DP --> ROUTER
+DP --> BASE
+DP --> CAND
+ROUTER --> VLLM
+end
+
+AG --> MR
+
+subgraph CAPFAB["WORKER CAPABILITY FABRIC"]
+direction TB
+CAPREG["Capability Registry<br/>typed input/output/resource/trust/recovery"]:::worker
+SCHED["Compute Scheduler + Capacity Controller"]:::worker
+
+LS["CONTROL_HOST_BOUNDED_SANDBOX"]:::worker
+CPU["CPU_BUILD_WORKER<br/>build • test • index • LSP • parsers"]:::worker
+BR["BROWSER_WORKER<br/>research + frontend test policy modes"]:::worker
+MGPU["MODEL_GPU_WORKER<br/>ephemeral vLLM/model serving"]:::worker
+CGPU["ACCELERATED_COMPUTE_GPU<br/>CFD/FEA/scientific CUDA"]:::worker
+MEDIA["MEDIA_GPU<br/>image/3D/video/audio"]:::worker
+
+CAPREG --> SCHED
+SCHED --> LS
+SCHED --> CPU
+SCHED --> BR
+SCHED --> MGPU
+SCHED --> CGPU
+SCHED --> MEDIA
+end
+
+TC --> CAPREG
+ROUTER --> SCHED
+LSP --> CPU
+BF --> BR
+
+subgraph EPHEMERAL["EPHEMERAL MODEL-GPU PROFILE"]
+direction TB
+BOOT["BootstrapSpec<br/>pinned worker image • one-time bootstrap • profile refs"]:::worker
+STORE["StorageProfile<br/>~200 GB temporary target<br/>optional ~10 GB disposable warm cache"]:::cache
+LOAD["download only required model<br/>verify pinned artifacts"]:::model
+READY["functional smoke → NODE_READY"]:::worker
+WORK["ResourceLease / Job"]:::worker
+DRAIN["idle grace → DRAINING"]:::worker
+DGATE["WorkerDurabilityGate<br/>no unique unrecoverable state"]:::durable
+TERM["TERMINATE<br/>GPU count may return to zero"]:::worker
+
+BOOT --> STORE --> LOAD --> READY --> WORK --> DRAIN --> DGATE --> TERM
+end
+
+MGPU --> BOOT
+WORK --> VLLM
+
+subgraph DUR["DURABLE OUTSIDE EVERY DISPOSABLE WORKER"]
+direction LR
+PG2["PostgreSQL"]:::durable
+GIT2["Git / recovery refs"]:::durable
+BL2["BlobStore"]:::durable
+CK2["RunCheckpoint / Action Journal / RecoveryGeneration"]:::durable
+end
+
+WORK -->|"externalize unique progress"| PG2
+WORK -->|"commits/patch refs"| GIT2
+WORK -->|"Artifacts/snapshots"| BL2
+DGATE --> CK2
+
+subgraph CTXFLOW["CONTEXT ACQUISITION ORDER"]
+direction LR
+C1["Authority"]:::context
+C2["Parent Artifacts"]:::context
+C3["Exact repo facts"]:::context
+C4["Evidence"]:::context
+C5["Memory"]:::context
+C6["Lexical/semantic"]:::context
+C7["External research"]:::context
+CM["ContextManifest"]:::context
+
+C1 --> C2 --> C3 --> C4 --> C5 --> C6 --> C7 --> CM
+end
+
+CB --> C1
+CM --> AG
+
+subgraph BENCH2["REVERENDBENCH v2"]
+direction LR
+BMOD["models/runtime"]:::verify
+BREPO["repo intelligence"]:::verify
+BRES["research"]:::verify
+BCTX["context"]:::verify
+BTEAM["Team/swarm"]:::verify
+BWORK["worker/cache economics"]:::verify
+BSEC["security/recovery"]:::verify
+PROM["privileged promotion<br/>quality gates + GBP/verified success"]:::verify
+
+BMOD --> PROM
+BREPO --> PROM
+BRES --> PROM
+BCTX --> PROM
+BTEAM --> PROM
+BWORK --> PROM
+BSEC --> PROM
+end
+
+PROM -. approved strategy/profile .-> MREG
+PROM -. approved capability policy .-> CAPREG
+PROM -. approved context/research policy .-> CB
+~~~
+
+## Capability-era mental model
+
+~~~text
+Control Plane = durable brain and authority
+Project knowledge = retained organizational memory
+Research + Repository Intelligence = senses
+Model Fabric = replaceable reasoning engines
+CPU / Browser / GPU workers = disposable muscles
+ReverendBench = evidence for how the organization should improve
+~~~
+
+The central constraint remains unchanged:
+
+> **No new capability is allowed to become a competing authority plane.**
