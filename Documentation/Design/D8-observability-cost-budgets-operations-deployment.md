@@ -1382,3 +1382,38 @@ An inhibitor with ambiguous external state creates an alert/RECOVERY_BLOCKED pat
 Schema migration activates a SYSTEM MAINTENANCE control and a MIGRATION shutdown inhibitor before DDL begins.
 
 Runtime API may serve bounded read/status endpoints, but no scheduler/provider work begins until migration and post-migration integrity checks complete and the control is explicitly cleared.
+
+
+---
+
+## 55. Recursive Audit Cycle 9 — Ledger Reconciliation Semantics
+
+### Source cost vs allocation
+
+The cost ledger distinguishes provider/system SOURCE_COST from user ALLOCATION.
+
+For shared 50/50 overhead:
+
+~~~text
+one SOURCE_COST = actual provider/control-host cost
+↓
+two ALLOCATION events = policy shares
+~~~
+
+System-wide spend reports source economic cost once.
+
+Per-user reports consume allocation events.
+
+A reconciliation test verifies allocations do not create or destroy cost unintentionally.
+
+### Billing periods
+
+Monthly user soft/hard limits use an explicit configured billing timezone/calendar definition; Cloud v1 default is UTC calendar month.
+
+The API reports the period start/end alongside totals so clients do not infer local-month boundaries differently.
+
+### Model metrics are not duplicate invoices
+
+Token/model invocation telemetry on self-hosted GPU is observability used for optimization and attribution.
+
+It is not added as a second payable cost on top of provider PowerSession/lease charges unless a distinct paid API actually invoices by usage.
