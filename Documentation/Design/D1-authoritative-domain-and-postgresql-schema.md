@@ -2678,3 +2678,44 @@ Derived repository/vector/search index records must include Project/snapshot sco
 Authorization/scope filtering occurs before semantic ranking.
 
 A future shared public-dependency index is a distinct explicitly public corpus, not implicit cross-Project reuse.
+
+
+### 35.12 Execution environment profiles
+
+~~~sql
+execution_environment_profiles(
+  environment_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  base_image_digest TEXT NOT NULL,
+  toolchain_manifest JSONB NOT NULL,
+  dependency_policy JSONB NOT NULL,
+  network_policy JSONB NOT NULL,
+  sandbox_policy JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+Project lockfiles/manifests are referenced per Job/Artifact rather than mutating the profile catalog.
+
+### 35.13 Ephemeral TestEndpoint authorization
+
+~~~sql
+test_endpoints(
+  test_endpoint_id UUID PRIMARY KEY,
+  run_id UUID NOT NULL REFERENCES runs(run_id),
+  job_id UUID NOT NULL REFERENCES jobs(job_id),
+  producer_lease_id UUID NOT NULL REFERENCES resource_leases(lease_id),
+  consumer_lease_id UUID REFERENCES resource_leases(lease_id),
+  route_ref TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','ACTIVE','REVOKED','EXPIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ
+)
+~~~
+
+route_ref is an opaque private-network routing reference, not a publicly routable URL containing credentials.
+
+Authorization requires current Run/Job/lease scope. Endpoint revocation is part of Job/lease cleanup.
