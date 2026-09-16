@@ -1044,3 +1044,25 @@ Device registrations may remain, but interactive users must establish fresh sess
 If the recovered generation is older than current external credential state, GitHub/provider integrations may fail closed until credentials are revalidated/rotated.
 
 Reverend never assumes a recovered encrypted token is still externally valid merely because decryption succeeded.
+
+
+---
+
+## 39. Recursive Audit Cycle 8 — Checkpoint Journal-Watermark Correctness
+
+`journal_high_watermark` is a per-Run commit-safe cursor from D1, not the maximum value observed from a PostgreSQL identity sequence.
+
+Checkpoint publication must not claim watermark N while any Action with sequence <= N can still be uncommitted.
+
+Required flow:
+
+~~~text
+settle/reconcile required Actions
+→ obtain per-Run journal sequence state consistently
+→ publish checkpoint watermark
+→ recovery later scans committed ActionRecords with sequence > watermark
+~~~
+
+Parallel Agent Tasks may create Actions, but ActionRecord sequence assignment is serialized only for the short journal insert transaction.
+
+Fault injection must cover two concurrent Action inserts where the second attempts to commit before the first; checkpoint/recovery must still observe a valid total order.
