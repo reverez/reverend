@@ -1,7 +1,7 @@
 # Reverend Cloud v1 — Design Specification Index
 
 > **Phase:** Design  
-> **Status:** FINAL CLOSURE CANDIDATE — CI / MERGE REQUIRED  
+> **Status:** DESIGN COMPLETE — READY FOR C0 DEVELOPMENT  
 > **Accepted architecture input:** [A12 — Cloud Architecture Acceptance](../Analysis/A12-cloud-architecture-acceptance.md)  
 > **Final closure authority:** [D22 — Pre-Development Architecture Closure](./D22-pre-development-architecture-closure.md)  
 > **Purpose:** Define the complete implementation contract for Reverend Cloud v1 before C0 Development begins.
@@ -279,16 +279,17 @@ Do not delete proven local functionality merely because a future Cloud subsystem
 
 ## 10. Development Entry Gate
 
-Design is formally complete when:
+Design closure decision:
 
-- D0–D22 are merged to main;
+- D0–D22 form the final Cloud v1 Design set;
 - README points to the accepted Analysis/Design set;
-- the complete/system/subsystem diagrams reflect the final architecture;
+- system/subsystem diagrams reflect the final architecture;
 - no known Design contradiction remains against A12;
-- the specification-driven and objective-driven Run authority models are explicit;
-- the Research/Repository/Context/Model/Worker capability refinements are reconciled with D0–D14;
-- documentation/CI validation is green;
-- D22 is marked final;
+- specification-driven and objective-driven Run authority models are explicit;
+- Research/Repository/Context/Model/Worker refinements are reconciled with D0–D14;
+- D22 records the final closure audit;
+- Design PR #54 carries the merge to main;
+- GitHub Actions runner availability is tracked in issue #56 and must be restored before any runtime-changing C0 code merges;
 - a fresh C0-entry baseline is recorded before runtime-changing C0 code begins.
 
 The fresh baseline is execution evidence, not more architecture design.
