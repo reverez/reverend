@@ -521,3 +521,50 @@ Must prove:
 ## 24. Exit Condition
 
 Context Broker v2 is ready when Reverend can answer “what does this Agent need next?” using the cheapest sufficiently authoritative source, acquire missing information only when needed and produce a bounded reproducible ContextManifest tied to exact Project/repository/evidence versions.
+
+
+---
+
+## 25. Recursive Capability Audit — Outbound Query Privacy & Index Isolation
+
+### Research query generation is part of context disclosure
+
+Context Broker may identify a missing fact from restricted repository/context material, but it cannot blindly put that material into a web query.
+
+Before Research Fabric:
+
+~~~text
+ContextNeed
+→ derive candidate query
+→ QueryDisclosurePolicy
+→ permitted generalized query OR block/escalate
+~~~
+
+The outbound query becomes part of ContextManifest/Research provenance.
+
+### Semantic index isolation
+
+Project scope is applied **before** vector/hybrid ranking.
+
+It is not acceptable to:
+
+~~~text
+search all Projects
+→ remove unauthorized results afterward
+~~~
+
+because this increases leakage/timing risk and can influence ranking.
+
+Implementation may use separate collections/namespaces or mandatory metadata prefilters, but cross-Project isolation is a tested invariant.
+
+### Sensitive summary rule
+
+A generated summary cannot declassify its sources merely by paraphrasing them.
+
+Sensitivity is inherited conservatively.
+
+### Research cache does not become context authority
+
+Cached SourceSnapshot may be reused only through Evidence/Research eligibility checks.
+
+Context Broker never injects “top cached web pages” directly merely because they are semantically similar.
