@@ -2423,3 +2423,229 @@ A connected recovery-enabled client may satisfy this.
 For unattended autonomous operation, an always-available encrypted object-store recovery target is strongly recommended so external actions do not depend on a laptop remaining online.
 
 The target abstraction is provider-neutral.
+
+
+---
+
+## 35. Capability Modernization Schema Addendum
+
+D10–D16 introduce additional durable metadata. These tables remain subordinate to the same PostgreSQL authority and BlobStore rules.
+
+### 35.1 Capability specifications
+
+~~~sql
+capability_specs(
+  capability_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  capability_family TEXT NOT NULL,
+  input_contract JSONB NOT NULL,
+  output_contract JSONB NOT NULL,
+  resource_requirement_template JSONB NOT NULL,
+  trust_requirement TEXT NOT NULL,
+  side_effect_class TEXT NOT NULL,
+  network_policy JSONB NOT NULL,
+  recovery_policy JSONB NOT NULL,
+  benchmark_profile TEXT,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  PRIMARY KEY(capability_id,version)
+)
+~~~
+
+This is a versioned catalog. Agent/model output cannot insert or promote production capability definitions directly.
+
+### 35.2 Worker and storage profiles
+
+~~~sql
+storage_profiles(
+  storage_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  profile JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+worker_profiles(
+  worker_profile_id TEXT PRIMARY KEY,
+  schema_version INTEGER NOT NULL,
+  trust_class TEXT NOT NULL,
+  capability_refs JSONB NOT NULL,
+  resource_envelope JSONB NOT NULL,
+  provider_profile JSONB NOT NULL,
+  container_digest TEXT NOT NULL,
+  bootstrap_policy JSONB NOT NULL,
+  storage_profile_id TEXT NOT NULL REFERENCES storage_profiles(storage_profile_id),
+  network_profile JSONB NOT NULL,
+  sandbox_profile JSONB NOT NULL,
+  health_contract JSONB NOT NULL,
+  idle_policy JSONB NOT NULL,
+  cost_profile JSONB NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE','DISABLED','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+A semantic change to a profile that would alter historical execution creates a new profile identity/version rather than silently rewriting prior provenance.
+
+### 35.3 Research source registry
+
+~~~sql
+source_records(
+  source_id UUID PRIMARY KEY,
+  canonical_locator TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  publisher TEXT,
+  authority_class TEXT NOT NULL,
+  default_freshness_policy TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(source_type,canonical_locator)
+);
+
+source_snapshots(
+  snapshot_id UUID PRIMARY KEY,
+  source_id UUID NOT NULL REFERENCES source_records(source_id),
+  fetched_at TIMESTAMPTZ NOT NULL,
+  published_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  content_hash TEXT NOT NULL,
+  content_ref TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  byte_count BIGINT NOT NULL CHECK (byte_count >= 0),
+  trust_class TEXT NOT NULL,
+  sensitivity_label TEXT NOT NULL,
+  extraction_version TEXT NOT NULL,
+  provider_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  UNIQUE(source_id,content_hash,extraction_version)
+)
+~~~
+
+SourceSnapshot content referenced by retained Evidence is subject to durable BlobStore retention and backup roots.
+
+### 35.4 Evidence claims
+
+~~~sql
+evidence_claims(
+  claim_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  snapshot_id UUID NOT NULL REFERENCES source_snapshots(snapshot_id),
+  claim_text TEXT NOT NULL,
+  source_locator JSONB NOT NULL,
+  evidence_type TEXT NOT NULL,
+  authority_class TEXT NOT NULL,
+  confidence NUMERIC,
+  freshness_state TEXT NOT NULL,
+  extracted_by TEXT NOT NULL,
+  validation_state TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+ResearchEvidencePack remains an Artifact whose manifest references EvidenceClaim and SourceSnapshot IDs.
+
+### 35.5 Repository snapshots
+
+~~~sql
+repository_snapshots(
+  repository_snapshot_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  run_id UUID REFERENCES runs(run_id),
+  workspace_id TEXT,
+  repository_identity JSONB NOT NULL,
+  base_commit TEXT NOT NULL,
+  head_ref TEXT,
+  head_commit TEXT,
+  index_digest TEXT,
+  diff_digest TEXT,
+  untracked_manifest_digest TEXT,
+  snapshot_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(project_id,snapshot_hash)
+);
+
+repository_index_builds(
+  index_build_id UUID PRIMARY KEY,
+  repository_snapshot_id UUID NOT NULL REFERENCES repository_snapshots(repository_snapshot_id),
+  adapter_id TEXT NOT NULL,
+  adapter_version TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','BUILDING','READY','FAILED','STALE')),
+  result_manifest_ref TEXT,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  error_code TEXT
+)
+~~~
+
+Repository index content is derived/rebuildable. Metadata exists so Context Broker can reject stale/mismatched results.
+
+### 35.6 Context manifests
+
+ContextManifest is persisted as an Artifact as already required by D3/D15.
+
+The schema must include explicit references to:
+
+- Task/Agent/Job;
+- source Requirements/Decisions/Artifacts;
+- RepositorySnapshot;
+- SourceSnapshot/Evidence;
+- Memory;
+- compiler/policy/model tokenizer versions;
+- sensitivity/trust domain;
+- included/omitted source refs;
+- content hash.
+
+### 35.7 Benchmark registry
+
+~~~sql
+benchmark_scenarios(
+  benchmark_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  benchmark_family TEXT NOT NULL,
+  scenario_manifest_ref TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('DEVELOPMENT','PROMOTION','RETIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(benchmark_id,version)
+);
+
+benchmark_runs(
+  benchmark_run_id UUID PRIMARY KEY,
+  benchmark_id TEXT NOT NULL,
+  benchmark_version INTEGER NOT NULL,
+  reverend_revision TEXT NOT NULL,
+  experiment_manifest_ref TEXT NOT NULL,
+  result_manifest_ref TEXT,
+  status TEXT NOT NULL,
+  started_at TIMESTAMPTZ NOT NULL,
+  finished_at TIMESTAMPTZ,
+  FOREIGN KEY(benchmark_id,benchmark_version)
+    REFERENCES benchmark_scenarios(benchmark_id,version)
+)
+~~~
+
+D7 benchmark_result_sets for DeploymentProfiles may reference/aggregate these generalized benchmark runs.
+
+### 35.8 Research and repository Project isolation
+
+Database/service constraints enforce:
+
+- EvidenceClaim.project_id controls retrieval scope;
+- SourceSnapshot may be globally deduplicated only when disclosure policy allows reuse; Project Evidence references remain explicit;
+- RepositorySnapshot never changes canonical Run repository binding;
+- semantic/vector index keys always include Project/snapshot scope;
+- cross-Project promotion/import is an explicit audited operation, not similarity-based leakage.
+
+### 35.9 New migration groups
+
+Development should extend the migration set with logically equivalent migrations for:
+
+~~~text
+capability + worker/storage profiles
+research source/evidence registry
+repository snapshots/index metadata
+generalized benchmark registry
+capability-specific indexes/constraints
+~~~
+
+Exact migration filenames are a C0/C1 implementation detail; these entities are not optional once their corresponding capability is enabled.
