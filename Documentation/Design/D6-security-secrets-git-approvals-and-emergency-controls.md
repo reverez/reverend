@@ -1188,7 +1188,7 @@ A Community provider remains capable of observing worker plaintext at the infras
 
 Outbound search query text is an external disclosure.
 
-Research Fabric therefore applies __D21__ QueryDisclosurePolicy before any external search engine/provider sees a query.
+Research Fabric therefore applies D16 QueryDisclosurePolicy before any external search engine/provider sees a query.
 
 Secret scanning is defense in depth; sensitivity/provenance policy is the authority.
 
