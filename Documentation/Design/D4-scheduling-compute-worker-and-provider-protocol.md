@@ -1114,3 +1114,42 @@ If actual rate exceeds the configured/provider-cost ceiling:
 On controller startup/failover, query provider inventory and reconcile every Reverend-tagged instance before provisioning anything new.
 
 Local absence of a ComputeNode row is not proof that no billable provider resource exists.
+
+
+---
+
+## 2026-09-16 Priority Handoff and Media Capacity Extension
+
+### Global Run scheduling remains singular
+
+Cloud v1 retains one active top-level Run globally.
+
+A higher-priority queued Run triggers safe pre-emption of the active Run through D5; Compute Scheduler does not admit Jobs belonging to the replacement Run until the Control Plane has durably yielded the current Run.
+
+### Capacity classes
+
+ResourceRequest gains/uses logical workload classes such as:
+
+~~~text
+ENGINEERING_INFERENCE
+MEDIA_GENERATION
+CPU_BUILD
+CPU_BROWSER
+RETRIEVAL
+~~~
+
+Workload class does not imply a fixed provider SKU.
+
+Media generation may request a cheaper compatible GPU and scale independently of the A100 engineering pool.
+
+### Independent scale-to-zero
+
+Engineering and media pools maintain separate:
+
+- demand;
+- PowerSessions;
+- idle grace;
+- health;
+- budget admission.
+
+A media request does not keep the engineering GPU alive unless routing explicitly selected the same node/profile.
