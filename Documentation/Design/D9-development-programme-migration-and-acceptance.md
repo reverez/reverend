@@ -939,3 +939,86 @@ Before opening C0 branch:
 ## 35. Final Development Invariant
 
 > Development succeeds by implementing the accepted contracts in progressively verifiable slices. It must not exchange architectural integrity for speed: one server-side authority, immutable human/Run ownership, bounded cognitive execution, typed provenance, mediated secrets/tools, recoverable side effects, replaceable compute and auditable costs remain true at every intermediate milestone.
+
+
+---
+
+## 36. Recursive Architecture Hardening — Phase Safety Gates
+
+The recursive review found that the original C0–C9 order was sound but needed stricter negative gates so partially implemented Cloud stages cannot accidentally expose unfinished authority.
+
+### C1 negative gate
+
+PostgreSQL may become the Cloud state backend in C1, but no remote mutation endpoint is considered production-capable until C2 authentication/authorization exists.
+
+### C2 negative gate
+
+C2 remote APIs may create/control Projects and Runs, but Cloud autonomous privileged execution remains disabled.
+
+Specifically, until C5:
+
+- no user-scoped Git credential may be resolved;
+- no protected external mutation may execute;
+- no Secret Broker plaintext may enter a general application path.
+
+### C4 negative gate
+
+C4 Agent/Team execution may exercise deterministic read-only/sandboxed capabilities needed for tests, but it must not enable unmediated production side effects.
+
+All privileged tool calls must either:
+
+- fail closed; or
+- remain behind the existing local accepted enforcement path
+
+until C5 Tool Broker/Secret Broker/Approval enforcement is complete.
+
+### C5/C6 coupling gate
+
+A side-effecting Cloud tool is not enabled merely because C5 authorizes it.
+
+It also requires its D5 Action Journal recovery strategy and reconciler from C6.
+
+Therefore production enablement condition is:
+
+~~~text
+authorization implemented
+AND
+secret boundary implemented
+AND
+Action Journal semantics implemented
+AND
+recovery reconciler tested
+~~~
+
+### C7 paid-compute gate
+
+No real paid provider provisioning is enabled until:
+
+- C5 worker/provider credential isolation passes;
+- C6 stale-epoch and worker-loss recovery passes;
+- D8 RateSnapshot + PowerSession + budget reservation minimum path exists.
+
+C8 may complete the full economics UX/reconciliation plane later, but C7 live paid tests require the minimum cost safety path first.
+
+### C9 architecture-audit gate
+
+Before Cloud v1 acceptance, repeat the recursive documentation/implementation audit from:
+
+~~~text
+identity
+→ Project/Run authority
+→ workflow/Agents/context
+→ tools/security
+→ durability/recovery
+→ scheduling/workers/models
+→ economics/operations
+→ end-to-end acceptance
+~~~
+
+The gate passes only when:
+
+- no unresolved architecture contradiction is known;
+- all identified flaws have an owner and are either fixed or explicitly deferred outside Cloud v1;
+- a fresh audit pass finds no new Cloud-v1-blocking flaw.
+
+This means “zero known blocking flaws”, not a claim that defects are mathematically impossible.
