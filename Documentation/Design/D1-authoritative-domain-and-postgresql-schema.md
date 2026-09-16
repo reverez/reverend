@@ -2793,3 +2793,149 @@ A Project owner may explicitly opt normal Project-private engineering material i
 - can be tightened later, causing subsequent Jobs to require stronger placement.
 
 Sensitivity labels describe data; disclosure policy determines where that data may go.
+
+
+---
+
+## 36. Specification Packages & Run Pinning
+
+The primary Cloud v1 operating mode is specification-driven implementation.
+
+A detailed external or human-authored design is not passed to a model as one giant prompt. It is ingested into a versioned **SpecificationPackage** and normalized into durable Project truth.
+
+### 36.1 SpecificationPackage
+
+~~~sql
+specification_packages(
+  specification_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  version BIGINT NOT NULL,
+  title TEXT NOT NULL,
+  objective TEXT NOT NULL,
+  source_kind TEXT NOT NULL CHECK (
+    source_kind IN ('HUMAN','EXTERNAL_DESIGN_MODEL','REVEREND_DESIGN','IMPORTED_DOCUMENT')
+  ),
+  source_ref TEXT,
+  status TEXT NOT NULL CHECK (
+    status IN ('DRAFT','VALIDATING','ACCEPTED','SUPERSEDED','REJECTED')
+  ),
+  package_manifest_ref TEXT NOT NULL,
+  package_hash TEXT NOT NULL,
+  created_by UUID NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  accepted_by UUID REFERENCES users(user_id),
+  accepted_at TIMESTAMPTZ,
+  supersedes_specification_id UUID REFERENCES specification_packages(specification_id),
+  UNIQUE(project_id,version),
+  UNIQUE(project_id,package_hash)
+)
+~~~
+
+The package manifest may reference typed files/Artifacts such as:
+
+~~~text
+objective
+requirements
+non-goals
+architecture
+component contracts
+data model
+API contracts
+security model
+failure semantics
+performance requirements
+testing strategy
+acceptance criteria
+development plan
+references
+machine-readable requirements/interfaces/acceptance/constraints
+~~~
+
+Package content is immutable after ACCEPTED. A change creates a new version.
+
+### 36.2 Specification compilation
+
+Specification ingestion produces normalized durable objects:
+
+~~~text
+SpecificationPackage
+→ SpecificationValidationReport
+→ Requirements
+→ accepted Decisions / architecture constraints
+→ AcceptanceCriteria
+→ interface/contract Artifacts
+→ implementation guidance
+~~~
+
+The original package remains preserved for provenance.
+
+Normalization does not silently invent missing requirements. Ambiguity becomes a ClarificationRequest or explicit unresolved item.
+
+### 36.3 Acceptance criteria
+
+Add first-class acceptance criteria:
+
+~~~sql
+acceptance_criteria(
+  acceptance_id UUID PRIMARY KEY,
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  specification_id UUID REFERENCES specification_packages(specification_id),
+  requirement_id UUID REFERENCES requirements(requirement_id),
+  title TEXT NOT NULL,
+  criterion_text TEXT NOT NULL,
+  verification_kind TEXT NOT NULL,
+  verification_ref TEXT,
+  priority INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL CHECK (
+    status IN ('ACTIVE','SATISFIED','SUPERSEDED','REJECTED')
+  ),
+  created_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+Where possible, verification_kind points to deterministic tests/benchmarks/contracts.
+
+### 36.4 Run specification pin
+
+Add to runs:
+
+~~~sql
+specification_id UUID REFERENCES specification_packages(specification_id),
+specification_version BIGINT,
+~~~
+
+At Run creation, the selected SpecificationPackage is pinned immutably.
+
+A Run never silently switches to a newer specification version.
+
+A later amendment creates:
+
+~~~text
+SpecificationPackage v2
+→ new Run
+or
+→ explicit scoped change/amendment workflow with preserved provenance
+~~~
+
+### 36.5 Objective-only mode
+
+A Run may still begin from a high-level objective with no accepted SpecificationPackage.
+
+In that mode Reverend may research, clarify, design and produce a candidate SpecificationPackage/Requirements/Decisions before implementation.
+
+This preserves the broader autonomous-engineering capability while making specification-driven implementation the preferred high-reliability path.
+
+### 36.6 Specification authority ordering
+
+For a Run pinned to a SpecificationPackage:
+
+~~~text
+human / Project policy
+> accepted SpecificationPackage
+> normalized Requirements / Decisions / AcceptanceCriteria
+> Run/Task orchestration
+> Agent/model proposals
+> deterministic verification evidence
+~~~
+
+If normalized Project state conflicts with the pinned package, the Run blocks for reconciliation rather than choosing one silently.
