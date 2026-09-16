@@ -1,6 +1,6 @@
 # D17 — Pre-Development Architecture Closure
 
-> **Status:** PRE-DEVELOPMENT GATE PASSED AT DESIGN LEVEL  
+> **Status:** PRE-DEVELOPMENT GATE CANDIDATE — FINAL CONSISTENCY / CI REQUIRED  
 > **Date:** 2026-09-16  
 > **Depends on:** A12, D0–D16  
 > **Purpose:** Reconcile the recursive hardening audit, ephemeral-worker refinement and capability modernization into one final pre-development gate.
