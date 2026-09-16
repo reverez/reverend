@@ -530,3 +530,18 @@ A fifth pass closed additional production-scale and tool-boundary gaps:
 7. **Internal resource cost confusion:** measured CPU usage is distinguished from actual payable provider cost.
 
 These close the main remaining capability-layer architecture gaps found in the fifth pass.
+
+
+---
+
+## 19. Capability Modernization Recursive Audit — Cycle 6
+
+A sixth pass closed confidentiality ambiguity around the selected Community GPU baseline:
+
+1. **Sensitivity was not enough to determine placement.** D1/D6/D15 now separate data sensitivity from versioned Project disclosure policy.
+2. **Community use is explicit.** Safe default rejects PROJECT_PRIVATE until Project owner opts in; ordinary engineering deployments can use an explicit Community preset.
+3. **External API remains separate.** Community opt-in never implies permission to send the same data to an external model API.
+4. **Inference logging:** model runtime prompt/body logging is disabled by default.
+5. **Derived indexes remain sensitive even when reconstructible.**
+
+This makes the economic Community baseline compatible with an explicit, auditable confidentiality decision rather than a silent assumption.
