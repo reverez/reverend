@@ -641,3 +641,30 @@ They must:
 - support Project/archive retention cleanup/rebuild.
 
 Reconstructible does not mean non-sensitive.
+
+
+---
+
+## 28. Specification Authority in Context
+
+For a specification-driven Run, Context Broker treats the pinned SpecificationPackage as durable authority through its normalized Requirement/Decision/AcceptanceCriteria objects plus referenced contract Artifacts.
+
+Default order becomes:
+
+~~~text
+system / security / Project policy
+→ pinned specification authority
+→ Task / Requirements / AcceptanceCriteria
+→ parent Artifacts
+→ exact repository facts
+→ retained Evidence
+→ Memory
+→ derived retrieval
+→ external research
+~~~
+
+The full SpecificationPackage is not automatically injected.
+
+ContextNeed selects the smallest relevant specification sections/contracts while ContextManifest records the exact package version/hash and source refs.
+
+If a Task request conflicts with the pinned specification, Context Broker surfaces the conflict to orchestration rather than resolving it through semantic ranking.
