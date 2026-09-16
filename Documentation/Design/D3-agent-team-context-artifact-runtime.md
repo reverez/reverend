@@ -946,3 +946,35 @@ Rules:
 7. If mandatory context is too sensitive for an otherwise eligible DeploymentProfile/worker, the Router/Compute Scheduler rejects that destination rather than silently omitting mandatory context.
 
 External/untrusted content trust labels and confidentiality sensitivity are separate dimensions and both are preserved.
+
+
+---
+
+## 41. Capability Modernization Integration
+
+D15 is the canonical Context Broker refinement for Cloud v1.
+
+Agent runtime changes:
+
+- Agent asks for ContextNeed/ContextRequest, not physical database/vector/browser operations;
+- Research Fabric and Repository Intelligence are deterministic/capability services beneath the Agent;
+- Team strategies may partition Research/Repository work, but member Tasks remain canonical Control Plane Tasks;
+- Context acquisition does not create a new Agent merely because a provider/index query exists;
+- browser/search/LSP/index operations are tools/capabilities and consume delegated budgets;
+- model escalation is not used to compensate for missing evidence or missing repository facts.
+
+New typed output families may include:
+
+~~~text
+ResearchEvidencePack
+SourceSnapshotReference
+RepositoryMap
+RepositoryLocalization
+SymbolContext
+DiagnosticContext
+ChangeImpactReport
+BrowserTestReport
+CapabilityExecutionReport
+~~~
+
+These remain normal D3 Artifacts with provenance/validation/promotion semantics.
