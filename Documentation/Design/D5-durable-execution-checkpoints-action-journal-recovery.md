@@ -1010,3 +1010,37 @@ Rules:
 - once safe state is reached, the Run remains budget-blocked until a human increases budget or cancels.
 
 This prevents a budget limit from becoming a resource-leak or duplicate-side-effect vulnerability.
+
+
+---
+
+## 38. Recursive Audit Cycle 7 — Durable Controls and Post-Restore Security Reset
+
+### Emergency/maintenance state is durable
+
+Recovery restores D1 `execution_controls` before schedulers admit work.
+
+An ACTIVE STOP/MAINTENANCE control remains active after restart; rebooting the backend is never a way to clear an emergency stop.
+
+### Shutdown inhibitors
+
+Graceful host shutdown and worker drain consult D1 `shutdown_inhibitors` plus active leases/Actions.
+
+Recovery clears stale inhibitors only after reconciling their owning Action/Job or expiry policy. It never deletes an inhibitor just because its original process disappeared.
+
+### Human-session reset after disaster restore
+
+A full control-host disaster restore revokes every restored active human AuthSession before the API becomes ready.
+
+Reason:
+
+- the restored database may predate a logout/session revocation;
+- accepting restored sessions could resurrect authority that was revoked after the recovery point.
+
+Device registrations may remain, but interactive users must establish fresh sessions.
+
+### External credential revalidation after stale restore
+
+If the recovered generation is older than current external credential state, GitHub/provider integrations may fail closed until credentials are revalidated/rotated.
+
+Reverend never assumes a recovered encrypted token is still externally valid merely because decryption succeeded.
