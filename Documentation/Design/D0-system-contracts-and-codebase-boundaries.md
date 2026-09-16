@@ -852,3 +852,34 @@ It atomically reserves/locks the idempotency key before creating the authoritati
 Concurrent requests with the same key therefore converge on one command outcome rather than racing duplicate creation.
 
 D1/D2 define the record state and behavior.
+
+
+---
+
+## 28. Recursive Audit Cycle 10 — System-Scoped Side-Effect Journal
+
+The Action Journal is not only a Run journal.
+
+Trusted control services can perform recoverable external effects with no active Run:
+
+- provider idle stop/terminate;
+- database/off-host backup upload;
+- recovery replication;
+- secret/key rotation;
+- infrastructure maintenance.
+
+Therefore Cloud v1 has one **global Action Journal** with optional Run/Project scope, plus a per-Run sequence for checkpoint convenience.
+
+Commit-safe cursor rules:
+
+~~~text
+global Action cursor
+  all ActionRecords
+  used by RecoveryGeneration/system recovery
+
+per-Run Action cursor
+  only Run-scoped ActionRecords
+  used by RunCheckpoint
+~~~
+
+Both use D1 transactional counters, not raw PostgreSQL identity allocation.
