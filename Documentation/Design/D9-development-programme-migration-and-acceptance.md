@@ -1280,3 +1280,96 @@ C2/C8 clients preserve lifecycle intermediate states and never present request s
 D14 closes Design. C0 may start after a fresh current-main baseline run is recorded using Documentation/Design/Baselines.
 
 D10–D14 do not reopen A12. Future changes to frozen authority/security/durability semantics use an ADR and, where necessary, explicit architecture re-acceptance.
+
+
+---
+
+## 2026-09-16 D15/D16 Programme Extension
+
+The following work is added without changing the contract-first implementation order.
+
+### C0 additions
+
+- Conversation / Message contracts;
+- BuildSpecification/v1;
+- Run specification reference;
+- priority/pre-emption request schema additions;
+- MediaGenerationRequest / MediaAsset semantic contracts.
+
+### C1 additions
+
+- PostgreSQL Conversation/Message persistence;
+- specification references/version invariants;
+- off-host recovery target metadata;
+- media usage/provenance relations where normalized.
+
+### C2 additions
+
+- ChatGPT-style conversation/message/upload APIs;
+- specification draft/accept API;
+- Run priority API;
+- media/Studio API schemas;
+- SSE events for conversations/specifications/pre-emption/media.
+
+### C3 additions
+
+- preserve one globally active Run;
+- explicit priority raise;
+- safe yield to RESUME_QUEUED;
+- anti-starvation/resume-next semantics.
+
+### C4 additions
+
+- BuildSpecification compiler/admission;
+- interaction-history context layer;
+- Agent-facing media request contract.
+
+### C5 additions
+
+- upload/media sensitivity policy;
+- media tool permissions;
+- no client/provider secret leakage.
+
+### C6 additions
+
+- cloud/object-store recovery target replaces required client recovery peers;
+- priority-yield checkpoint and workspace durability tests.
+
+### C7 additions
+
+Core engineering compute lands first.
+
+After the primary RunPod/vLLM/Qwen worker path is stable:
+
+- benchmark optional Qwen coding specialist;
+- implement/benchmark media worker/provider/runtime;
+- admit FLUX-class media profile only after media ReverendBench gates.
+
+No automatic frontier-model API integration is required.
+
+### C8 additions
+
+Primary browser UX:
+
+~~~text
+CHAT | PROJECT | RUN | ARTIFACTS | STUDIO
+~~~
+
+Add media cost visibility and off-host recovery health.
+
+### C9 additions
+
+New E2E cases:
+
+~~~text
+E2E-23 thin-client-only operation
+E2E-24 conversation/specification authority separation
+E2E-25 accepted BuildSpecification → autonomous Run
+E2E-26 global Run safe priority handoff between Projects
+E2E-27 resume pre-empted Run
+E2E-28 restore with both clients offline
+E2E-29 autonomous UI asset request/generation/integration
+E2E-30 no automatic external frontier API dependency
+~~~
+
+Media support must not delay the Control Plane/security/recovery foundation. The engineering system remains the primary product.
