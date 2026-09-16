@@ -775,7 +775,8 @@ P_ABS["ABSENT"]:::compute
 P_PROV["PROVISIONING"]:::compute
 P_BOOT["BOOTING"]:::compute
 P_REG["REGISTERING"]:::compute
-P_LOAD["LOADING"]:::compute
+P_HYDRATE["MODEL RESOLVE / HYDRATE / VERIFY<br/>ephemeral upstream by default"]:::compute
+P_LOAD["MODEL LOAD / SMOKE"]:::compute
 P_READY["READY"]:::compute
 P_BUSY["BUSY"]:::compute
 P_IDLE["IDLE_GRACE<br/>default design target 420s"]:::compute
@@ -786,10 +787,12 @@ P_UNH["UNHEALTHY"]:::compute
 
 CAP --> RP_ADAPT
 RP_CRED --> RP_ADAPT
-RP_ADAPT --> P_ABS --> P_PROV --> P_BOOT --> P_REG --> P_LOAD --> P_READY --> P_BUSY --> P_IDLE --> P_DRAIN --> P_STOP --> P_TERM
+RP_ADAPT --> P_ABS --> P_PROV --> P_BOOT --> P_REG --> P_HYDRATE --> P_LOAD --> P_READY --> P_BUSY --> P_IDLE --> P_DRAIN --> P_STOP --> P_TERM
 P_PROV --> P_UNH
 P_BOOT --> P_UNH
 P_REG --> P_UNH
+P_HYDRATE --> P_UNH
+P_LOAD --> P_UNH
 P_BUSY --> P_UNH
 
 RP_ADAPT --> W_BOOT --> W_REG
@@ -805,7 +808,10 @@ direction TB
 MREQ["ModelRequirement<br/>reasoning • coding • repository reasoning • tool use • structured output<br/>vision • min context • trust • latency • cost class"]:::model
 MREG["Model Registry"]:::model
 MPROF["ModelProfile<br/>family • model/revision • license • modalities • capabilities<br/>advertised/validated context • runtime compatibility • trust • benchmark status"]:::model
-DPROF["DeploymentProfile<br/>model revision • runtime/version • quantization • container digest<br/>context • reasoning effort • hardware requirement • trust<br/>concurrency/batching • benchmark set • cost profile"]:::model
+DPROF["DeploymentProfile<br/>model revision • runtime/version • quantization • container digest<br/>context • reasoning effort • hardware requirement • trust<br/>concurrency/batching • benchmark set • cost profile • HydrationPolicy"]:::model
+MMAN["ModelArtifactManifest<br/>approved repository • immutable revision • required files<br/>safe format • checksums/object identity • license"]:::model
+HYDP["HydrationPolicy<br/>EPHEMERAL_UPSTREAM baseline<br/>persistent cache disabled • bounded retries/timeouts"]:::model
+HYD["Worker hydration<br/>local ephemeral cache → approved upstream<br/>staging → verify → atomic verified snapshot"]:::compute
 MROUTER["Model Router<br/>filters eligibility then ranks candidates"]:::model
 
 subgraph LOGICAL["Logical requirement profiles"]
@@ -824,6 +830,9 @@ MR_MAX["FUTURE_EXTERNAL_ESCALATION<br/>not configured in Cloud v1"]:::external
 end
 
 MREQ --> MREG --> MPROF --> DPROF --> MROUTER
+DPROF --> MMAN --> HYD
+DPROF --> HYDP --> HYD
+HYD --> VLLM
 
 
 BASEMODEL["Cloud v1 baseline profile<br/>Qwen/Qwen3.8-27B<br/>vLLM • A100 SXM 80 GB • 64K context<br/>RunPod Community Cloud"]:::model
@@ -959,7 +968,7 @@ BLOB["FileBlobStore<br/>content-addressed SHA-256 immutable objects<br/>temp wri
 WSROOT["Workspace storage<br/>Run/Task worktrees • isolated branches • recoverable diffs/untracked manifests"]:::data
 GITREF["Git checkpoint refs<br/>refs/reverend/checkpoints/{run}/{sequence}"]:::data
 QDRANT["Qdrant / vector index<br/>derived/reconstructible semantic retrieval state"]:::data
-CACHE["Reconstructible caches<br/>model weights • runtime cache • build outputs • embeddings • KV cache"]:::data
+CACHE["Reconstructible caches<br/>worker-local ephemeral model weights/runtime cache<br/>build outputs • embeddings • KV cache<br/>paid persistent model cache disabled by default"]:::data
 BACKUP["Encrypted backup storage<br/>PostgreSQL + BlobStore + recovery metadata + encrypted Secret-store material"]:::data
 KEYFILE["Protected host key material<br/>outside repository/DB"]:::security
 
@@ -969,7 +978,7 @@ ART --> BLOB
 CHECK --> BLOB
 RUN --> WSROOT --> GITREF
 CB --> QDRANT
-DPROF --> CACHE
+HYD --> CACHE
 RECGEN --> BACKUP
 MASTER --> KEYFILE
 end
@@ -990,6 +999,8 @@ direction LR
 VAR["Variable Run-specific cost<br/>100% Run owner"]:::cost
 FIXED["Persistent Control Plane / baseline backup/storage<br/>initially 50/50 shared"]:::cost
 TRANSIENT["Boot / warm-up / idle grace / drain overhead<br/>initially 50/50 shared"]:::cost
+HYDCOST["Model hydration startup cost<br/>bytes • seconds • source • estimated/reconciled cost"]:::cost
+CACHEECON["Cache economics<br/>observed hydration cost vs recurring storage<br/>recommend only; operator enables paid cache"]:::cost
 ZEROCOST["PAUSED / AWAITING_APPROVAL / RESUME_QUEUED<br/>GBP 0 active compute without lease"]:::cost
 end
 
@@ -1343,3 +1354,9 @@ R_MEDIA --> CPROOT
 MEDIAMODEL --> MEDIAWORK
 MEDIAWORK --> ART
 OFFHOST --> EXT_OBJ
+
+
+%% D17 hydration economics wiring
+HYD --> HYDCOST
+HYDCOST --> CACHEECON
+EXT_HF --> HYD
