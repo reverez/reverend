@@ -924,7 +924,7 @@ Until then, README must describe Cloud v1 as Design/Development target, not impl
 
 Before opening C0 branch:
 
-- [ ] Design docs D0–D9 merged to main.
+- [ ] Design docs D0–D17 merged to main.
 - [ ] README points to Design index.
 - [ ] main is clean/stable.
 - [ ] current Python suite run and result recorded.
@@ -932,7 +932,7 @@ Before opening C0 branch:
 - [ ] both developers use current main as branch base.
 - [ ] no real RunPod/GitHub credentials placed in repo.
 - [ ] C0 issue/PR scope contains only contracts/migration skeleton.
-- [ ] A12 invariants available to reviewers.
+- [ ] A12 invariants and D17 closure available to reviewers.
 - [ ] live paid-provider work deferred until C7.
 
 ---
