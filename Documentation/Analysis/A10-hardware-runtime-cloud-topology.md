@@ -1629,9 +1629,21 @@ This is necessary for:
 
 ---
 
-## 55. Cache the Production Fleet, Not Every Candidate
+## 55. Cache by Measured Economics, Not Model Status
 
-A9 contains many frontier controls.
+A9 contains many model candidates.
+
+Provider-local cache policy is **not** determined simply by whether a model is “production”.
+
+Default:
+
+```text
+required model
+→ fetch/load on demand
+→ worker-local ephemeral cache
+```
+
+Optional persistent/warm cache is enabled only when measured cold-start/download savings justify provider storage cost and complexity.
 
 Do not permanently store:
 
@@ -1641,18 +1653,9 @@ every model ever benchmarked
 
 on paid provider storage.
 
-Suggested cache policy:
+Benchmark candidates/frontier comparisons are fetched only when required unless a measured cache policy explicitly promotes their storage behavior.
 
-```text
-production models
-→ persistent cache
-
-active benchmark candidate
-→ temporary cache
-
-frontier comparison
-→ fetch only when explicitly benchmarking
-```
+This section is superseded/refined by D13/D14.
 
 ---
 
