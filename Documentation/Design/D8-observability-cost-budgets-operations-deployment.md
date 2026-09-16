@@ -619,7 +619,7 @@ Process/event loop alive.
 
 - PostgreSQL reachable;
 - migrations supported;
-- Secret Broker key available;
+- Secret Broker service healthy/reachable;
 - no unresolved global recovery gate;
 - scheduler/recovery service state valid.
 
@@ -1245,3 +1245,33 @@ The host runs reliable time synchronization.
 Durable expiry/auth/billing timestamps use UTC wall clock, while in-process elapsed durations use monotonic clocks.
 
 A detected material backward/forward wall-clock jump creates an operational warning and security-sensitive expiry checks use conservative behavior until time health is restored.
+
+
+---
+
+## 51. Recursive Audit Cycle 4 — Privilege-Separated Service Operations
+
+Because Secret Broker is now an OS-level privilege boundary:
+
+- Control Plane readiness checks **Secret Broker service health/reachability**, not whether the general application process can read the master key;
+- the key file is owned/readable only by the Secret Broker helper identity;
+- systemd/service supervision includes the Secret Broker helper;
+- application startup fails closed for operations requiring secrets if the helper is unavailable, while read-only/status paths may remain available.
+
+Recommended logical units now include:
+
+~~~text
+reverend-api.service
+reverend-secret-broker.service
+postgresql.service
+reverend-backup.timer
+reverend-recovery-replication.timer
+~~~
+
+The Secret Broker Unix socket is not mounted or permissioned into sandbox/worker identities.
+
+### Recovery-key monitoring
+
+Recovery health verifies not only replica age but also that at least one currently authorized recovery recipient can decrypt the current key envelope according to a periodic non-destructive recovery test policy.
+
+A generation with no usable key recipient is not HEALTHY even if all bytes and hashes are present.
