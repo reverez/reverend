@@ -597,11 +597,11 @@ Do not select recovery truth only by timestamps.
 
 ---
 
-## 23. Client Recovery Replicas
+## 23. Off-Host Cloud Recovery Target
 
-Registered recovery-enabled devices may store encrypted content-addressed recovery packages.
+> Superseded by ADR-001 for the Cloud v1 production profile.
 
-They are backup peers only.
+Cloud v1 stores encrypted content-addressed recovery packages in an authenticated off-host cloud/object-store recovery target.
 
 Protocol:
 
@@ -610,16 +610,18 @@ Control Plane creates complete generation
 ↓
 encrypt/package
 ↓
-send manifest + objects to authenticated recovery device
+write manifest + objects to authenticated off-host target
 ↓
-device fsyncs
+target durability confirmation
 ↓
-device verifies hashes
+server verifies hashes/object presence
 ↓
-device ACKs generation/hash
+record durable recovery-target ACK
 ~~~
 
-A network send without durable ACK is not a replica.
+A network upload without durable acknowledgement and integrity verification is not a valid recovery replica.
+
+Developer clients are not required or preferred recovery peers for the production Cloud profile.
 
 ---
 
@@ -633,9 +635,9 @@ latest RecoveryGeneration valid locally
 at least 1 authorized off-host durable ACK
 ~~~
 
-Two client ACKs preferred when both devices are available.
+The required ACK comes from the configured off-host cloud recovery target.
 
-A12 allows future object-store backup; clients do not become authority.
+Developer client availability does not participate in planned-shutdown eligibility. Clients remain non-authoritative and disposable.
 
 ---
 
