@@ -1219,3 +1219,19 @@ Also prove:
 - duplicate copies of the same intent deduplicate by Action ID/digest;
 - a later full RecoveryGeneration can subsume earlier intent deltas without losing reconciliation history;
 - PURE_READ/REPEATABLE_COMPUTE do not pay the off-host barrier latency unnecessarily.
+
+
+---
+
+## 47. Recursive Audit Cycle 13 — Provider Blast-Radius Tests
+
+Mandatory live/fake-provider tests:
+
+- two concurrent capacity demands under initial ceiling create at most one paid GPU worker;
+- unresolved UNKNOWN provision Action consumes the provisioning ceiling;
+- controller restart queries provider inventory before any new provision;
+- orphan Reverend-tagged provider instance is detected and reconciled;
+- provider returns wrong GPU/trust tier → no Project context sent, resource terminated;
+- provider rate above static ceiling → worker never admitted and paid resource is stopped/terminated;
+- Agent/Project policy cannot raise static provider cap;
+- daily provider circuit breaker prevents new provisioning while preserving safety cleanup.
