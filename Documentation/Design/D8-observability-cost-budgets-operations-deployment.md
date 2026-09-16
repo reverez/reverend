@@ -1330,3 +1330,27 @@ safe/drained
 ~~~
 
 An emergency-stop UI must not display “stopped” until required cleanup has settled.
+
+
+---
+
+## 53. Recursive Audit Cycle 6 — Host Storage and Process Hardening
+
+Production host baseline includes:
+
+- encrypted-at-rest persistent volume or equivalent provider storage encryption;
+- restrictive mount/file ownership;
+- Secret Broker helper key material inaccessible to the general service user;
+- core dumps disabled or tightly controlled for Secret Broker/credential adapter processes;
+- swap disabled or encrypted when Secret-bearing processes could page;
+- firewall default-deny except required HTTPS/private management paths;
+- PostgreSQL bound only to required local/private interface;
+- regular security updates with controlled restart procedure.
+
+These are host-security requirements, not substitutes for application authorization.
+
+### Event/log data minimization
+
+Operational logs and durable Events prefer identifiers, hashes, status codes and bounded summaries over raw content.
+
+A debug mode that captures raw prompts/tool output cannot run by default in production and must advertise that it weakens confidentiality.
