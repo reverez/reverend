@@ -413,7 +413,7 @@ They remain explicit Development/Operations deliverables under D7–D9.
 ## 18. C0 Entry Checklist
 
 - [x] A12 accepted.
-- [x] D0–D16 documented.
+- [x] D0–D17 documented.
 - [x] architecture diagrams indexed.
 - [x] legacy migration map exists.
 - [x] tool/recovery registry exists.
@@ -475,4 +475,20 @@ Additional test obligations:
 - media Artifact lineage/cost/recovery;
 - thin-client-only product operation.
 
-Development entry is now governed by D0–D16 plus accepted ADRs.
+Development entry is now governed by D0–D17 plus accepted ADRs.
+
+
+### D17 model hydration closure
+
+The Development baseline now also includes D17/ADR-004.
+
+C0/C7 acceptance must not invent missing answers for:
+
+- model artifact manifest identity;
+- hydration source policy;
+- ephemeral worker model storage;
+- cold-start lifecycle states;
+- hydration integrity/failure behavior;
+- cache economics and explicit enablement.
+
+Persistent model storage is an optimization, not a Development prerequisite.
