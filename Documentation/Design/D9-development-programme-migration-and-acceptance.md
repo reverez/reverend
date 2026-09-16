@@ -1251,3 +1251,103 @@ Mandatory tests/checks:
 - image/model profile provenance identifies exact Reverend source/runtime/model revisions;
 - mutable `latest` image/model identity cannot become production ELIGIBLE;
 - worker image/config contains no seeded provider/GitHub/database/recovery credential.
+
+
+---
+
+## 49. Capability Modernization Integration into C0–C9
+
+D10–D17 refine the implementation programme.
+
+### C0 additions
+
+Freeze executable contracts for:
+
+~~~text
+CapabilitySpec
+WorkerProfile
+StorageProfile
+BootstrapSpec
+ResearchRequest
+SearchResult
+SourceRecord / SourceSnapshot
+EvidenceClaim / ResearchEvidencePack
+RepositorySnapshot / RepositoryQuery
+ContextNeed
+generalized BenchmarkScenario/BenchmarkRun
+~~~
+
+### C1 additions
+
+Persist:
+
+- source/evidence metadata;
+- retained SourceSnapshot Blob references;
+- RepositorySnapshot/index-build metadata;
+- capability/worker/storage profiles;
+- generalized benchmark registry.
+
+### C4 additions
+
+C4 includes the logical intelligence services:
+
+~~~text
+Context Broker v2
+Repository Intelligence facade
+Research Fabric facade
+Evidence/Memory integration
+typed ContextRequest
+~~~
+
+Do not require remote workers yet; fake/local bounded adapters are sufficient for contract testing.
+
+### C5 additions
+
+Security gates include:
+
+- research/browser SSRF/network policy;
+- prompt-injection trust boundary;
+- LSP/repository-analysis sandbox;
+- source/repository sensitivity propagation;
+- browser credential isolation.
+
+### C7 becomes Capability Execution Fabric
+
+Suggested sub-order:
+
+~~~text
+C7A fake worker/provider protocol
+C7B CPU worker
+C7C Browser Worker
+C7D RunPod ephemeral Model GPU
+C7E vLLM + baseline model
+C7F StorageProfile / cache / cold-start / drain / terminate
+C7G capability-worker loss/replacement
+~~~
+
+The final code may reorder CPU/browser/GPU integration if frozen interfaces remain intact.
+
+### C8 additions
+
+Add:
+
+- Research/Browser/CPU cost attribution;
+- cold-start/cache/storage telemetry;
+- ReverendBench v2 registry/reporting;
+- benchmark-driven idle/cache/profile policy.
+
+### C9 additions
+
+Full acceptance must include:
+
+- Research Fabric static + browser acquisition;
+- SourceSnapshot/Evidence provenance;
+- Repository Intelligence snapshot correctness;
+- Context Broker authority-first selection;
+- Browser Worker frontend test;
+- CPU worker isolation;
+- zero-GPU → model-worker → zero-GPU lifecycle;
+- cache-loss and worker-replacement tests;
+- capability benchmark/promotion controls.
+
+D17 is the final documentation gate before C0 begins.
