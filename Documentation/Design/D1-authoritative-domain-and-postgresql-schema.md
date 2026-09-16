@@ -2429,7 +2429,7 @@ The target abstraction is provider-neutral.
 
 ## 35. Capability Modernization Schema Addendum
 
-__D20__–D21 introduce additional durable metadata. These tables remain subordinate to the same PostgreSQL authority and BlobStore rules.
+D15–D21 introduce additional durable metadata. These tables remain subordinate to the same PostgreSQL authority and BlobStore rules.
 
 ### 35.1 Capability specifications
 
