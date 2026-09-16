@@ -825,19 +825,36 @@ recovery_generations(
 )
 ~~~
 
+### recovery_targets
+
+~~~sql
+recovery_targets(
+  recovery_target_id UUID PRIMARY KEY,
+  target_kind TEXT NOT NULL,
+  credential_ref TEXT NOT NULL,
+  status TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+~~~
+
+Cloud v1 production requires at least one configured off-host cloud/object-store target.
+
 ### recovery_replica_acks
 
 ~~~sql
 recovery_replica_acks(
   generation_number BIGINT NOT NULL REFERENCES recovery_generations(generation_number),
-  device_id UUID NOT NULL REFERENCES devices(device_id),
+  recovery_target_id UUID NOT NULL REFERENCES recovery_targets(recovery_target_id),
   acknowledged_at TIMESTAMPTZ NOT NULL,
   manifest_hash TEXT NOT NULL,
-  PRIMARY KEY(generation_number,device_id)
+  integrity_verified BOOLEAN NOT NULL,
+  PRIMARY KEY(generation_number,recovery_target_id)
 )
 ~~~
 
-A client ACK means the encrypted generation has been durably written and hash-verified.
+An ACK counts only after the encrypted generation has been durably written to the configured off-host target and its manifest/object integrity has been verified.
 
 ---
 
