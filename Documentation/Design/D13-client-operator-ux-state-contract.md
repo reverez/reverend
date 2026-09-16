@@ -463,3 +463,89 @@ Must prove:
 ## 27. Exit Condition
 
 D13 is satisfied when client developers can implement Cloud UI without inventing state meanings, pause/cancel behavior, approval semantics, recovery presentation, cost/compute semantics, SSE reconnection, Artifact security or emergency behavior.
+
+
+---
+
+## 2026-09-16 Conversation-First Product UX Extension
+
+D13 remains the lifecycle-truth contract, but D15 clarifies the primary product experience.
+
+### Primary navigation
+
+Recommended Cloud browser navigation:
+
+~~~text
+CHAT | PROJECT | RUN | ARTIFACTS | STUDIO
+~~~
+
+The default landing experience is Chat, not an operator dashboard.
+
+### CHAT
+
+Show:
+
+- conversation list;
+- user/assistant messages;
+- attachments;
+- referenced Artifacts;
+- inline Run progress cards;
+- clarification/approval cards when relevant.
+
+Model prose is visually distinct from authoritative status projections.
+
+### PROJECT
+
+Show accepted:
+
+- BuildSpecifications;
+- requirements;
+- decisions;
+- repository identity;
+- evidence/references;
+- project settings/membership.
+
+### RUN
+
+Show:
+
+- global queue;
+- active Run owner/Project;
+- Task DAG/progress;
+- Agents/Teams;
+- checkpoint/pre-emption state;
+- verification;
+- costs/budgets.
+
+### ARTIFACTS
+
+Show:
+
+- implementation/report/test/evidence/media Artifacts;
+- lineage/provenance;
+- validation/promotion state.
+
+### STUDIO
+
+D16 media generation/editing surface.
+
+### Priority handoff UX
+
+A user raising a queued Run to higher priority sees:
+
+~~~text
+Priority requested
+→ waiting for active Run safe checkpoint
+→ checkpoint published / current Run yielded
+→ requested Run starting
+~~~
+
+Never show the queued Run as active before the server reports the transition.
+
+Where the switch can create meaningful cold-start/reprovisioning cost, disclose that fact.
+
+### Cloud-only client UX
+
+No setting may imply that the user's laptop is providing required compute.
+
+The application must remain fully functional from a newly authenticated browser with no local Reverend installation.
