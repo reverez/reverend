@@ -808,7 +808,7 @@ No public internet port.
 
 Use a dedicated database role with only required schema privileges.
 
-Migration role may be separate from runtime role later.
+Migration role is separate from the normal runtime role in Cloud v1.
 
 ---
 
@@ -1275,3 +1275,58 @@ The Secret Broker Unix socket is not mounted or permissioned into sandbox/worker
 Recovery health verifies not only replica age but also that at least one currently authorized recovery recipient can decrypt the current key envelope according to a periodic non-destructive recovery test policy.
 
 A generation with no usable key recipient is not HEALTHY even if all bytes and hashes are present.
+
+
+---
+
+## 52. Recursive Audit Cycle 5 — Database Privilege and Safety-Budget Operations
+
+### Runtime database credentials
+
+Production application uses a non-owner `reverend_app` PostgreSQL role.
+
+Schema migration uses a separate `reverend_migrator` credential available only during controlled deployment/migration.
+
+The runtime role cannot:
+
+- ALTER/DROP schema;
+- disable immutable-history triggers;
+- grant itself privileges;
+- perform unrestricted hard deletes.
+
+The previous wording that a separate migration role “may” be used is superseded: role separation is mandatory for Cloud v1.
+
+### Local PostgreSQL authentication
+
+On a single persistent host, prefer Unix-socket/peer or tightly scoped SCRAM authentication so a reusable database password need not be exposed broadly.
+
+Regardless of mechanism, sandbox/worker identities cannot authenticate as the application database role.
+
+### Safety recovery reserve
+
+Budget policy includes a small configured safety reserve separate from ordinary Run productive budget.
+
+It can pay only for trusted cleanup/reconciliation described in D5.
+
+Dashboard exposes:
+
+~~~text
+productive spend
+shared overhead
+safety recovery overrun
+reconciled actual
+~~~
+
+This keeps the hard budget meaningful without making it unsafe.
+
+### Emergency mode observability
+
+While STOP_GLOBAL/Project/Run is active, health/status distinguishes:
+
+~~~text
+productive execution blocked
+safety cleanup in progress
+safe/drained
+~~~
+
+An emergency-stop UI must not display “stopped” until required cleanup has settled.
