@@ -1315,3 +1315,226 @@ The migration programme must now include the hardening objects:
 ```
 
 Exact file boundaries may vary, but none of the entities or invariants in this section are optional.
+
+
+---
+
+## 25. Recursive Audit Cycle 2 — Lifecycle, Human Input, Worker Reconnect and Execution Provenance
+
+### 25.1 Safe cancellation states
+
+Direct `RUNNING → CANCELLED` is not sufficient for a system with non-interruptible or externally visible actions.
+
+Add Run states:
+
+~~~text
+CANCEL_REQUESTED
+CANCELLING
+~~~
+
+They consume the one-active-Run slot.
+
+Revised active-run index includes:
+
+~~~text
+STARTING
+RUNNING
+PAUSE_REQUESTED
+PAUSING
+RESUMING
+RECOVERING
+CANCEL_REQUESTED
+CANCELLING
+~~~
+
+Revised transitions:
+
+~~~text
+RUNNING → CANCEL_REQUESTED
+PAUSE_REQUESTED → CANCEL_REQUESTED
+STARTING → CANCEL_REQUESTED when execution resources/actions may already exist
+
+CANCEL_REQUESTED → CANCELLING
+CANCELLING → CANCELLED | RECOVERING | FAILED
+~~~
+
+A Run that is safely QUEUED, PAUSED, RESUME_QUEUED, AWAITING_APPROVAL, AWAITING_INPUT or RECOVERY_BLOCKED with no live Action/lease may transition directly to CANCELLED after invariant checks.
+
+### 25.2 Human clarification is not Approval
+
+Add Run state:
+
+~~~text
+AWAITING_INPUT
+~~~
+
+It does not consume the active slot.
+
+Add:
+
+```sql
+human_input_requests(
+  input_request_id UUID PRIMARY KEY,
+  run_id UUID NOT NULL REFERENCES runs(run_id),
+  task_id UUID REFERENCES tasks(task_id),
+  prompt_summary TEXT NOT NULL,
+  input_schema JSONB NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','ANSWERED','CANCELLED','EXPIRED')),
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ,
+  answered_by UUID REFERENCES users(user_id),
+  answered_at TIMESTAMPTZ,
+  answer_artifact_id UUID REFERENCES artifacts(artifact_id)
+)
+```
+
+Rules:
+
+- model-generated clarification text is a request, not authority;
+- human answer is stored as a typed Artifact or bounded authoritative input record;
+- if other Tasks remain runnable, only the requesting Task blocks;
+- Run enters AWAITING_INPUT only when no useful runnable work remains and progress requires human input;
+- ANSWERED → Run RESUME_QUEUED when the Run was in aggregate AWAITING_INPUT.
+
+### 25.3 Task blockers
+
+Add:
+
+```sql
+task_blockers(
+  task_id UUID NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+  blocker_type TEXT NOT NULL CHECK (
+    blocker_type IN ('DEPENDENCY','APPROVAL','HUMAN_INPUT','BUDGET','RECOVERY','POLICY')
+  ),
+  blocker_ref TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  cleared_at TIMESTAMPTZ,
+  PRIMARY KEY(task_id,blocker_type,blocker_ref)
+)
+```
+
+Task `BLOCKED` therefore has a durable machine-readable reason.
+
+### 25.4 Freeze Workflow/Task/Job state enums
+
+Cloud v1 uses the existing semantics with one explicit recoverability extension.
+
+~~~text
+WorkflowStatus:
+PENDING
+ACTIVE
+COMPLETE
+FAILED
+CANCELLED
+
+TaskStatus:
+PENDING
+READY
+RUNNING
+BLOCKED
+COMPLETE
+FAILED
+CANCELLED
+
+JobStatus:
+QUEUED
+ACQUIRING_RESOURCES
+RUNNING
+VERIFYING
+SUCCEEDED
+FAILED
+INTERRUPTED
+CANCELLED
+TIMED_OUT
+~~~
+
+`INTERRUPTED` means the execution attempt ended without a trustworthy terminal result and a new attempt/recovery decision may follow. It is not equivalent to FAILED.
+
+### 25.5 Stable worker identity across Control Plane restart
+
+A consumed bootstrap token cannot be the only credential for a still-running worker.
+
+Add:
+
+```sql
+worker_identities(
+  worker_identity_id UUID PRIMARY KEY,
+  node_id UUID NOT NULL UNIQUE REFERENCES compute_nodes(node_id),
+  provider TEXT NOT NULL,
+  provider_instance_id TEXT NOT NULL,
+  identity_token_hash BYTEA NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL,
+  rotated_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  UNIQUE(provider,provider_instance_id)
+)
+```
+
+Initial bootstrap exchanges the one-time bootstrap token for:
+
+- a long-lived-for-node, narrowly scoped worker identity token;
+- a short-lived runtime-epoch worker session.
+
+The worker identity token:
+
+- is stored only on that worker and hashed in PostgreSQL;
+- can obtain a fresh session after Control Plane runtime-epoch restart;
+- cannot claim another node/provider instance;
+- cannot access Projects/Secrets/provider lifecycle;
+- is revoked on drain, compromise or provider-instance termination.
+
+If the worker identity token is lost, the node is safely reprovisioned rather than bypassing authentication.
+
+### 25.6 Model invocation provenance
+
+Add:
+
+```sql
+model_invocations(
+  invocation_id UUID PRIMARY KEY,
+  run_id UUID NOT NULL REFERENCES runs(run_id),
+  task_id UUID REFERENCES tasks(task_id),
+  job_id UUID NOT NULL REFERENCES jobs(job_id),
+  agent_instance_id UUID REFERENCES agent_instances(agent_instance_id),
+  deployment_profile_id UUID REFERENCES deployment_profiles(deployment_profile_id),
+  node_id UUID REFERENCES compute_nodes(node_id),
+  context_manifest_artifact_id UUID REFERENCES artifacts(artifact_id),
+  started_at TIMESTAMPTZ NOT NULL,
+  finished_at TIMESTAMPTZ,
+  input_tokens BIGINT,
+  output_tokens BIGINT,
+  stop_reason TEXT,
+  tool_call_count INTEGER NOT NULL DEFAULT 0,
+  estimated_cost_gbp NUMERIC,
+  status TEXT NOT NULL
+)
+```
+
+ContextManifest is persisted as an immutable typed Artifact and referenced from the invocation.
+
+### 25.7 Provider lifecycle intent
+
+Provider provision/start/stop/terminate are external side effects and must be journalled.
+
+Each paid provider lifecycle operation has:
+
+- an ActionRecord before the API call;
+- a stable provider idempotency/reconciliation key where available;
+- a PowerSession or provider-instance correlation record;
+- provider tags containing Reverend instance/action identity where supported.
+
+A crash after provider creation but before local result persistence must reconcile provider inventory before another paid instance is created.
+
+### 25.8 Blob garbage-collection safety
+
+Blob GC is mark-and-sweep with a grace period.
+
+Roots include:
+
+- all live Artifact content refs;
+- all complete retained checkpoints;
+- all retained RecoveryGenerations;
+- active backup manifests;
+- in-progress upload publication records.
+
+GC cannot delete an object merely because one transaction has not yet published its reference. Temporary/unpublished objects use a separate namespace or minimum-age grace window.
