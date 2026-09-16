@@ -839,3 +839,59 @@ Application interception remains useful for provenance and early rejection, but 
 Document parsers run with network disabled.
 
 Frontend test browser uses a different allowlist limited to the ephemeral test target and explicitly required resources.
+
+
+---
+
+## 30. Recursive Capability Audit — Authenticated Sources, Artifacts & Retention
+
+### Authenticated/private research providers
+
+A future GitHub/Hugging Face/enterprise source adapter may access non-public material, but private access is a separate capability from public research.
+
+Requirements:
+
+~~~text
+provider mode = PUBLIC or AUTHENTICATED_PROJECT
+credential scope explicitly configured
+Project/user authorization checked
+SourceRecord access_partition non-PUBLIC
+outbound target pinned to provider
+retrieved material inherits Project/private sensitivity
+~~~
+
+Research Fabric must never borrow the immutable Run owner's GitHub credential merely because it exists.
+
+A private repository is normally understood through Repository Intelligence after an authorized clone. Using a personal GitHub API credential for additional private research requires an explicit provider capability/policy.
+
+### Browser/download Artifacts
+
+Screenshots, traces, HAR-like data, DOM snapshots and downloads inherit sensitivity from:
+
+- Project/TestEndpoint;
+- page/source access partition;
+- input credentials;
+- captured content.
+
+Browser outputs are **not public merely because the browser technology is generic**.
+
+Before retention:
+
+- cap size/duration;
+- remove known credential/header/cookie fields from traces;
+- validate downloaded media/file type;
+- store retained outputs as sensitivity-labelled Artifacts;
+- keep temporary browser profile/download state disposable.
+
+### Source retention and licensing
+
+SourceSnapshot metadata/provenance may be retained independently from full content.
+
+Full source bytes/text retention follows:
+
+- evidence/reproducibility need;
+- source/provider licensing/terms;
+- configured retention policy;
+- minimum necessary excerpt/snapshot strategy when indefinite full-copy retention is inappropriate.
+
+Reverend does not use the Source Cache as an unbounded mirror of the web.
