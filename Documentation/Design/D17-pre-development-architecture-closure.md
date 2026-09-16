@@ -453,3 +453,22 @@ Before C0 begins:
 Development may enter C0 when documentation reflects D10–D17 consistently and a final documentation/CI pass finds no known unresolved Cloud-v1-blocking architecture contradiction.
 
 This means **zero known blockers after repeated review**, not a claim that implementation can never reveal another defect.
+
+
+---
+
+## 14. Capability Modernization Recursive Audit Findings
+
+A fresh pass over D10–D16 identified and closed the following design gaps before Development:
+
+1. **Search-query exfiltration:** private repository facts could leak through externally submitted queries. D11/D15 now require QueryDisclosurePolicy.
+2. **Browser subresource SSRF:** protecting only top-level URLs is insufficient. Browser policy now covers every subresource, redirect, WebSocket and service worker.
+3. **Private source-cache cross-scope reuse:** canonical URL alone is not a safe cache key for future authenticated providers. Source cache now has access partitions.
+4. **Tree-sitter/LSP supply chain:** repository-defined parser/server plugins could become code execution. Only pinned Reverend-approved adapters are permitted.
+5. **Vector index isolation:** filtering unauthorized Project results after global ranking is insufficient. Project scope is applied before ranking.
+6. **Community-worker model credentials:** private model registry tokens must not be placed on lower-trust workers. Use public artifacts, pre-stage, short-lived object capabilities or stronger trust.
+7. **Warm-volume contamination:** provider-local cache reuse may carry stale Project data. Warm storage is cache-only, validated and not a workspace authority.
+8. **Model baseline fit assumption:** the accepted A100/Qwen/64K profile remains a target until C7 live fit/throughput validation promotes it.
+9. **Evidence/cache retention confusion:** durable source snapshots referenced by evidence are protected from ordinary cache GC.
+
+After these patches, these issues are no longer open architecture blockers.
