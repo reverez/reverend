@@ -915,7 +915,7 @@ A remote action that requires this barrier must remain BLOCKED if no required du
 
 ## 30. Capability Modernization Package Boundaries
 
-__D20__–D21 add logical capability services. Preserve the modular-monolith principle: introduce package boundaries before introducing network service boundaries.
+D15–D21 add logical capability services. Preserve the modular-monolith principle: introduce package boundaries before introducing network service boundaries.
 
 Recommended target packages:
 
