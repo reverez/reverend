@@ -94,6 +94,7 @@ A8 freezes the following Cloud v1 direction:
 12. Recovery clients are authenticated devices and store only encrypted recovery material.
 13. emergency controls have Run, Project and Global scopes.
 14. all privileged actions are attributable through immutable audit events.
+15. remote execution providers are trust-classified; the selected RunPod Community Cloud worker is lower-assurance than dedicated/single-tenant infrastructure and receives only task-scoped data/authority.
 
 ## Human identity
 
@@ -561,6 +562,51 @@ expiry
 
 A compromised worker must not automatically gain control-plane administration authority.
 
+## Community Cloud worker trust class
+
+Cloud v1 intentionally selects RunPod Community Cloud for the baseline GPU worker.
+
+That is an explicit cost/trust trade-off, not an assertion that Community Cloud is equivalent to dedicated infrastructure.
+
+RunPod currently describes Community Cloud as cost-effective shared-host capacity with software/container isolation, while recommending Secure Cloud/dedicated hardware for highly sensitive workloads. Reverend therefore models the baseline worker as:
+
+```text
+COMMUNITY_CLOUD_WORKER
+trust:
+  lower infrastructure assurance than dedicated/single-tenant workers
+authority:
+  task-scoped only
+durability:
+  disposable
+secrets:
+  none beyond short-lived worker/service credentials required for the bounded operation
+```
+
+A Community worker may receive only the minimum task-scoped material required for execution, for example:
+
+- the active Run/task workspace or bounded repository snapshot;
+- compiled model/context input;
+- temporary artifacts required by the Job;
+- opaque identifiers and short-lived worker capabilities.
+
+A Community worker must not receive:
+
+- GitHub PATs/OAuth credentials;
+- RunPod/provider lifecycle API keys;
+- PostgreSQL/control-plane database credentials;
+- server secret-encryption/master keys;
+- recovery private keys;
+- unrelated Project/Run data;
+- persistent administrator/service credentials.
+
+Privileged external actions such as GitHub push, merge, provider lifecycle control and secret-backed integrations remain mediated by trusted Control Plane services.
+
+Because Community workers may share physical host infrastructure with other customers, Reverend accepts increased noisy-neighbour and host/side-channel risk relative to a dedicated deployment class. The worker remains disposable and non-authoritative so availability loss or worker compromise does not create workflow or credential authority.
+
+Projects containing highly sensitive, regulated, export-controlled or otherwise policy-restricted material may require a stronger deployment trust class, such as dedicated/single-tenant infrastructure, before GPU execution is admitted.
+
+The selected trust class is an explicit deployment/project policy input to A6 placement. A lower-assurance node cannot satisfy a Job whose `trust_requirement` demands stronger infrastructure.
+
 ## Model trust boundary
 
 Models are untrusted decision components with bounded capabilities.
@@ -756,7 +802,10 @@ A8 analysis is complete when all of the following are unambiguous:
 14. emergency control has run/project/global scope;
 15. privileged events are attributable without recording secret values;
 16. approvals bind to a stable action fingerprint and cannot be reused for a changed action;
-17. approving records authority but does not directly execute the privileged action or bypass fresh scheduling/policy validation.
+17. approving records authority but does not directly execute the privileged action or bypass fresh scheduling/policy validation;
+18. Community Cloud workers are explicitly lower-assurance, task-scoped and disposable;
+19. Community workers never receive long-lived GitHub/provider/control-plane/master-key authority;
+20. Jobs requiring stronger infrastructure trust cannot be placed on Community workers.
 
 ## Frozen A8 invariant
 
