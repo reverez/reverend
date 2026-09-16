@@ -1672,3 +1672,51 @@ Authority services have reserved headroom.
 If derived/reconstructible services pressure that reserve, move them to a CPU service/worker before upsizing or co-locating further workload.
 
 Operational acceptance includes a sustained-load test proving API/PostgreSQL/recovery remain responsive during research/index/build activity.
+
+
+---
+
+## 62. Background Work & Artifact Retention Operations
+
+Cloud v1 background execution is divided cleanly.
+
+### Allowed system housekeeping
+
+~~~text
+backup / restore verification
+recovery replication
+provider inventory reconciliation
+cost reconciliation
+session/credential cleanup
+health probes
+cache garbage collection
+derived-index cleanup
+security update checks
+~~~
+
+### Not autonomous background work
+
+~~~text
+web research
+Project replanning
+Memory promotion
+repository mutation
+new model experiments
+Agent Team execution
+~~~
+
+Those require a Run/benchmark Run or explicit administrative operation.
+
+This avoids unowned spend and hidden state mutation.
+
+### Browser/source Artifact quotas
+
+Operations track and quota:
+
+- retained SourceSnapshot bytes;
+- screenshots;
+- videos/traces;
+- downloaded documents;
+- temporary browser cache.
+
+Sanitized retained test/research Artifacts follow Project retention policy. Disposable browser state is cleaned at Job/worker termination.
