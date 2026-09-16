@@ -1133,3 +1133,17 @@ Mandatory tests:
 - migration activates durable maintenance/inhibitor state;
 - full disaster restore revokes all restored human sessions before API readiness;
 - recovered external credential is revalidated/fails closed if provider rejects it.
+
+
+---
+
+## 42. Recursive Audit Cycle 8 — Replay-Ordering Tests
+
+Mandatory PostgreSQL concurrency tests:
+
+- Event transaction A obtains the next cursor and pauses before commit;
+- Event transaction B cannot publish a higher cursor that becomes replay-visible first;
+- rollback of A does not leave an authoritative advanced cursor;
+- SSE reconnect after concurrent Event writes returns every authorized Event exactly once or at-least-once according to client application semantics, never silently missing one due to allocation order;
+- per-Run Action Journal watermark cannot advance past an uncommitted earlier Action;
+- checkpoint recovery scans every committed post-watermark Action.
