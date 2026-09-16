@@ -57,8 +57,8 @@ MR_ASSURE["ASSURANCE"]:::model
 MR_VISION["VISION"]:::model
 MR_EMBED["EMBEDDING"]:::model
 MR_RERANK["RERANKING"]:::model
-MR_MEDIA["MEDIA_GENERATION"]:::model
-MR_MAX["MAX_QUALITY_ESCALATION"]:::model
+MR_MEDIA["MEDIA_GENERATION / MEDIA_EDIT"]:::model
+MR_MAX["FUTURE_EXTERNAL_ESCALATION<br/>not configured in Cloud v1"]:::external
 end
 
 MREQ --> MREG --> MPROF --> DPROF --> MROUTER
@@ -67,7 +67,8 @@ MREQ --> MREG --> MPROF --> DPROF --> MROUTER
 BASEMODEL["Cloud v1 baseline profile<br/>Qwen/Qwen3.8-27B<br/>vLLM • A100 SXM 80 GB • 64K context<br/>RunPod Community Cloud"]:::model
 COSTDOWN["Cost-down benchmark profile<br/>RTX A6000 48 GB + validated quantized Qwen<br/>or North Mini Code / Nemotron candidate"]:::model
 PREMIUM["Premium/headroom profile<br/>RTX Pro 6000 96 GB when benchmarked value exists"]:::model
-EXTMODEL["Optional external API profile<br/>EXTERNAL_API trust<br/>policy-permitted non-sensitive context only"]:::external
+MEDIAMODEL["Media candidate profile<br/>FLUX.2 klein 4B-class<br/>benchmark before eligibility"]:::model
+EXTMODEL["External API DeploymentProfile<br/>future extension only<br/><b>Cloud v1: none configured / no automatic routing</b>"]:::external
 
 
 VLLM["InferenceRuntime: vLLM<br/>worker-local/private<br/>health • profiles • ensure_loaded • generate • stream • cancel • metrics"]:::model
@@ -77,6 +78,7 @@ SGLANG["InferenceRuntime: SGLang<br/>future interchangeable adapter"]:::model
 BASEMODEL --> VLLM
 COSTDOWN --> VLLM
 PREMIUM --> VLLM
+MEDIAMODEL --> MEDIAWORK["Elastic media GPU worker<br/>independent scale-to-zero"]:::compute
 MPROF --> OLLAMA
 MPROF --> SGLANG
 
