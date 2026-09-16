@@ -17,7 +17,7 @@ the transfer remained below the authorized 15 GB ceiling. A timed-out range was 
 from the retained partial file and the complete hash verified before activation.
 
 The origin is official Kiwix; the final mirror was selected by Kiwix's own redirect service.
-[Recorded provenance](m9-reference-provenance.json) includes acquisition time, origin/mirror,
+[Recorded provenance](reference-provenance.json) includes acquisition time, origin/mirror,
 provider digest, actual ZIM metadata, UUID and indexes. The archive has no License metadata key;
 its actual article footer supplies the attribution/license notice and links. Those are retained
 per article, with a recorded provenance sample. No license text was invented.
