@@ -706,3 +706,206 @@ D0 is satisfied when Development can implement C0 without asking:
 - which state is authoritative;
 - how large blobs are stored;
 - how local compatibility remains available.
+
+
+---
+
+## 24. Recursive Architecture Hardening — Privilege Separation and Referential Integrity
+
+The pre-development architecture audit found two boundaries that were too implicit. The following rules are **mandatory Cloud v1 constraints** and supersede any looser interpretation elsewhere in D0–D9.
+
+### Secret Broker is a privilege boundary
+
+The Control Plane remains a modular monolith for normal application logic, but the **secret-encryption master key must not be readable by the general Reverend application process**.
+
+Cloud v1 therefore uses a minimal local privilege-separated Secret Broker helper:
+
+~~~text
+Reverend application process
+        ↓ authenticated local IPC
+Secret Broker helper
+        ↓
+protected master-key material
+~~~
+
+Requirements:
+
+- run under a distinct OS identity or equivalently isolated credential boundary;
+- communicate over a root-owned Unix-domain socket or equivalent local authenticated IPC;
+- expose only bounded operations such as resolve-for-action/create/rotate/revoke/metadata;
+- never expose the master key;
+- return plaintext secret material only to an explicitly authorized trusted adapter invocation and only for the lifetime of that bounded action;
+- never expose the socket to sandboxes, workers, models, browser clients or GPU containers.
+
+This is a deliberate exception to the modular-monolith-first rule because Python module boundaries are not security boundaries.
+
+### Database integrity must back application integrity
+
+Where two identifiers must describe the same Project/Run/Task/owner, Development must enforce that relationship with one of:
+
+1. an explicit foreign/composite key;
+2. a PostgreSQL constraint trigger;
+3. a transaction-scoped validation performed while all relevant rows are locked.
+
+Application convention alone is insufficient for cross-authority security invariants.
+
+Examples include:
+
+- Run owner must be a Project member;
+- Run GitHubIdentity must belong to the immutable Run owner;
+- Task dependencies must stay in the same Workflow;
+- Agent/Team membership must stay in the same Run;
+- Artifact-parent relationships must satisfy Project isolation;
+- active ResourceLeases must be unique and capacity-safe.
+
+### Hard-delete policy
+
+Authoritative Run/Workflow/Task/Job/Artifact/Approval/Action/Cost history is soft-retained. The normal application database role receives no general-purpose DELETE privilege over audit-critical lineage tables. Retention/GC runs through explicit maintenance procedures that first prove no active recovery, provenance or audit reference depends on the rows or blobs.
+
+### Pre-emption lineage
+
+MAX_PREEMPTION_DEPTH=1 must be represented by durable Run lineage, not inferred only from queue order. D1 defines the canonical `preempts_run_id` relationship.
+
+
+---
+
+## 25. Recursive Audit Cycle 6 — Leader Fencing and Typed Durable Events
+
+### Advisory-lock connection semantics
+
+PostgreSQL session advisory locks are held on **dedicated long-lived database connections** owned by each active controller.
+
+Rules:
+
+- do not acquire a leadership lock on a pooled connection that may be returned to the pool;
+- loss of the lock connection immediately cancels/stops that controller loop;
+- a controller re-enters active mode only after obtaining a fresh lock;
+- external effects initiated by controllers still use D5 Action Journal/provider reconciliation because an external call can race connection loss.
+
+LISTEN/NOTIFY uses a similarly restartable dedicated listener connection; on reconnect, consumers resume from durable Event sequence rather than trusting missed notifications.
+
+### Typed Event construction
+
+The generic `events.payload JSONB` column does not authorize arbitrary payload persistence.
+
+Every production Event type has a versioned presentation/audit schema.
+
+Event builders accept allowlisted structured fields and references, not raw:
+
+- model prompts/responses;
+- tool stdout/stderr;
+- environment maps;
+- request headers;
+- secret-bearing adapter responses.
+
+Redaction remains defence in depth; schema minimization is the primary control.
+
+SSE uses an additional presentation projection so an internal audit Event cannot become client-visible merely because it exists in the Event table.
+
+
+---
+
+## 26. Recursive Audit Cycle 8 — Commit-Ordered Durable Cursors
+
+PostgreSQL identity/sequence values are **not commit ordered**. Two concurrent transactions can allocate sequence 41 and 42, commit 42 first, and cause a naïve `sequence > cursor` consumer to skip 41 forever after advancing to 42.
+
+Therefore any sequence used as a durable replay/high-water cursor must be allocated under transactional serialization that is held until commit.
+
+This applies to:
+
+- global Event replay sequence used by SSE;
+- per-Run Action Journal watermark used by checkpoints/recovery.
+
+Ordinary object IDs/counters that are not replay cursors may still use PostgreSQL identity sequences.
+
+D1 defines the concrete cursor counters.
+
+LISTEN/NOTIFY remains a wake-up only; consumers always replay from commit-safe durable cursors.
+
+
+---
+
+## 27. Recursive Audit Cycle 9 — Transaction Lock Ordering and Idempotent Command Admission
+
+### Canonical lock ordering
+
+To reduce deadlocks in transactions that combine domain state, Action cursors and Event cursors, Cloud v1 uses a consistent lock order:
+
+~~~text
+1. primary aggregate row (normally Run / Project)
+2. subordinate domain rows in deterministic table + UUID order
+3. per-Run Action sequence row when needed
+4. global Event sequence row
+5. append records / commit
+~~~
+
+No code path intentionally acquires the Event counter first and later waits for a Run/Task row.
+
+PostgreSQL deadlocks are still treated as possible operational failures; transaction services may perform bounded safe retries only before any external side effect.
+
+### Command idempotency is reserved before execution
+
+A mutating HTTP command does not “check idempotency, do work, then insert a record”.
+
+It atomically reserves/locks the idempotency key before creating the authoritative command/resource.
+
+Concurrent requests with the same key therefore converge on one command outcome rather than racing duplicate creation.
+
+D1/D2 define the record state and behavior.
+
+
+---
+
+## 28. Recursive Audit Cycle 10 — System-Scoped Side-Effect Journal
+
+The Action Journal is not only a Run journal.
+
+Trusted control services can perform recoverable external effects with no active Run:
+
+- provider idle stop/terminate;
+- database/off-host backup upload;
+- recovery replication;
+- secret/key rotation;
+- infrastructure maintenance.
+
+Therefore Cloud v1 has one **global Action Journal** with optional Run/Project scope, plus a per-Run sequence for checkpoint convenience.
+
+Commit-safe cursor rules:
+
+~~~text
+global Action cursor
+  all ActionRecords
+  used by RecoveryGeneration/system recovery
+
+per-Run Action cursor
+  only Run-scoped ActionRecords
+  used by RunCheckpoint
+~~~
+
+Both use D1 transactional counters, not raw PostgreSQL identity allocation.
+
+
+---
+
+## 29. Recursive Audit Cycle 12 — Off-Host Write-Ahead Safety Barrier
+
+The recursive audit found a catastrophic-host-loss gap in the original durability model.
+
+Writing an ActionRecord before an external side effect protects against **process/worker failure**, but not against complete loss of the persistent Control Plane host when the latest off-host RecoveryGeneration predates that Action. Restoring an older generation could otherwise forget that a Git push/provider mutation/deployment was attempted and repeat it.
+
+Cloud v1 therefore adds a **small off-host write-ahead safety barrier** for external side effects whose duplication or loss of reconciliation intent is unsafe.
+
+Canonical rule:
+
+~~~text
+persist ActionRecord PLANNED locally
+→ build authenticated RecoveryActionIntent
+→ durably ACK intent on required off-host recovery target
+→ only then perform the external side effect
+~~~
+
+This is not a full checkpoint/RecoveryGeneration on every action. It is a compact recovery-journal delta containing only the minimum identifiers and reconciliation metadata needed to prevent blind replay after host disaster.
+
+D5/D1 define the exact semantics.
+
+A remote action that requires this barrier must remain BLOCKED if no required durable target is available. Availability must never silently weaken durability policy.

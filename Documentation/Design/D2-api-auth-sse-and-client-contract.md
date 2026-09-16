@@ -789,3 +789,276 @@ Development must prove:
 ## 29. Exit Condition
 
 Frontend and backend can be developed independently once /api/v1 schemas, authentication/session behavior, lifecycle commands, idempotency, authorization, and SSE v1 are represented in executable contract tests.
+
+
+---
+
+## 29. Recursive Architecture Hardening — Authentication, Replay and Mutation Safety
+
+These requirements close ambiguities identified during the pre-development recursive review.
+
+### Credential-backed login identity
+
+The `username` accepted by `POST /api/v1/auth/login` is backed by the D1 `auth_credentials` record. `users.display_name` is presentation only and is never a login identifier.
+
+Rules:
+
+- normalized login names are unique;
+- Argon2id hashes are stored only in `auth_credentials.secret_hash`;
+- disabled/revoked credentials fail closed;
+- successful login always creates fresh session material;
+- credential rotation invalidates sessions according to policy.
+
+### Login abuse controls
+
+Even on the private network, password login is rate limited.
+
+Initial policy must provide:
+
+- per-login-name exponential backoff;
+- coarse source/device throttling;
+- constant-shape authentication failure responses that do not reveal whether a login exists;
+- durable security/audit events for repeated failures without logging submitted passwords.
+
+The exact thresholds are configuration, not model-controlled values.
+
+### SSE authorization and cursor semantics
+
+`Last-Event-ID` is a global durable sequence cursor, not proof of authorization.
+
+For every replay and live Event:
+
+1. authenticate the session;
+2. evaluate current visibility for the referenced Project/Run;
+3. omit unauthorized payloads;
+4. still advance the internal global cursor over invisible Events;
+5. emit only authorized presentation-safe Events.
+
+A client may not infer or retrieve another Project's Event payload by supplying an arbitrary sequence.
+
+### Idempotency storage restrictions
+
+Idempotency records may persist only bounded, non-secret response representations.
+
+Never persist in `idempotency_records.response_body`:
+
+- session or bearer tokens;
+- CSRF secrets;
+- credentials;
+- raw secret values;
+- recovery keys.
+
+Authentication/token issuance endpoints use dedicated replay-safe semantics rather than generic response-body idempotency caching.
+
+### Optimistic concurrency
+
+Mutable Project/Run policy endpoints must support an expected version/ETag equivalent once exposed. A stale client update returns conflict rather than silently overwriting a newer human or scheduler decision.
+
+
+---
+
+## 30. Recursive Audit Cycle 2 — Human Input, Rendering and Cross-Origin Safety
+
+### Human input endpoints
+
+Clarification is distinct from Approval.
+
+Cloud v1 exposes:
+
+~~~text
+GET  /api/v1/input-requests
+GET  /api/v1/input-requests/{input_request_id}
+POST /api/v1/input-requests/{input_request_id}/answer
+POST /api/v1/input-requests/{input_request_id}/cancel
+~~~
+
+Answers are authenticated, authorized and idempotent.
+
+A Run that was globally `AWAITING_INPUT` transitions to `RESUME_QUEUED` after the required input is durably accepted. If other Tasks were still running, only the blocked Task is unblocked.
+
+### Safe cancellation contract
+
+`POST /api/v1/runs/{run_id}/cancel` does not immediately present a running Run as terminal.
+
+For active execution it returns 202 and transitions through:
+
+~~~text
+CANCEL_REQUESTED
+→ CANCELLING
+→ CANCELLED
+~~~
+
+The API exposes the intermediate states so the UI does not falsely imply that external effects/resources have already settled.
+
+### Artifact rendering boundary
+
+Artifact content is untrusted by default.
+
+Browser behavior:
+
+- plain text/code/JSON render through escaped text components;
+- HTML/SVG or other active formats are downloaded or rendered only in a sandboxed, separate-origin/no-credential preview;
+- no Artifact may execute script in the Reverend application origin;
+- Content-Type and Content-Disposition are server-controlled from validated media metadata, never copied blindly from model output;
+- `X-Content-Type-Options: nosniff` remains mandatory.
+
+### Cross-origin policy
+
+Cloud v1 browser UI is same-origin by default.
+
+CORS is disabled unless an explicit allowlist is configured. If a future IDE/web origin is allowed:
+
+- wildcard origins are prohibited for credentialed requests;
+- allowed methods/headers are minimal;
+- CSRF/session rules remain in force;
+- Origin validation remains explicit.
+
+### Cursor pagination consistency
+
+Collection cursors are opaque server tokens bound to:
+
+~~~text
+resource type
+authorized principal/scope
+stable sort key
+filter hash
+expiry/version
+~~~
+
+Clients cannot alter a cursor to widen Project visibility or change filters silently.
+
+
+---
+
+## 31. Recursive Audit Cycle 5 — Run-Control Authorization Matrix
+
+Project visibility does not imply authority to control another user's Run.
+
+Default Cloud v1 authorization:
+
+| Operation | Default authority |
+|---|---|
+| read shared Project/Run state | Project member |
+| create Run | authenticated active Project member; resulting owner = caller |
+| pause own Run | Run owner |
+| resume own Run | Run owner |
+| run-now own Run | Run owner |
+| cancel own Run | Run owner |
+| answer scope/clarification input | Run owner unless request policy explicitly delegates |
+| approve owner-scoped personal credential use | Run owner |
+| emergency stop a Project/Run | authorized Project owner/system admin according to D6 |
+| resume/run-now someone else's Run under their identity/cost | deny by default |
+| mutate queue priority | system policy/admin only |
+
+A Project owner may stop another user's Run for safety, but does not thereby gain authority to resume it under that user's credentials or budget.
+
+### Queue-abuse controls
+
+The API enforces:
+
+- bounded queued Runs per user;
+- idempotent run-now requests;
+- run-now throttling;
+- conflict when another RESUME_NEXT pre-emption chain already has priority unless emergency policy explicitly overrides.
+
+These controls prevent one client from indefinitely leapfrogging the other through repeated pre-emption commands.
+
+
+---
+
+## 32. Recursive Audit Cycle 6 — Long-Lived Stream Revocation
+
+SSE authentication is not checked only once at connection establishment.
+
+For a long-lived stream, the server periodically and on relevant authorization-change Events revalidates:
+
+- session unexpired/unrevoked;
+- user enabled;
+- Project membership still active;
+- Event visibility.
+
+If the session/user is revoked, the stream closes promptly.
+
+If membership for one Project is revoked, subsequent Events for that Project are filtered immediately.
+
+SSE heartbeat frames contain no sensitive payload and do not extend session expiry unless the explicit session policy says so.
+
+
+---
+
+## 33. Recursive Audit Cycle 7 — Administrative and Policy Control Surface
+
+Cloud v1 administrative endpoints are explicit and narrowly authorized.
+
+Conceptual minimum:
+
+~~~text
+GET  /api/v1/projects/{project_id}/policy
+PUT  /api/v1/projects/{project_id}/policy
+
+GET  /api/v1/system/controls
+POST /api/v1/system/emergency/stop-global
+POST /api/v1/system/emergency/clear-global
+
+POST /api/v1/projects/{project_id}/emergency/stop
+POST /api/v1/projects/{project_id}/emergency/clear
+
+POST /api/v1/runs/{run_id}/emergency/stop
+~~~
+
+Policy update requires:
+
+- Project owner or stronger configured authority;
+- optimistic concurrency / expected active policy version;
+- creation of a new immutable policy version;
+- durable audit Event.
+
+Global emergency clear requires SYSTEM_ADMIN.
+
+A viewer cannot clear an emergency control merely because they can read the affected Project.
+
+### Disaster-restore session behavior
+
+After restoring the authoritative database from an off-host RecoveryGeneration, all restored human `auth_sessions` are revoked before public API readiness.
+
+Users reauthenticate.
+
+This prevents a stale pre-disaster session token from regaining authority after a rollback to an older recovery point.
+
+
+---
+
+## 34. Recursive Audit Cycle 8 — SSE Cursor Correctness
+
+`Last-Event-ID` refers only to D1's **commit-ordered Event sequence**.
+
+The SSE implementation must never use a raw PostgreSQL `SERIAL/IDENTITY` allocation as proof of commit order.
+
+Replay algorithm:
+
+1. read Events with commit-safe `sequence > cursor` in ascending sequence;
+2. apply authorization filtering;
+3. keep a server-side scanned cursor through invisible Events;
+4. emit visible Events in sequence order;
+5. switch to LISTEN/NOTIFY-assisted polling;
+6. after any reconnect/notification loss, resume from durable sequence queries.
+
+Concurrency tests must create overlapping Event transactions and prove no late-committing Event is skipped.
+
+
+---
+
+## 35. Recursive Audit Cycle 9 — Concurrent Idempotency Semantics
+
+For idempotent mutations, the server reserves the `Idempotency-Key` before the authoritative command is admitted.
+
+Concurrent same-key requests:
+
+- same request hash → receive the same resource/command outcome or an explicit “operation in progress” representation;
+- different request hash → 409 `idempotency_conflict`.
+
+A client timeout after request admission can safely retry the same key.
+
+The server does not execute the mutation twice merely because the first HTTP response was lost.
+
+Idempotency records are retained at least through the maximum supported client retry/recovery horizon for the operation class.

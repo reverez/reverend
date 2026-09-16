@@ -857,3 +857,92 @@ Must prove:
 ## 38. Exit Condition
 
 C4 is ready when a Task can be assigned to a versioned Specialist, run as AgentInstance, receive bounded context, invoke an eligible model through an abstract router, use mediated tools, produce typed Artifacts/control signals, and participate in a bounded Team without becoming a second workflow authority.
+
+
+---
+
+## 39. Recursive Audit Cycle 2 — Context Isolation, Human Blocking and Mutation Enforcement
+
+### Clarification lifecycle
+
+`ClarificationRequest` creates a D1 `human_input_requests` record and a Task blocker.
+
+It is not represented as Approval.
+
+If useful independent Tasks remain ready, the Run may continue while the requesting Task is BLOCKED. The Run enters `AWAITING_INPUT` only when clarification is the aggregate reason no useful work can proceed.
+
+### Project-scoped memory is the default
+
+Automatic Memory promotion defaults to `PROJECT` scope.
+
+`USER` or `GLOBAL` promotion requires explicit policy and stronger validation because it can affect unrelated Projects.
+
+Context Broker must never retrieve:
+
+- another Project's Project-scoped Memory;
+- another user's User-scoped Memory;
+- Global Memory that current policy has not admitted.
+
+Semantic similarity cannot override scope authorization.
+
+### External content remains untrusted data
+
+Research pages, repository comments/issues, dependency metadata and other externally supplied text retain trust labels through ContextItem and ContextManifest.
+
+The Context Compiler places untrusted content below system/authority instructions and marks it as data. Instructions found inside such content do not gain tool or policy authority.
+
+### ContextManifest durability
+
+Every model invocation references an immutable `ContextManifest` Artifact.
+
+The manifest records source refs/hashes and transformations, but not hidden chain-of-thought.
+
+This closes the provenance chain:
+
+~~~text
+Task
+→ AgentInstance
+→ Job
+→ ContextManifest Artifact
+→ model invocation
+→ output Artifact
+~~~
+
+### MutationScope is enforced, not advisory
+
+A model/Agent may propose a MutationScope, but trusted orchestration normalizes it.
+
+Every mutating filesystem/Git tool validates the actual target path/ref against the effective MutationScope before change.
+
+After implementation, the produced diff is checked again against the scope.
+
+Out-of-scope mutation:
+
+- fails the tool/Task;
+- creates a policy/security Event;
+- cannot be accepted merely because tests pass.
+
+### Parallel Team blocking
+
+A single Team member entering Approval/Human-input wait does not automatically suspend unrelated members.
+
+Team completion policy decides whether remaining members can proceed; the top-level Run only enters an aggregate zero-compute waiting state when no useful admitted work remains.
+
+
+---
+
+## 40. Recursive Audit Cycle 6 — Sensitivity Propagation
+
+Context trust is computed from durable source sensitivity plus execution destination trust.
+
+Rules:
+
+1. Project repository slices inherit the Project disclosure policy.
+2. Artifact-derived ContextItems inherit `Artifact.sensitivity_label`.
+3. Summaries/compressions inherit the strongest sensitivity of their source set.
+4. Combining PUBLIC and RESTRICTED material produces RESTRICTED output unless trusted declassification explicitly proves otherwise.
+5. Memory promotion preserves sensitivity/provenance.
+6. Semantic retrieval cannot downgrade a label.
+7. If mandatory context is too sensitive for an otherwise eligible DeploymentProfile/worker, the Router/Compute Scheduler rejects that destination rather than silently omitting mandatory context.
+
+External/untrusted content trust labels and confidentiality sensitivity are separate dimensions and both are preserved.

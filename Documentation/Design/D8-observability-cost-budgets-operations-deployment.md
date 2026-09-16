@@ -619,7 +619,7 @@ Process/event loop alive.
 
 - PostgreSQL reachable;
 - migrations supported;
-- Secret Broker key available;
+- Secret Broker service healthy/reachable;
 - no unresolved global recovery gate;
 - scheduler/recovery service state valid.
 
@@ -808,7 +808,7 @@ No public internet port.
 
 Use a dedicated database role with only required schema privileges.
 
-Migration role may be separate from runtime role later.
+Migration role is separate from the normal runtime role in Cloud v1.
 
 ---
 
@@ -1055,3 +1055,483 @@ Must prove:
 ## 47. Exit Condition
 
 C8 is ready when operators can observe identity-to-cost lineage for a Run, enforce budgets safely, recover/backup authoritative state, operate the persistent host without exposing worker/model internals publicly, and distinguish estimated from provider-reconciled cost.
+
+
+---
+
+## 48. Recursive Architecture Hardening — Durable Economics and Recovery Operations
+
+### PowerSession and ComputeLeaseUsage are mandatory
+
+The ambiguity in Section 9 is resolved: Cloud v1 persists both `PowerSession` and `ComputeLeaseUsage` as first-class D1 records.
+
+They are not optional projections because provider reconciliation and owner attribution require stable lifecycle identities.
+
+### Budget reservations are durable
+
+The Section 21 reservation is implemented with D1 `budget_reservations`.
+
+Reservation creation is transactional with paid-operation admission.
+
+A crash cannot leave unbounded phantom reservations:
+
+- ACTIVE reservations have explicit expiry;
+- startup reconciliation releases/settles expired reservations only after checking related Job/lease/provider state;
+- settlement references immutable CostEvents.
+
+### Cost reconciliation is idempotent
+
+Every provider-derived CostEvent uses a stable `external_event_key` or deterministic reconciliation key.
+
+Repeated provider polling with the same billable event therefore returns the existing ledger effect rather than appending another charge.
+
+Corrections remain compensating immutable events.
+
+### Off-host recovery freshness target
+
+Nightly database backup alone is not sufficient for the accepted durability goal.
+
+Initial Cloud v1 recovery policy:
+
+~~~text
+RecoveryGeneration target age <= 15 minutes while authoritative state is changing
++
+immediate generation after a high-value safe boundary when practical:
+  Run pause
+  approval wait
+  high-level Task completion
+  protected external side effect
+  planned Control Plane shutdown
+~~~
+
+Implementation may optimize with incremental/WAL-aware techniques later, but user-visible recovery health is measured against the effective off-host acknowledged generation age.
+
+If no authorized recovery peer/object target acknowledges within the target:
+
+- system remains operational;
+- recovery health becomes DEGRADED;
+- operator/UI receives an alert;
+- planned authoritative-host shutdown remains inhibited.
+
+### Backup independence
+
+A local backup on the persistent host is not counted as off-host disaster recovery.
+
+At least one acknowledged encrypted off-host copy is required to claim healthy control-host disaster recovery.
+
+### Billing uncertainty
+
+When provider actual usage is not yet available, the UI and APIs must distinguish:
+
+~~~text
+estimated
+provisional
+reconciled_actual
+~~~
+
+A provisional value must never be presented as final actual spend.
+
+### Disk-exhaustion protection
+
+The persistent host reserves minimum free space for PostgreSQL/WAL and critical recovery writes.
+
+Workspace, model cache, logs and BlobStore growth are subject to quotas/GC thresholds that stop non-critical work before the authority store can be starved of disk.
+
+### Time and monotonic measurement
+
+Wall-clock timestamps are authoritative for durable audit/billing records.
+
+Process duration measurements use a monotonic clock and are converted into durable duration fields; elapsed-time calculations must not rely on wall-clock subtraction across clock adjustments.
+
+
+---
+
+## 49. Recursive Audit Cycle 2 — Provider-Cost Leakage, GC Safety and Recovery Health
+
+### Provider lifecycle cost safety
+
+Provider provision/start/stop/terminate operations are Action-Journalled charge-bearing operations.
+
+Before provisioning:
+
+- create provider ActionRecord intent;
+- create/associate PowerSession;
+- reserve budget;
+- attach Reverend reconciliation tags/idempotency metadata where the provider permits.
+
+After crash/restart, Capacity Controller reconciles provider inventory before creating replacement capacity.
+
+### Zero-compute means provider-confirmed zero compute billing
+
+“GPU count is zero” is not inferred from local worker absence.
+
+Scale-to-zero success requires provider state proving that billable compute has stopped. If a provider stop state still incurs compute charges, Cloud v1 terminates the instance when zero-compute policy requires it.
+
+Persistent disk/storage cost remains visible separately.
+
+### Blob GC and backup coordination
+
+BlobStore GC is two-phase mark-and-sweep with:
+
+- roots from live Artifacts/checkpoints/RecoveryGenerations/backups;
+- a minimum age grace period for unpublished objects;
+- coordination/advisory locking with RecoveryGeneration publication;
+- post-sweep integrity sampling.
+
+GC never races a newly published recovery manifest into deleting its object set.
+
+### Recovery health states
+
+Expose:
+
+~~~text
+HEALTHY
+DEGRADED
+UNSAFE
+~~~
+
+Interpretation:
+
+- HEALTHY — valid off-host acknowledged RecoveryGeneration within target age;
+- DEGRADED — durable local state is healthy but off-host recovery point is stale/unavailable;
+- UNSAFE — authoritative local state/backup integrity is itself uncertain.
+
+A DEGRADED system may continue bounded work but planned host shutdown remains inhibited and UI/operator alerts remain visible.
+
+### Worker reuse after backend restart
+
+A surviving worker reconnect may reduce unnecessary provider cost, but no previous-epoch lease is revived.
+
+Cost attribution for idle time during backend recovery remains a PowerSession/provider cost, not fabricated Run lease usage.
+
+
+---
+
+## 50. Recursive Audit Cycle 3 — Authority-Host Resource Reservation and Time Integrity
+
+### Control Plane resource reservation
+
+The persistent host maintains explicit headroom for authority services.
+
+Configuration defines minimum reserved:
+
+~~~text
+CPU capacity
+RAM
+filesystem free bytes
+PostgreSQL/WAL free bytes
+process/file descriptor headroom
+~~~
+
+The local bounded sandbox may use only the remainder.
+
+If admitting a local Job would violate these reserves, Compute Scheduler keeps it queued or targets a remote CPU worker.
+
+### Disk pressure priority
+
+When storage pressure crosses safety threshold, stop/admit in this order:
+
+1. stop new cache/model/index growth;
+2. stop new large Artifact/workspace creation;
+3. pause non-critical execution at safe boundaries;
+4. preserve PostgreSQL/WAL, Action Journal, checkpoints and recovery writes.
+
+Authority durability has priority over throughput.
+
+### Clock integrity
+
+The host runs reliable time synchronization.
+
+Durable expiry/auth/billing timestamps use UTC wall clock, while in-process elapsed durations use monotonic clocks.
+
+A detected material backward/forward wall-clock jump creates an operational warning and security-sensitive expiry checks use conservative behavior until time health is restored.
+
+
+---
+
+## 51. Recursive Audit Cycle 4 — Privilege-Separated Service Operations
+
+Because Secret Broker is now an OS-level privilege boundary:
+
+- Control Plane readiness checks **Secret Broker service health/reachability**, not whether the general application process can read the master key;
+- the key file is owned/readable only by the Secret Broker helper identity;
+- systemd/service supervision includes the Secret Broker helper;
+- application startup fails closed for operations requiring secrets if the helper is unavailable, while read-only/status paths may remain available.
+
+Recommended logical units now include:
+
+~~~text
+reverend-api.service
+reverend-secret-broker.service
+postgresql.service
+reverend-backup.timer
+reverend-recovery-replication.timer
+~~~
+
+The Secret Broker Unix socket is not mounted or permissioned into sandbox/worker identities.
+
+### Recovery-key monitoring
+
+Recovery health verifies not only replica age but also that at least one currently authorized recovery recipient can decrypt the current key envelope according to a periodic non-destructive recovery test policy.
+
+A generation with no usable key recipient is not HEALTHY even if all bytes and hashes are present.
+
+
+---
+
+## 52. Recursive Audit Cycle 5 — Database Privilege and Safety-Budget Operations
+
+### Runtime database credentials
+
+Production application uses a non-owner `reverend_app` PostgreSQL role.
+
+Schema migration uses a separate `reverend_migrator` credential available only during controlled deployment/migration.
+
+The runtime role cannot:
+
+- ALTER/DROP schema;
+- disable immutable-history triggers;
+- grant itself privileges;
+- perform unrestricted hard deletes.
+
+The previous wording that a separate migration role “may” be used is superseded: role separation is mandatory for Cloud v1.
+
+### Local PostgreSQL authentication
+
+On a single persistent host, prefer Unix-socket/peer or tightly scoped SCRAM authentication so a reusable database password need not be exposed broadly.
+
+Regardless of mechanism, sandbox/worker identities cannot authenticate as the application database role.
+
+### Safety recovery reserve
+
+Budget policy includes a small configured safety reserve separate from ordinary Run productive budget.
+
+It can pay only for trusted cleanup/reconciliation described in D5.
+
+Dashboard exposes:
+
+~~~text
+productive spend
+shared overhead
+safety recovery overrun
+reconciled actual
+~~~
+
+This keeps the hard budget meaningful without making it unsafe.
+
+### Emergency mode observability
+
+While STOP_GLOBAL/Project/Run is active, health/status distinguishes:
+
+~~~text
+productive execution blocked
+safety cleanup in progress
+safe/drained
+~~~
+
+An emergency-stop UI must not display “stopped” until required cleanup has settled.
+
+
+---
+
+## 53. Recursive Audit Cycle 6 — Host Storage and Process Hardening
+
+Production host baseline includes:
+
+- encrypted-at-rest persistent volume or equivalent provider storage encryption;
+- restrictive mount/file ownership;
+- Secret Broker helper key material inaccessible to the general service user;
+- core dumps disabled or tightly controlled for Secret Broker/credential adapter processes;
+- swap disabled or encrypted when Secret-bearing processes could page;
+- firewall default-deny except required HTTPS/private management paths;
+- PostgreSQL bound only to required local/private interface;
+- regular security updates with controlled restart procedure.
+
+These are host-security requirements, not substitutes for application authorization.
+
+### Event/log data minimization
+
+Operational logs and durable Events prefer identifiers, hashes, status codes and bounded summaries over raw content.
+
+A debug mode that captures raw prompts/tool output cannot run by default in production and must advertise that it weakens confidentiality.
+
+
+---
+
+## 54. Recursive Audit Cycle 7 — Control/Inhibitor Operations
+
+Operational status surfaces:
+
+- active SYSTEM/PROJECT/RUN execution controls;
+- who created them;
+- safe public reason summary;
+- whether productive execution is blocked;
+- whether safety cleanup remains active;
+- current shutdown/drain inhibitors.
+
+### Inhibitor watchdog
+
+A periodic controller scans expired/stale shutdown inhibitors.
+
+It clears one only after proving the owning Action/Job is terminal or reconciled.
+
+An inhibitor with ambiguous external state creates an alert/RECOVERY_BLOCKED path rather than being force-cleared automatically.
+
+### Maintenance migration interaction
+
+Schema migration activates a SYSTEM MAINTENANCE control and a MIGRATION shutdown inhibitor before DDL begins.
+
+Runtime API may serve bounded read/status endpoints, but no scheduler/provider work begins until migration and post-migration integrity checks complete and the control is explicitly cleared.
+
+
+---
+
+## 55. Recursive Audit Cycle 9 — Ledger Reconciliation Semantics
+
+### Source cost vs allocation
+
+The cost ledger distinguishes provider/system SOURCE_COST from user ALLOCATION.
+
+For shared 50/50 overhead:
+
+~~~text
+one SOURCE_COST = actual provider/control-host cost
+↓
+two ALLOCATION events = policy shares
+~~~
+
+System-wide spend reports source economic cost once.
+
+Per-user reports consume allocation events.
+
+A reconciliation test verifies allocations do not create or destroy cost unintentionally.
+
+### Billing periods
+
+Monthly user soft/hard limits use an explicit configured billing timezone/calendar definition; Cloud v1 default is UTC calendar month.
+
+The API reports the period start/end alongside totals so clients do not infer local-month boundaries differently.
+
+### Model metrics are not duplicate invoices
+
+Token/model invocation telemetry on self-hosted GPU is observability used for optimization and attribution.
+
+It is not added as a second payable cost on top of provider PowerSession/lease charges unless a distinct paid API actually invoices by usage.
+
+
+---
+
+## 56. Recursive Audit Cycle 12 — Recovery Intent Target Operations
+
+Operational recovery health now has two independent dimensions:
+
+~~~text
+full RecoveryGeneration freshness
+external-action write-ahead availability
+~~~
+
+Status must show:
+
+- latest full off-host generation/age;
+- ACTIVE recovery targets;
+- whether at least one target can currently ACK `OFF_HOST_INTENT_ACK` actions;
+- count/age of intent deltas not yet subsumed by a later full RecoveryGeneration.
+
+An old full generation may be DEGRADED while external mutation safety remains available through current ActionIntent ACKs.
+
+Conversely, a fresh generation does not authorize a new high-risk external effect when no current durable target can ACK its intent.
+
+### Object-store recovery target
+
+The recovery-target interface supports a small encrypted object-store backend in addition to client peers.
+
+Requirements:
+
+- credentials resolved only at trusted enforcement boundary;
+- content encrypted/authenticated before upload;
+- immutable/content-addressed object naming where practical;
+- write success verified before ACK;
+- no public bucket/container;
+- lifecycle/retention must preserve objects referenced by retained generations/intents.
+
+Selecting a concrete object-store provider is an operational deployment choice, not a new authority model.
+
+
+---
+
+## 57. Recursive Audit Cycle 13 — Static Economic Kill Limits
+
+Cloud v1 deployment configuration contains operator-owned hard ceilings such as:
+
+~~~text
+REVEREND_MAX_PAID_GPU_WORKERS_TOTAL=1
+REVEREND_MAX_PROVISIONING_GPU_WORKERS_TOTAL=1
+REVEREND_MAX_GPU_HOURLY_RATE_GBP=<operator ceiling>
+REVEREND_MAX_PROVIDER_DAILY_SAFETY_GBP=<operator ceiling>
+~~~
+
+Exact names may be normalized in Development.
+
+Properties:
+
+- values are validated at startup;
+- they are not writable by Agents/models/Project policies;
+- a dynamic user/Run/system budget cannot exceed them;
+- lowering a ceiling triggers reconciliation/drain policy, not abrupt unsafe process kill;
+- raising a ceiling is an operator-controlled configuration/deployment action.
+
+### Provider-wide daily circuit breaker
+
+Capacity Controller derives provider spend from reconciled/estimated PowerSessions.
+
+When the system safety ceiling is reached:
+
+- no new paid capacity is provisioned;
+- currently necessary safety cleanup may continue;
+- existing productive leases follow configured safe drain/budget policy;
+- operator alert is raised.
+
+This circuit breaker is defence against both software bugs and compromised high-level orchestration.
+
+### Orphan inventory audit
+
+Periodic provider reconciliation compares:
+
+~~~text
+provider inventory tagged as Reverend
+vs
+ComputeNode + PowerSession + ActionJournal state
+~~~
+
+Any orphan/unrecognized billed resource is treated as a high-severity operational incident and safely terminated after identity/reconciliation checks.
+
+Do not wait for the user's Run dashboard to reveal it.
+
+
+---
+
+## 58. Recursive Audit Cycle 14 — Build and Runtime Provenance Operations
+
+Deployment operations retain provenance for the Control Plane and worker release artifacts:
+
+~~~text
+Reverend source commit
+Python dependency lock/hash set
+worker image digest
+worker build source commit
+vLLM/runtime version
+base image digest
+model artifact manifest
+model revision
+~~~
+
+Security updates to a runtime image are deployed as a new immutable release/profile identity.
+
+Operations should periodically review:
+
+- base image vulnerabilities;
+- Python dependency advisories;
+- vLLM/runtime security releases;
+- model repository revision/license changes.
+
+Production never auto-upgrades a model/runtime dependency merely because a newer mutable tag/revision exists.

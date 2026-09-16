@@ -355,7 +355,8 @@ Make execution independent of process/worker lifetime before paid GPU execution 
 - Action Journal;
 - Tool Recovery Registry;
 - safe pause;
-- AWAITING_APPROVAL zero-compute behavior;
+- AWAITING_APPROVAL / AWAITING_INPUT aggregate zero-compute behavior;
+- CANCEL_REQUESTED / CANCELLING safe cancellation;
 - RESUME_QUEUED;
 - runtime epochs;
 - stale lease/session invalidation;
@@ -939,3 +940,314 @@ Before opening C0 branch:
 ## 35. Final Development Invariant
 
 > Development succeeds by implementing the accepted contracts in progressively verifiable slices. It must not exchange architectural integrity for speed: one server-side authority, immutable human/Run ownership, bounded cognitive execution, typed provenance, mediated secrets/tools, recoverable side effects, replaceable compute and auditable costs remain true at every intermediate milestone.
+
+
+---
+
+## 36. Recursive Architecture Hardening — Phase Safety Gates
+
+The recursive review found that the original C0–C9 order was sound but needed stricter negative gates so partially implemented Cloud stages cannot accidentally expose unfinished authority.
+
+### C1 negative gate
+
+PostgreSQL may become the Cloud state backend in C1, but no remote mutation endpoint is considered production-capable until C2 authentication/authorization exists.
+
+### C2 negative gate
+
+C2 remote APIs may create/control Projects and Runs, but Cloud autonomous privileged execution remains disabled.
+
+Specifically, until C5:
+
+- no user-scoped Git credential may be resolved;
+- no protected external mutation may execute;
+- no Secret Broker plaintext may enter a general application path.
+
+### C4 negative gate
+
+C4 Agent/Team execution may exercise deterministic read-only/sandboxed capabilities needed for tests, but it must not enable unmediated production side effects.
+
+All privileged tool calls must either:
+
+- fail closed; or
+- remain behind the existing local accepted enforcement path
+
+until C5 Tool Broker/Secret Broker/Approval enforcement is complete.
+
+### C5/C6 coupling gate
+
+A side-effecting Cloud tool is not enabled merely because C5 authorizes it.
+
+It also requires its D5 Action Journal recovery strategy and reconciler from C6.
+
+Therefore production enablement condition is:
+
+~~~text
+authorization implemented
+AND
+secret boundary implemented
+AND
+Action Journal semantics implemented
+AND
+recovery reconciler tested
+~~~
+
+### C7 paid-compute gate
+
+No real paid provider provisioning is enabled until:
+
+- C5 worker/provider credential isolation passes;
+- C6 stale-epoch and worker-loss recovery passes;
+- D8 RateSnapshot + PowerSession + budget reservation minimum path exists.
+
+C8 may complete the full economics UX/reconciliation plane later, but C7 live paid tests require the minimum cost safety path first.
+
+### C9 architecture-audit gate
+
+Before Cloud v1 acceptance, repeat the recursive documentation/implementation audit from:
+
+~~~text
+identity
+→ Project/Run authority
+→ workflow/Agents/context
+→ tools/security
+→ durability/recovery
+→ scheduling/workers/models
+→ economics/operations
+→ end-to-end acceptance
+~~~
+
+The gate passes only when:
+
+- no unresolved architecture contradiction is known;
+- all identified flaws have an owner and are either fixed or explicitly deferred outside Cloud v1;
+- a fresh audit pass finds no new Cloud-v1-blocking flaw.
+
+This means “zero known blocking flaws”, not a claim that defects are mathematically impossible.
+
+
+---
+
+## 37. Recursive Audit Cycle 2 — Additional Acceptance Gates
+
+Development must add explicit tests for the Cycle-2 fixes:
+
+### Lifecycle
+
+- active cancellation visibly passes through CANCEL_REQUESTED/CANCELLING;
+- no paid lease or non-interruptible Action remains when CANCELLED is committed;
+- human clarification uses AWAITING_INPUT rather than Approval;
+- one blocked Team member does not suspend unrelated runnable work;
+- Run enters aggregate waiting state only when no useful work remains.
+
+### Worker/control restart
+
+- consumed bootstrap does not strand a surviving worker after Control Plane restart;
+- worker identity reconnect issues a new epoch session;
+- old epoch leases/results remain invalid;
+- compromised/revoked worker identity cannot reconnect.
+
+### Provider reconciliation
+
+- crash after provider accepts provisioning but before local completion does not create a duplicate paid worker;
+- scale-to-zero verifies provider billing state;
+- cost ledger distinguishes provider PowerSession time from Run lease time.
+
+### Security
+
+- malicious URL cannot reach loopback/private/link-local/cloud metadata destinations;
+- redirect/DNS rebinding cannot bypass the fetch policy;
+- credential-bearing arbitrary Git remote is rejected;
+- active HTML/SVG Artifact cannot execute in Reverend application origin.
+
+### Provenance
+
+- ContextManifest Artifact exists for model-backed Jobs;
+- model invocation links Task/Agent/Job/deployment/node/context;
+- cross-Project Memory is denied even if semantic retrieval ranks it highest.
+
+
+---
+
+## 38. Recursive Audit Cycle 3 — CPU, Revocation and Repository Tests
+
+Add the following mandatory pre-C9 acceptance coverage:
+
+- Project membership can be revoked without deleting historical Run ownership;
+- disabled Run owner causes safe pause and blocks new privileged actions;
+- revoked GitHub credential never falls back to another user's identity;
+- Project repository change does not retarget an existing Run;
+- Run base commit remains pinned through recovery;
+- oversized/untrusted CPU Job is not executed inline in the authority process;
+- local sandbox resource admission preserves configured Control Plane headroom;
+- if no safe CPU executor exists, Job remains queued/blocked explicitly;
+- ModelProfile/DeploymentProfile semantic mutation after use is rejected in favor of a new versioned profile;
+- RateSnapshot/BenchmarkResultSet history is immutable.
+
+
+---
+
+## 39. Recursive Audit Cycle 5 — Authority, Queue and Safety Tests
+
+Mandatory tests:
+
+- Project member can read another member's Run but cannot resume/run-now it by default;
+- Project owner emergency-stop does not imply authority to resume using another owner's credentials;
+- repeated run-now requests cannot starve an existing RESUME_NEXT chain;
+- ordinary client cannot choose arbitrary queue priority;
+- queued-Run quota prevents unbounded queue flooding;
+- production application DB role cannot ALTER/DROP schema or hard-delete immutable history;
+- migration role is not used by runtime API/scheduler;
+- hard budget stops productive work but still permits narrowly classified safety cleanup;
+- STOP_GLOBAL blocks new productive actions while allowing provider termination, lease release and journal reconciliation.
+
+
+---
+
+## 40. Recursive Audit Cycle 6 — Confidentiality and Leadership Tests
+
+Mandatory coverage:
+
+- scheduler/capacity/recovery advisory lock uses a dedicated connection and controller stops on connection loss;
+- failover cannot create duplicate provider action without reconciliation;
+- SSE stream closes/filters after user/session/membership revocation;
+- Event/SSE schema rejects seeded secret/raw-header/raw-environment fields;
+- Artifact sensitivity propagates through summary/derivation;
+- mandatory RESTRICTED context is never sent to a Community worker or external API;
+- semantic retrieval cannot downgrade sensitivity;
+- Git credential is absent from remote URL, argv, logs and committed config;
+- production storage/security deployment verifies intended at-rest encryption/firewall/service ownership assumptions.
+
+
+---
+
+## 41. Recursive Audit Cycle 7 — Policy/Control/Restore Tests
+
+Mandatory tests:
+
+- Project policy update creates a new version and stale Approval fingerprint fails;
+- Project owner is not implicitly SYSTEM_ADMIN;
+- at least one active SYSTEM_ADMIN lockout invariant is enforced;
+- STOP_GLOBAL/MAINTENANCE survives backend restart;
+- restarting server cannot clear Run/Project emergency stop;
+- stale shutdown inhibitor is reconciled, not blindly cleared;
+- migration activates durable maintenance/inhibitor state;
+- full disaster restore revokes all restored human sessions before API readiness;
+- recovered external credential is revalidated/fails closed if provider rejects it.
+
+
+---
+
+## 42. Recursive Audit Cycle 8 — Replay-Ordering Tests
+
+Mandatory PostgreSQL concurrency tests:
+
+- Event transaction A obtains the next cursor and pauses before commit;
+- Event transaction B cannot publish a higher cursor that becomes replay-visible first;
+- rollback of A does not leave an authoritative advanced cursor;
+- SSE reconnect after concurrent Event writes returns every authorized Event exactly once or at-least-once according to client application semantics, never silently missing one due to allocation order;
+- per-Run Action Journal watermark cannot advance past an uncommitted earlier Action;
+- checkpoint recovery scans every committed post-watermark Action.
+
+
+---
+
+## 43. Recursive Audit Cycle 9 — Idempotency, Lineage and Ledger Tests
+
+Mandatory tests:
+
+- two concurrent Run-create requests with same Idempotency-Key create exactly one Run;
+- same key/different body conflicts;
+- crashed IN_PROGRESS idempotency record reconciles to existing resource without duplication;
+- Artifact parent self/cycle/cross-Project linkage is rejected;
+- Approval with mismatched Run/Project or wrong-owner external identity is rejected;
+- worker cannot bill another user by forging lineage;
+- ComputeLeaseUsage derives immutable Run owner/project;
+- shared SOURCE_COST allocated 50/50 sums correctly without double-counting system cost;
+- self-hosted model tokens do not create a second payable GPU charge;
+- duplicate worker result retry is idempotent; conflicting second result is rejected.
+
+
+---
+
+## 44. Recursive Audit Cycle 10 — System Action-Journal Tests
+
+Mandatory tests:
+
+- provider idle termination can be journalled when no Run is active;
+- backup/recovery replication ActionRecord does not require a fake Run;
+- global Action cursor is commit ordered under concurrency;
+- Run checkpoint uses per-Run cursor and ignores unrelated system Actions;
+- RecoveryGeneration global watermark detects an unresolved post-backup provider Action;
+- system UNKNOWN action that risks duplicate paid resource blocks productive readiness until reconciled.
+
+
+---
+
+## 45. Recursive Audit Cycle 11 — Bootstrap and Git-TOCTOU Tests
+
+Mandatory tests:
+
+- Project creation commits creator membership + initial ProjectPolicy + active-policy FK atomically;
+- failed policy bootstrap leaves no visible partial Project;
+- invalid SYSTEM/PROJECT/RUN execution-control scope is rejected;
+- invalid Secret polymorphic scope is rejected;
+- CONTROL_HOST/COMPUTE_NODE inhibitor scope mismatch is rejected;
+- protected Git approval becomes stale if remote target HEAD moves before execution;
+- force-like operation without expected-head lease/precondition is rejected;
+- credential-bearing Git/RunPod request never follows authorization across an unexpected origin redirect;
+- crash/recovery after protected Git action reconciles exact remote commit/ref before retry.
+
+
+---
+
+## 46. Recursive Audit Cycle 12 — Catastrophic External-Effect Tests
+
+Mandatory fault tests include:
+
+- latest full RecoveryGeneration predates a Git push intent;
+- ActionIntent is durably ACKed off-host;
+- Git push succeeds;
+- local Control Plane host is simulated as permanently lost before another full generation;
+- fresh host restores older generation, imports newer intent delta, observes remote commit and marks Action completed without duplicate push.
+
+Repeat equivalent semantics for provider provisioning.
+
+Also prove:
+
+- OFF_HOST_INTENT_ACK action does not execute when no durable target can ACK;
+- tampered intent delta fails authentication and blocks unsafe resume;
+- duplicate copies of the same intent deduplicate by Action ID/digest;
+- a later full RecoveryGeneration can subsume earlier intent deltas without losing reconciliation history;
+- PURE_READ/REPEATABLE_COMPUTE do not pay the off-host barrier latency unnecessarily.
+
+
+---
+
+## 47. Recursive Audit Cycle 13 — Provider Blast-Radius Tests
+
+Mandatory live/fake-provider tests:
+
+- two concurrent capacity demands under initial ceiling create at most one paid GPU worker;
+- unresolved UNKNOWN provision Action consumes the provisioning ceiling;
+- controller restart queries provider inventory before any new provision;
+- orphan Reverend-tagged provider instance is detected and reconciled;
+- provider returns wrong GPU/trust tier → no Project context sent, resource terminated;
+- provider rate above static ceiling → worker never admitted and paid resource is stopped/terminated;
+- Agent/Project policy cannot raise static provider cap;
+- daily provider circuit breaker prevents new provisioning while preserving safety cleanup.
+
+
+---
+
+## 48. Recursive Audit Cycle 14 — Supply-Chain Tests
+
+Mandatory tests/checks:
+
+- production baseline refuses model profile requiring unreviewed remote code;
+- unsafe/pickle model artifact format is rejected by baseline policy;
+- model revision/file digest mismatch prevents node READY;
+- poisoned/mismatched cache entry is rejected/quarantined;
+- worker image digest mismatch prevents profile validation;
+- image/model profile provenance identifies exact Reverend source/runtime/model revisions;
+- mutable `latest` image/model identity cannot become production ELIGIBLE;
+- worker image/config contains no seeded provider/GitHub/database/recovery credential.

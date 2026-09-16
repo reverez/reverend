@@ -797,3 +797,320 @@ Must prove:
 ## 36. Exit Condition
 
 C7 is ready when Reverend can provision one A100 SXM worker from zero, authenticate/register it, load a pinned vLLM/Qwen profile, grant a Job-owned lease, execute one inference Job, collect metrics, release, drain/stop, and recover correctly from worker disappearance.
+
+
+---
+
+## 37. Recursive Architecture Hardening — Worker Data Plane and Lease Atomicity
+
+The original worker protocol defined assignment control but left payload/blob transfer and several race conditions implicit. Cloud v1 freezes the following additional contract.
+
+### Job-scoped worker data plane
+
+Workers never receive filesystem paths into Control Plane storage.
+
+For an assigned Job, the Control Plane issues short-lived, job-scoped data capabilities for only the referenced inputs and outputs.
+
+Conceptual endpoints:
+
+~~~text
+GET  /internal/v1/workers/{node_id}/jobs/{job_id}/inputs/{ref}
+POST /internal/v1/workers/{node_id}/jobs/{job_id}/outputs
+~~~
+
+Every transfer validates:
+
+- current worker session;
+- current runtime epoch;
+- assigned node;
+- active lease;
+- Job identity;
+- Artifact/Blob allowlist;
+- maximum bytes/media type;
+- expected hash where known.
+
+Output upload is:
+
+~~~text
+stream to bounded temporary object
+→ compute SHA-256
+→ verify declared size/type
+→ publish to BlobStore
+→ return opaque BlobRef
+~~~
+
+A worker may not choose an arbitrary `content_ref` or server path.
+
+### Assignment delivery is idempotent
+
+Until ACK or lease expiry, repeated long-poll delivery for the same assigned Job returns the same assignment identity. A Job is not concurrently delivered to a second node while its current lease remains ACTIVE.
+
+### Worker-session renewal
+
+Worker sessions are short lived and rotated through an authenticated renewal operation bound to:
+
+~~~text
+node_id
+runtime_epoch_id
+provider_instance_id
+current worker credential
+~~~
+
+Renewal cannot widen endpoint scope or trust class. Failure to renew causes the worker to stop accepting new assignments and eventually lose lease authority.
+
+### Lease renewal
+
+A worker heartbeat may renew an ACTIVE lease only when the server independently verifies that:
+
+- the lease belongs to that node and Job;
+- the Job is still executable;
+- the runtime epoch is current;
+- no cancellation/drain/revocation applies.
+
+A worker-reported `active_lease_ids` list is telemetry, not authority.
+
+### Atomic placement and overcommit prevention
+
+Granting a ResourceLease is one PostgreSQL transaction that locks the selected ComputeNode/resource-accounting rows, recomputes currently ACTIVE capacity, verifies budget reservation, creates the lease and updates Job assignment state.
+
+The scheduler must not rely on a previously read capacity snapshot to grant resources.
+
+D1 additionally enforces at most one ACTIVE lease per Job and per ResourceRequest.
+
+### Atomic result finalization
+
+Accepting a terminal worker result atomically:
+
+1. validates current lease/epoch/attempt;
+2. records result Artifact references;
+3. transitions the Job;
+4. releases the ResourceLease;
+5. emits the terminal Event.
+
+If the transaction fails, the Job is not authoritatively complete and recovery may safely retry/reconcile.
+
+### Provider-instance uniqueness
+
+A live provider instance maps to at most one ComputeNode identity. D1 enforces uniqueness for `(provider, provider_instance_id)` when a provider instance ID is present.
+
+
+---
+
+## 38. Recursive Audit Cycle 2 — Worker Reconnect, Capability Validation and Provider-Side-Effect Recovery
+
+### Worker reconnect after Control Plane restart
+
+Bootstrap is one-time, but a healthy provider instance may outlive a Control Plane process.
+
+At initial registration the server exchanges bootstrap authority for a D1 `worker_identities` credential plus the short-lived epoch session.
+
+After runtime-epoch change:
+
+~~~text
+worker detects 401/epoch change
+→ POST /internal/v1/workers/reconnect
+→ present worker identity credential + provider instance identity
+→ server verifies node/provider state
+→ issue fresh current-epoch session
+→ worker resumes heartbeat
+~~~
+
+Old ResourceLeases remain stale and are never resurrected. The node may be reused only for newly granted leases after recovery.
+
+### Capability validation
+
+Worker self-report is never sufficient to establish hardware/runtime capability.
+
+Effective node capabilities are the intersection of:
+
+1. trusted expected launch profile;
+2. provider API metadata where available;
+3. worker telemetry/probes;
+4. Reverend functional health checks.
+
+A contradiction marks the capability/node unhealthy or lowers eligibility; self-report cannot strengthen trust.
+
+### Provider lifecycle actions use the Action Journal
+
+`provision/start/stop/terminate` are external side effects even though they are initiated by Capacity Controller rather than an Agent tool.
+
+Before every charge-bearing provider mutation:
+
+~~~text
+persist provider ActionRecord / PowerSession intent
+→ reserve budget
+→ call provider
+→ reconcile provider instance
+→ persist result
+→ settle reservation/cost state
+~~~
+
+On process crash, Capacity Controller queries provider inventory using Reverend tags/IDs before issuing another provisioning call.
+
+This prevents duplicate paid Pods after “provider accepted request, local process died”.
+
+### Capacity demand aggregation
+
+Capacity Controller derives desired capacity from the set of admitted ResourceRequests plus explicit concurrency/budget ceilings.
+
+It does not provision one new worker blindly per scheduler wake-up.
+
+Provisioning intents are deduplicated by deployment/resource profile and recorded durably through provider ActionRecords/PowerSessions.
+
+### Billing-aware stop semantics
+
+A node enters `STOPPED` for economic purposes only after provider state confirms that chargeable compute has stopped under the captured provider billing model.
+
+If provider “stop” continues material compute billing, Capacity Controller must terminate instead when scale-to-zero policy requires zero compute charge.
+
+Persistent volume/storage charges remain separately represented in the cost ledger.
+
+
+---
+
+## 39. Recursive Audit Cycle 3 — CPU Execution Baseline and Authority-Host Protection
+
+The original Design required heavy/untrusted CPU work to leave the authority process but left its Cloud v1 baseline ambiguous.
+
+Cloud v1 therefore freezes two CPU execution classes.
+
+### CONTROL_HOST_BOUNDED_SANDBOX
+
+For small, bounded repository operations only:
+
+~~~text
+separate subprocess
+separate OS user where practical
+bubblewrap / namespace isolation
+cgroup or equivalent CPU/RAM/PID limits
+no PostgreSQL credential
+no Secret Broker socket/key
+no Docker socket
+no host home
+network OFF unless explicit tool policy permits
+bounded Run/Task workspace
+~~~
+
+The authority process itself never executes untrusted build/test commands inline.
+
+The persistent host reserves enough CPU/RAM/disk for PostgreSQL, API, scheduler and recovery. If safe quota cannot be granted, the Job remains queued rather than risking Control Plane liveness.
+
+### REMOTE_CPU_WORKER
+
+A dedicated remote CPU worker uses the same worker identity, assignment, ResourceLease, payload and recovery protocol as GPU workers.
+
+It is the required path for work that exceeds the bounded local sandbox envelope.
+
+The initial implementation may defer a specific paid CPU provider until measured workloads require one, but the scheduler must fail/queue explicitly rather than silently executing an oversized untrusted workload on the authority host.
+
+### GPU worker CPU is not free fallback
+
+CPU tasks may execute on an already-leased GPU worker only when:
+
+- the Task is part of the same admitted Job/workload;
+- resource accounting includes its CPU/RAM consumption;
+- doing so does not retain/extend an expensive GPU PowerSession solely for CPU work.
+
+Reverend must not keep an A100 alive just to run generic tests that could wait for an appropriate CPU executor.
+
+
+---
+
+## 40. Recursive Audit Cycle 9 — Worker Result Retry Contract
+
+Worker terminal-result submission is idempotent for a specific:
+
+~~~text
+job_id
+attempt_number
+lease_id
+runtime_epoch_id
+result_digest
+~~~
+
+If the server has already accepted the same terminal result, a network retry returns the canonical accepted outcome.
+
+If the same Job/lease submits a conflicting result digest after terminal acceptance, the server rejects it, emits a security/integrity Event and never overwrites the first authoritative result.
+
+A result from:
+
+- prior attempt;
+- prior runtime epoch;
+- released/revoked/expired lease
+
+cannot become current Job success.
+
+Content-addressed output upload may be repeated safely before result finalization.
+
+
+---
+
+## 41. Recursive Audit Cycle 13 — Provider Blast-Radius Limits
+
+Budgets are necessary but are not sufficient protection against a scheduler/provider bug that accidentally creates multiple expensive instances before normal reconciliation catches up.
+
+Cloud v1 therefore has **deployment-level hard capacity ceilings** outside ordinary Agent/Run policy.
+
+Initial conservative defaults:
+
+~~~text
+MAX_PAID_GPU_WORKERS_TOTAL = 1
+MAX_PROVISIONING_GPU_WORKERS_TOTAL = 1
+MAX_PROVIDER_INSTANCES_PER_DEPLOYMENT_PROFILE = 1
+~~~
+
+These are initial two-user v1 defaults, not permanent scalability limits.
+
+### Two-level capacity limit
+
+Capacity admission uses the minimum of:
+
+~~~text
+static deployment safety ceiling
+dynamic authoritative policy/budget ceiling
+actual provider availability
+~~~
+
+The static ceiling is operator configuration not writable by a model, Agent, Project policy or ordinary remote API.
+
+Increasing it requires explicit operator/admin deployment action.
+
+### Provisioning serialization
+
+Before a paid provision call, Capacity Controller transactionally counts:
+
+- ACTIVE provider instances;
+- PROVISIONING/BOOTING/REGISTERING/LOADING instances;
+- unresolved provider-provision ActionRecords/PowerSessions.
+
+If the hard ceiling would be exceeded, it does not issue the provider call.
+
+An UNKNOWN provisioning Action counts against the ceiling until reconciliation proves no resource exists.
+
+### Provider attestation after provisioning
+
+Before a node becomes READY, trusted reconciliation checks provider metadata against the admitted DeploymentProfile:
+
+- GPU class/count/VRAM;
+- CPU/RAM minimum where relevant;
+- provider tier/trust class;
+- region if policy-constrained;
+- current/quoted billing rate where available.
+
+If hardware/trust mismatches:
+
+- node never becomes eligible;
+- no Project context is sent;
+- provider resource is drained/terminated safely.
+
+If actual rate exceeds the configured/provider-cost ceiling:
+
+- do not admit productive work;
+- terminate using safety cleanup authority;
+- record provider mismatch/cost Event.
+
+### CapacityController restart
+
+On controller startup/failover, query provider inventory and reconcile every Reverend-tagged instance before provisioning anything new.
+
+Local absence of a ComputeNode row is not proof that no billable provider resource exists.
