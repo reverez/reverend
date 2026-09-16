@@ -1063,3 +1063,21 @@ Development must add explicit tests for the Cycle-2 fixes:
 - ContextManifest Artifact exists for model-backed Jobs;
 - model invocation links Task/Agent/Job/deployment/node/context;
 - cross-Project Memory is denied even if semantic retrieval ranks it highest.
+
+
+---
+
+## 38. Recursive Audit Cycle 3 — CPU, Revocation and Repository Tests
+
+Add the following mandatory pre-C9 acceptance coverage:
+
+- Project membership can be revoked without deleting historical Run ownership;
+- disabled Run owner causes safe pause and blocks new privileged actions;
+- revoked GitHub credential never falls back to another user's identity;
+- Project repository change does not retarget an existing Run;
+- Run base commit remains pinned through recovery;
+- oversized/untrusted CPU Job is not executed inline in the authority process;
+- local sandbox resource admission preserves configured Control Plane headroom;
+- if no safe CPU executor exists, Job remains queued/blocked explicitly;
+- ModelProfile/DeploymentProfile semantic mutation after use is rejected in favor of a new versioned profile;
+- RateSnapshot/BenchmarkResultSet history is immutable.
