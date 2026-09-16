@@ -1196,3 +1196,26 @@ Mandatory tests:
 - force-like operation without expected-head lease/precondition is rejected;
 - credential-bearing Git/RunPod request never follows authorization across an unexpected origin redirect;
 - crash/recovery after protected Git action reconciles exact remote commit/ref before retry.
+
+
+---
+
+## 46. Recursive Audit Cycle 12 — Catastrophic External-Effect Tests
+
+Mandatory fault tests include:
+
+- latest full RecoveryGeneration predates a Git push intent;
+- ActionIntent is durably ACKed off-host;
+- Git push succeeds;
+- local Control Plane host is simulated as permanently lost before another full generation;
+- fresh host restores older generation, imports newer intent delta, observes remote commit and marks Action completed without duplicate push.
+
+Repeat equivalent semantics for provider provisioning.
+
+Also prove:
+
+- OFF_HOST_INTENT_ACK action does not execute when no durable target can ACK;
+- tampered intent delta fails authentication and blocks unsafe resume;
+- duplicate copies of the same intent deduplicate by Action ID/digest;
+- a later full RecoveryGeneration can subsume earlier intent deltas without losing reconciliation history;
+- PURE_READ/REPEATABLE_COMPUTE do not pay the off-host barrier latency unnecessarily.
