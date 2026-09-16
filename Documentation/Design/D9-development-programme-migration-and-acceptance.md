@@ -1383,3 +1383,21 @@ Mandatory tests:
 - screenshot/trace/download from private TestEndpoint inherits Project sensitivity;
 - temporary browser profile/cache is destroyed after Job;
 - source/browser storage quota cannot evict retained recovery/evidence roots.
+
+
+---
+
+## 52. Evidence, LSP & Large-Artifact Tests
+
+Mandatory tests:
+
+- Brave/other credentialed SearchProvider key never enters Agent/Browser worker/log;
+- paid research call passes budget admission and creates idempotent cost usage;
+- Research Team per-origin fanout obeys concurrency/rate policy;
+- forged EvidenceClaim quote that is absent from SourceSnapshot is rejected;
+- HTML publication date is recorded with provenance rather than treated as verified fact;
+- malicious compile_commands/tsconfig cannot make LSP load arbitrary plugin/execute host binary;
+- retained RepositoryContext for uncommitted state blocks worker destruction until snapshot is reconstructible;
+- large worker output can stream/direct-upload without loading entire object into Control Plane memory;
+- incomplete large upload never creates a valid Artifact;
+- worker receives object-scoped upload authority, not general BlobStore credential.
