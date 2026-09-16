@@ -472,3 +472,17 @@ A fresh pass over D10–D16 identified and closed the following design gaps befo
 9. **Evidence/cache retention confusion:** durable source snapshots referenced by evidence are protected from ordinary cache GC.
 
 After these patches, these issues are no longer open architecture blockers.
+
+
+---
+
+## 15. Capability Modernization Recursive Audit — Cycle 2
+
+A second pass found and closed additional laptop-to-server gaps:
+
+1. **Unreproducible build environment:** workers can no longer assume developer-laptop toolchains; D14 adds ExecutionEnvironmentSpec and bounded dependency acquisition.
+2. **Browser policy only at application layer:** D11/D6 now require OS/network egress enforcement as a second boundary.
+3. **Frontend browser connectivity:** D14 defines task-scoped private TestEndpoint instead of publicly exposing development servers.
+4. **Control host overload:** 4-vCPU/8-GB remains a baseline, but derived services must move off-host/queue when authority-service reserves would be violated.
+
+These are now part of the C7/C8 acceptance surface.
