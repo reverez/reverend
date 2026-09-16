@@ -355,7 +355,8 @@ Make execution independent of process/worker lifetime before paid GPU execution 
 - Action Journal;
 - Tool Recovery Registry;
 - safe pause;
-- AWAITING_APPROVAL zero-compute behavior;
+- AWAITING_APPROVAL / AWAITING_INPUT aggregate zero-compute behavior;
+- CANCEL_REQUESTED / CANCELLING safe cancellation;
 - RESUME_QUEUED;
 - runtime epochs;
 - stale lease/session invalidation;
