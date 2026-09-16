@@ -43,7 +43,10 @@ direction TB
 MREQ["ModelRequirement<br/>reasoning • coding • repository reasoning • tool use • structured output<br/>vision • min context • trust • latency • cost class"]:::model
 MREG["Model Registry"]:::model
 MPROF["ModelProfile<br/>family • model/revision • license • modalities • capabilities<br/>advertised/validated context • runtime compatibility • trust • benchmark status"]:::model
-DPROF["DeploymentProfile<br/>model revision • runtime/version • quantization • container digest<br/>context • reasoning effort • hardware requirement • trust<br/>concurrency/batching • benchmark set • cost profile"]:::model
+DPROF["DeploymentProfile<br/>model revision • runtime/version • quantization • container digest<br/>context • reasoning effort • hardware requirement • trust<br/>concurrency/batching • benchmark set • cost profile • HydrationPolicy"]:::model
+MMAN["ModelArtifactManifest<br/>approved repository • immutable revision • required files<br/>safe format • checksums/object identity • license"]:::model
+HYDP["HydrationPolicy<br/>EPHEMERAL_UPSTREAM baseline<br/>persistent cache disabled • bounded retries/timeouts"]:::model
+HYD["Worker hydration<br/>ephemeral cache → approved upstream<br/>staging → verify → atomic verified snapshot"]:::compute
 MROUTER["Model Router<br/>filters eligibility then ranks candidates"]:::model
 
 subgraph LOGICAL["Logical requirement profiles"]
@@ -62,6 +65,8 @@ MR_MAX["FUTURE_EXTERNAL_ESCALATION<br/>not configured in Cloud v1"]:::external
 end
 
 MREQ --> MREG --> MPROF --> DPROF --> MROUTER
+DPROF --> MMAN --> HYD
+DPROF --> HYDP --> HYD
 
 
 BASEMODEL["Cloud v1 baseline profile<br/>Qwen/Qwen3.8-27B<br/>vLLM • A100 SXM 80 GB • 64K context<br/>RunPod Community Cloud"]:::model
@@ -83,7 +88,7 @@ MPROF --> OLLAMA
 MPROF --> SGLANG
 
 MROUTER --> CS
-GPUW --> VLLM
+GPUW --> HYD --> VLLM
 
 INFREQ["InferenceRequest<br/>invocation/job/agent • deployment profile • ContextManifest<br/>prompt ref • output budget • temperature • reasoning effort • schema • timeout"]:::model
 INFRESP["InferenceResponse<br/>status • model revision • runtime version • token counts<br/>finish reason • output ref • queue/setup/provider metrics"]:::model
