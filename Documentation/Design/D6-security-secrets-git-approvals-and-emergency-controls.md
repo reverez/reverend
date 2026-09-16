@@ -1178,3 +1178,34 @@ Security rules:
 - model/cache integrity is checked before health becomes READY.
 
 A Community provider remains capable of observing worker plaintext at the infrastructure layer; supply-chain hardening does not upgrade its trust classification.
+
+
+---
+
+## 45. Capability Modernization Security Addendum
+
+### Search-query confidentiality
+
+Outbound search query text is an external disclosure.
+
+Research Fabric therefore applies D11 QueryDisclosurePolicy before any external search engine/provider sees a query.
+
+Secret scanning is defense in depth; sensitivity/provenance policy is the authority.
+
+### Browser network enforcement
+
+Browser worker network policy covers top-level and subresource traffic including WebSockets/service workers.
+
+Public research browsers cannot reach Control Plane private addresses, metadata endpoints or local files.
+
+### Model artifact credentials
+
+Long-lived model-registry credentials are not injected into Community workers by default.
+
+Private model acquisition uses pre-staged verified artifacts/short-lived object capabilities or stronger-trust workers.
+
+### Parser/language-server supply chain
+
+Repository-specified binaries/grammars/plugins are not automatically executed for Repository Intelligence.
+
+Pinned Reverend-approved parsers/language services are execution dependencies and follow worker-image/provenance policy.
