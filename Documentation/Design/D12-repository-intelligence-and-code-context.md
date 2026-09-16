@@ -568,3 +568,48 @@ Must prove:
 ## 25. Exit Condition
 
 Repository Intelligence is ready when Agents can navigate a changing repository through snapshot-bound deterministic structure and semantic services, request only relevant source slices, and remain correct across edits without treating a vector index or language server as authoritative state.
+
+
+---
+
+## 26. Recursive Capability Audit — Parser/LSP Supply Chain & Workspace Isolation
+
+### Parser grammar supply chain
+
+Tree-sitter language grammars/parsers are executable/native dependencies in many packaging forms.
+
+Rules:
+
+- grammars/parsers are pinned Reverend dependencies or reviewed worker-image artifacts;
+- repository-provided grammar code is never compiled/loaded automatically;
+- grammar/parser identity/version is recorded in index provenance;
+- parser update creates a new index version and receives security/regression smoke.
+
+### LSP workspace commands
+
+Some language servers expose command execution, build integration or plugin mechanisms.
+
+The Repository Intelligence adapter allowlists specific read/analysis methods.
+
+By default it denies:
+
+- arbitrary executeCommand requests;
+- auto-install of SDKs/extensions/plugins;
+- repository-defined executable language-server binary paths;
+- package-manager hooks triggered solely for indexing.
+
+If richer build-aware analysis needs execution, it becomes a separate CPU worker capability with ToolPolicy/Action semantics.
+
+### Compile database/config trust
+
+Files such as compile_commands.json, tsconfig, pyproject and build scripts are untrusted repository input.
+
+They may inform parsing/search paths, but paths are normalized to the isolated workspace and cannot redirect the analysis process to arbitrary host-secret paths.
+
+### Derived-index Project isolation
+
+Every index/vector point includes RepositorySnapshot and Project scope.
+
+A query must supply the authorized Project/snapshot filter before ranking.
+
+Cross-Project index reuse is limited to explicitly public/common dependency indexes; Project source code is not globally deduplicated for convenience.
