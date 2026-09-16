@@ -47,7 +47,8 @@ EXT_HETZ["Hetzner Cloud<br/>persistent Control Plane host"]:::external
 EXT_TS["Tailscale<br/>private network"]:::external
 EXT_WEB["Public web / SearXNG"]:::external
 EXT_HF["Model repositories / Hugging Face<br/>pinned revisions / weights / licenses"]:::external
-EXT_API["Optional paid external APIs<br/>policy/trust/budget gated"]:::external
+EXT_OBJ["Off-host cloud/object storage<br/>encrypted RecoveryGeneration target"]:::external
+EXT_API["Future external model APIs<br/><b>not used automatically in Cloud v1</b>"]:::external
 
 T_PUSH --> EXT_GH
 T_PR --> EXT_GH
@@ -61,3 +62,5 @@ T_FETCH --> EXT_WEB
 DPROF --> EXT_HF
 EXTMODEL --> EXT_API
 end
+
+OFFHOST --> EXT_OBJ
