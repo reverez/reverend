@@ -499,3 +499,17 @@ A third pass closed asynchronous/distributed capability races:
 3. **Frontend credential bleed:** browser tests use explicit test-only credentials by default rather than copying real human sessions.
 
 These prevent stale research/index/browser/model results from mutating newer execution state.
+
+
+---
+
+## 17. Capability Modernization Recursive Audit — Cycle 4
+
+A fourth pass closed persistent-server behavior that could otherwise create hidden authority or data exposure:
+
+1. **Background autonomous work:** D10/D14/D8 now forbid unowned background research/Agents; only operational housekeeping runs outside normal Run authority.
+2. **Private research credential confusion:** D11/D6 separate authenticated research capabilities from Run-owner Git credentials.
+3. **Browser Artifact confidentiality:** screenshots/traces/downloads inherit Project/source sensitivity and use sanitized bounded retention.
+4. **Unbounded web mirroring:** source retention is policy/evidence driven; cache is not a permanent mirror.
+
+No new Project truth is created merely because the Control Plane is always online.
