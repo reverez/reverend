@@ -1506,3 +1506,32 @@ ComputeNode + PowerSession + ActionJournal state
 Any orphan/unrecognized billed resource is treated as a high-severity operational incident and safely terminated after identity/reconciliation checks.
 
 Do not wait for the user's Run dashboard to reveal it.
+
+
+---
+
+## 58. Recursive Audit Cycle 14 — Build and Runtime Provenance Operations
+
+Deployment operations retain provenance for the Control Plane and worker release artifacts:
+
+~~~text
+Reverend source commit
+Python dependency lock/hash set
+worker image digest
+worker build source commit
+vLLM/runtime version
+base image digest
+model artifact manifest
+model revision
+~~~
+
+Security updates to a runtime image are deployed as a new immutable release/profile identity.
+
+Operations should periodically review:
+
+- base image vulnerabilities;
+- Python dependency advisories;
+- vLLM/runtime security releases;
+- model repository revision/license changes.
+
+Production never auto-upgrades a model/runtime dependency merely because a newer mutable tag/revision exists.
