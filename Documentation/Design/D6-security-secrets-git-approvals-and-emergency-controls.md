@@ -297,7 +297,7 @@ Recovery backup contains:
 
 A backup without required key material is not considered complete recovery.
 
-Recovery devices receive encrypted secret-store material only.
+The configured off-host cloud recovery target receives only encrypted recovery material. Production clients do not receive recovery envelopes.
 
 ---
 
@@ -595,16 +595,19 @@ never secret content.
 
 ---
 
-## 29. Recovery Device Security
+## 29. Off-Host Recovery Target Security
 
-Recovery-enabled Device must:
+The Cloud v1 recovery target must:
 
-- be registered to user;
-- authenticate server;
-- be authenticated by server;
-- store encrypted payload;
-- verify hashes before ACK;
-- support revocation.
+- be explicitly configured by an operator;
+- use server-held scoped credentials;
+- accept only encrypted recovery payloads;
+- provide durable-write acknowledgement;
+- support object/hash verification;
+- support credential rotation/revocation;
+- remain independent of developer client availability.
+
+Production clients are not recovery targets.
 
 A revoked/lost device receives no new generations.
 
@@ -690,7 +693,7 @@ Secret key rotation process:
 - sandbox tries /var/run/docker.sock;
 - worker reports stronger trust than launch profile;
 - CSRF mutation from foreign origin;
-- recovery device revoked mid-transfer;
+- off-host recovery credential revoked mid-transfer;
 - emergency stop while side effect active.
 
 All must fail safely.
@@ -712,7 +715,7 @@ Must prove:
 - sandbox has no host/control secret surfaces;
 - STOP_GLOBAL prevents new Jobs;
 - logs/SSE/API contain no seeded test secret;
-- recovery device revocation is enforced.
+- off-host recovery credential revocation is enforced.
 
 ---
 
@@ -953,9 +956,9 @@ Any exceptional raw resolution path is:
 
 ### Recovery credential revocation
 
-Revoking a recovery Device stops future RecoveryGeneration envelopes/replication to that device.
+Revoking/rotating the off-host recovery-target credential stops future RecoveryGeneration replication using that credential.
 
-Previously stored generations cannot be cryptographically recalled, so device-loss response includes rotating recovery recipient sets and producing a new generation under the new set. Security documentation must state this residual risk explicitly.
+Previously stored encrypted generations cannot be cryptographically recalled merely by revoking transport credentials. Recovery-key/recipient rotation policy must therefore produce a new generation under the new key/target configuration where confidentiality requirements demand it.
 
 
 ---
