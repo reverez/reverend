@@ -1142,3 +1142,64 @@ Workspace, model cache, logs and BlobStore growth are subject to quotas/GC thres
 Wall-clock timestamps are authoritative for durable audit/billing records.
 
 Process duration measurements use a monotonic clock and are converted into durable duration fields; elapsed-time calculations must not rely on wall-clock subtraction across clock adjustments.
+
+
+---
+
+## 49. Recursive Audit Cycle 2 — Provider-Cost Leakage, GC Safety and Recovery Health
+
+### Provider lifecycle cost safety
+
+Provider provision/start/stop/terminate operations are Action-Journalled charge-bearing operations.
+
+Before provisioning:
+
+- create provider ActionRecord intent;
+- create/associate PowerSession;
+- reserve budget;
+- attach Reverend reconciliation tags/idempotency metadata where the provider permits.
+
+After crash/restart, Capacity Controller reconciles provider inventory before creating replacement capacity.
+
+### Zero-compute means provider-confirmed zero compute billing
+
+“GPU count is zero” is not inferred from local worker absence.
+
+Scale-to-zero success requires provider state proving that billable compute has stopped. If a provider stop state still incurs compute charges, Cloud v1 terminates the instance when zero-compute policy requires it.
+
+Persistent disk/storage cost remains visible separately.
+
+### Blob GC and backup coordination
+
+BlobStore GC is two-phase mark-and-sweep with:
+
+- roots from live Artifacts/checkpoints/RecoveryGenerations/backups;
+- a minimum age grace period for unpublished objects;
+- coordination/advisory locking with RecoveryGeneration publication;
+- post-sweep integrity sampling.
+
+GC never races a newly published recovery manifest into deleting its object set.
+
+### Recovery health states
+
+Expose:
+
+~~~text
+HEALTHY
+DEGRADED
+UNSAFE
+~~~
+
+Interpretation:
+
+- HEALTHY — valid off-host acknowledged RecoveryGeneration within target age;
+- DEGRADED — durable local state is healthy but off-host recovery point is stale/unavailable;
+- UNSAFE — authoritative local state/backup integrity is itself uncertain.
+
+A DEGRADED system may continue bounded work but planned host shutdown remains inhibited and UI/operator alerts remain visible.
+
+### Worker reuse after backend restart
+
+A surviving worker reconnect may reduce unnecessary provider cost, but no previous-epoch lease is revived.
+
+Cost attribution for idle time during backend recovery remains a PowerSession/provider cost, not fabricated Run lease usage.
