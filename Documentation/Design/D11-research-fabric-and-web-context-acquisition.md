@@ -722,3 +722,100 @@ These validate the adapter design without making Reverend permanently dependent 
 ## 27. Exit Condition
 
 Research Fabric is ready when an Agent can reuse fresh Project evidence, acquire missing evidence through bounded search/static/browser/provider paths, retain source snapshots with provenance, synthesize a typed EvidencePack and feed only authorized evidence into Context Broker.
+
+
+---
+
+## 28. Recursive Capability Audit — Query Disclosure, Browser SSRF & Cache Scope
+
+The first modernization review identified a major confidentiality risk: even when fetched pages are public, a **search query itself may disclose private Project information**.
+
+### QueryDisclosurePolicy
+
+Before a query leaves the trusted Project domain:
+
+~~~text
+planned query
+↓
+classify source ContextItems and sensitivity
+↓
+QueryDisclosurePolicy
+├── PUBLIC / permitted PROJECT_PRIVATE abstraction
+│     → eligible external search
+└── RESTRICTED / secret-adjacent / raw proprietary code
+      → do not transmit externally
+      → generalize locally, use internal knowledge, or require explicit human policy
+~~~
+
+Rules:
+
+- never include raw secrets/tokens in external queries;
+- never include large raw proprietary code slices in search queries;
+- Project identifiers/codenames marked restricted are removed/generalized;
+- the exact outbound query is stored as bounded research provenance;
+- query sanitization is deterministic/policy-mediated, not trusted solely to an LLM;
+- if sanitization removes information essential to the search, block/escalate rather than leak it.
+
+A self-hosted SearXNG frontend still forwards queries to configured engines; it is therefore not automatically a confidentiality boundary for the query.
+
+### Browser request isolation applies to every subresource
+
+Browser SSRF controls apply not only to top-level navigation but also:
+
+- redirects;
+- frames;
+- scripts/styles/images/fonts;
+- fetch/XHR;
+- WebSockets;
+- service workers;
+- downloads;
+- DNS rebinding.
+
+Block:
+
+~~~text
+file:
+localhost / loopback
+private address ranges
+link-local
+cloud metadata endpoints
+Control Plane private services
+Secret Broker/PostgreSQL/internal worker endpoints
+~~~
+
+unless a dedicated FRONTEND_TEST_BROWSER policy explicitly allowlists a test target.
+
+### Browser filesystem boundary
+
+RESEARCH_BROWSER receives no arbitrary host/workspace filesystem mount.
+
+Uploads/file chooser are denied unless a specific test capability supplies an allowlisted Artifact.
+
+### Source-cache partition
+
+A SourceRecord/SourceSnapshot cache key includes an access partition.
+
+For public anonymous material:
+
+~~~text
+access_partition = PUBLIC
+~~~
+
+For authenticated/private future providers:
+
+~~~text
+access_partition = PROJECT:<project_id>:<credential-scope-version>
+~~~
+
+Content fetched under one private credential scope may not be reused in another Project merely because canonical URL matches.
+
+### Retention / GC
+
+SourceSnapshot retention:
+
+- referenced by retained EvidenceClaim/EvidencePack → durable root;
+- referenced by accepted Decision/Requirement provenance → durable root;
+- unreferenced cache snapshots → TTL/size-based GC allowed;
+- deletion must not break retained evidence lineage.
+
+Research cache growth is bounded independently from durable evidence storage.
