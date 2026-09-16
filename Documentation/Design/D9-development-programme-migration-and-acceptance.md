@@ -1281,7 +1281,7 @@ D14 closes Design. C0 may start after a fresh current-main baseline run is recor
 
 D10–D14 do not reopen A12. Future changes to frozen authority/security/durability semantics use an ADR and, where necessary, explicit architecture re-acceptance.
 
-## 55. Capability Modernization Integration into C0–C9
+## 50. Capability Modernization Integration into C0–C9
 
 D15–D22 refine the implementation programme.
 
@@ -1381,7 +1381,7 @@ D22 is the final documentation gate before C0 begins.
 
 ---
 
-## 50. Capability Async/Browser Isolation Tests
+## 51. Capability Async/Browser Isolation Tests
 
 Mandatory tests:
 
@@ -1396,7 +1396,7 @@ Mandatory tests:
 
 ---
 
-## 51. Background/Auth-Research/Browser Artifact Tests
+## 52. Background/Auth-Research/Browser Artifact Tests
 
 Mandatory tests:
 
@@ -1413,7 +1413,7 @@ Mandatory tests:
 
 ---
 
-## 52. Evidence, LSP & Large-Artifact Tests
+## 53. Evidence, LSP & Large-Artifact Tests
 
 Mandatory tests:
 
@@ -1431,7 +1431,7 @@ Mandatory tests:
 
 ---
 
-## 53. Disclosure / Inference-Logging Tests
+## 54. Disclosure / Inference-Logging Tests
 
 Mandatory tests:
 
@@ -1446,7 +1446,7 @@ Mandatory tests:
 
 ---
 
-## 54. Specification-Driven Development Addendum
+## 55. Specification-Driven Development Addendum
 
 ### C0
 
