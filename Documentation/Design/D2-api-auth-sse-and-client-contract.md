@@ -926,3 +926,39 @@ expiry/version
 ~~~
 
 Clients cannot alter a cursor to widen Project visibility or change filters silently.
+
+
+---
+
+## 31. Recursive Audit Cycle 5 — Run-Control Authorization Matrix
+
+Project visibility does not imply authority to control another user's Run.
+
+Default Cloud v1 authorization:
+
+| Operation | Default authority |
+|---|---|
+| read shared Project/Run state | Project member |
+| create Run | authenticated active Project member; resulting owner = caller |
+| pause own Run | Run owner |
+| resume own Run | Run owner |
+| run-now own Run | Run owner |
+| cancel own Run | Run owner |
+| answer scope/clarification input | Run owner unless request policy explicitly delegates |
+| approve owner-scoped personal credential use | Run owner |
+| emergency stop a Project/Run | authorized Project owner/system admin according to D6 |
+| resume/run-now someone else's Run under their identity/cost | deny by default |
+| mutate queue priority | system policy/admin only |
+
+A Project owner may stop another user's Run for safety, but does not thereby gain authority to resume it under that user's credentials or budget.
+
+### Queue-abuse controls
+
+The API enforces:
+
+- bounded queued Runs per user;
+- idempotent run-now requests;
+- run-now throttling;
+- conflict when another RESUME_NEXT pre-emption chain already has priority unless emergency policy explicitly overrides.
+
+These controls prevent one client from indefinitely leapfrogging the other through repeated pre-emption commands.
