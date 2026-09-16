@@ -801,3 +801,23 @@ Event builders accept allowlisted structured fields and references, not raw:
 Redaction remains defence in depth; schema minimization is the primary control.
 
 SSE uses an additional presentation projection so an internal audit Event cannot become client-visible merely because it exists in the Event table.
+
+
+---
+
+## 26. Recursive Audit Cycle 8 — Commit-Ordered Durable Cursors
+
+PostgreSQL identity/sequence values are **not commit ordered**. Two concurrent transactions can allocate sequence 41 and 42, commit 42 first, and cause a naïve `sequence > cursor` consumer to skip 41 forever after advancing to 42.
+
+Therefore any sequence used as a durable replay/high-water cursor must be allocated under transactional serialization that is held until commit.
+
+This applies to:
+
+- global Event replay sequence used by SSE;
+- per-Run Action Journal watermark used by checkpoints/recovery.
+
+Ordinary object IDs/counters that are not replay cursors may still use PostgreSQL identity sequences.
+
+D1 defines the concrete cursor counters.
+
+LISTEN/NOTIFY remains a wake-up only; consumers always replay from commit-safe durable cursors.
