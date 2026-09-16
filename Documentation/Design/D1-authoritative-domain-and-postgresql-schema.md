@@ -2228,3 +2228,87 @@ This works correctly for system-level provider/backup operations where `run_id` 
 ### Shutdown inhibitors
 
 `shutdown_inhibitors.owner_action_id` can therefore reference both Run and system-level Actions without inventing a fake Run.
+
+
+---
+
+## 33. Recursive Audit Cycle 11 — Bootstrap Transactions and Generic-Scope Constraints
+
+### Project + initial policy bootstrap
+
+`projects.active_policy_version` and `project_policies` form an intentional bootstrap cycle. It must be implemented transactionally without a window where a remotely visible Project has no policy.
+
+Recommended schema pattern:
+
+~~~sql
+projects(
+  ...
+  active_policy_version BIGINT
+)
+
+project_policies(
+  project_id UUID NOT NULL REFERENCES projects(project_id),
+  version BIGINT NOT NULL,
+  ...
+  PRIMARY KEY(project_id,version)
+)
+
+ALTER TABLE projects
+  ADD CONSTRAINT projects_active_policy_fk
+  FOREIGN KEY(project_id,active_policy_version)
+  REFERENCES project_policies(project_id,version)
+  DEFERRABLE INITIALLY DEFERRED;
+~~~
+
+Creation transaction:
+
+~~~text
+INSERT Project(active_policy_version = 1)
+→ INSERT ProjectMember(creator, owner, ACTIVE)
+→ INSERT ProjectPolicy(project_id, version=1, baseline policy)
+→ commit
+~~~
+
+The deferred FK is validated at commit, so no committed Project can lack the referenced active policy.
+
+If implementation cannot support this exact cyclic FK cleanly, use an equivalent transaction-scoped bootstrap procedure with a deferred constraint trigger. Do not publish a Project before membership and baseline policy exist.
+
+### Generic execution-control scope constraints
+
+`execution_controls` scope integrity is enforced by constraints/triggers:
+
+~~~text
+SYSTEM  → scope_id IS NULL
+PROJECT → scope_id references existing Project
+RUN     → scope_id references existing Run
+~~~
+
+For PROJECT/RUN controls, creation additionally verifies the actor's current authorization for that scope.
+
+A malformed generic UUID cannot silently create an orphan control.
+
+### Shutdown-inhibitor scope constraints
+
+~~~text
+CONTROL_HOST → node_id IS NULL
+COMPUTE_NODE → node_id IS NOT NULL and references ComputeNode
+~~~
+
+At least one of `owner_action_id` / `owner_job_id` / bounded explicit system-maintenance owner metadata must explain a non-expired inhibitor.
+
+### Scoped Secret referential checks
+
+For Secret scope:
+
+~~~text
+SYSTEM        → scope_id IS NULL
+USER          → scope_id references users(user_id)
+PROJECT       → scope_id references projects(project_id)
+RUN_EPHEMERAL → scope_id references runs(run_id)
+~~~
+
+These checks are database-backed with constraint triggers where a single declarative FK cannot express the polymorphic scope.
+
+### Recovery-recipient integrity
+
+Recovery recipient/device references are explicit. A recovery-enabled Device must be non-revoked at generation creation time to receive a new key envelope/replica target.
