@@ -1024,3 +1024,23 @@ After restoring the authoritative database from an off-host RecoveryGeneration, 
 Users reauthenticate.
 
 This prevents a stale pre-disaster session token from regaining authority after a rollback to an older recovery point.
+
+
+---
+
+## 34. Recursive Audit Cycle 8 — SSE Cursor Correctness
+
+`Last-Event-ID` refers only to D1's **commit-ordered Event sequence**.
+
+The SSE implementation must never use a raw PostgreSQL `SERIAL/IDENTITY` allocation as proof of commit order.
+
+Replay algorithm:
+
+1. read Events with commit-safe `sequence > cursor` in ascending sequence;
+2. apply authorization filtering;
+3. keep a server-side scanned cursor through invisible Events;
+4. emit visible Events in sequence order;
+5. switch to LISTEN/NOTIFY-assisted polling;
+6. after any reconnect/notification loss, resume from durable sequence queries.
+
+Concurrency tests must create overlapping Event transactions and prove no late-committing Event is skipped.
