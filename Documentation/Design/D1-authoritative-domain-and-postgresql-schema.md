@@ -169,8 +169,11 @@ PAUSED
 RESUME_QUEUED
 RESUMING
 AWAITING_APPROVAL
+AWAITING_INPUT
 RECOVERING
 RECOVERY_BLOCKED
+CANCEL_REQUESTED
+CANCELLING
 COMPLETED
 FAILED
 CANCELLED
@@ -216,7 +219,9 @@ WHERE status IN (
   'PAUSE_REQUESTED',
   'PAUSING',
   'RESUMING',
-  'RECOVERING'
+  'RECOVERING',
+  'CANCEL_REQUESTED',
+  'CANCELLING'
 );
 ~~~
 
@@ -1538,3 +1543,112 @@ Roots include:
 - in-progress upload publication records.
 
 GC cannot delete an object merely because one transaction has not yet published its reference. Temporary/unpublished objects use a separate namespace or minimum-age grace window.
+
+
+---
+
+## 26. Recursive Audit Cycle 3 — Revocation, Repository Pinning and Immutable Catalogs
+
+### 26.1 Membership is revocable, not deletable
+
+Historical Run ownership must not make Project membership impossible to revoke.
+
+Revise `project_members` to retain identity history:
+
+```sql
+ALTER TABLE project_members
+  ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE'
+    CHECK (status IN ('ACTIVE','REVOKED')),
+  ADD COLUMN revoked_at TIMESTAMPTZ,
+  ADD COLUMN revoked_by UUID REFERENCES users(user_id);
+```
+
+The Run ownership foreign key references the retained membership row, while authorization requires `status='ACTIVE'` at Run creation and for new user-authorized actions.
+
+Project creation transaction must insert the creator as an ACTIVE `owner` member atomically with the Project.
+
+Revoking membership never rewrites historical Run ownership.
+
+### 26.2 User/membership revocation during an active Run
+
+If a Run owner's user or Project membership becomes disabled/revoked:
+
+- no new owner-scoped privileged action is admitted;
+- no new user-scoped Secret is resolved;
+- pending Approvals from that user become unusable;
+- the active Run receives a POLICY blocker and is driven to a safe pause at the next safe boundary;
+- system/project administrators may cancel or explicitly resolve policy according to D6;
+- another viewer never silently becomes the Run owner.
+
+Historical read visibility follows retention/admin policy, not accidental FK deletion.
+
+### 26.3 Repository identity is pinned per Run
+
+A mutable Project repository configuration cannot retarget an already-running autonomous Run.
+
+Add:
+
+```sql
+run_repository_bindings(
+  run_id UUID PRIMARY KEY REFERENCES runs(run_id),
+  provider TEXT NOT NULL,
+  repository_identity JSONB NOT NULL,
+  default_branch_at_creation TEXT NOT NULL,
+  base_ref TEXT,
+  base_commit TEXT,
+  run_branch TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+)
+```
+
+Rules:
+
+- `repository_identity` is copied from the server-canonical Project identity at Run creation;
+- before mutation begins, the base commit is resolved and pinned;
+- worktrees/PRs/Git Actions use this Run binding, not a later mutable Project repository value;
+- retargeting a Run to another repository is prohibited; create a new Run instead;
+- changing target branch after execution begins requires an explicit fingerprinted privileged action and preserved history.
+
+The human objective is also immutable after Run creation. Clarifications and scope changes become typed input/Requirement/Decision records rather than rewriting the original objective.
+
+### 26.4 Credential revocation never falls back to another user
+
+If `github_identity_ref` or its Secret is revoked while a Run is active, external Git actions fail with a typed POLICY/CREDENTIAL blocker.
+
+The system may request the Run owner to repair/rotate their credential, but may not substitute:
+
+- another Project member's GitHub identity;
+- a system GitHub credential;
+- ambient host Git credentials.
+
+### 26.5 Immutable production catalogs
+
+Once a ModelProfile or DeploymentProfile has been used by a Job, its semantic identity fields are immutable.
+
+Allowed in-place changes are limited to lifecycle/status metadata that does not alter what was executed.
+
+Changes to any of these create a new profile identity:
+
+~~~text
+model revision
+runtime/runtime version
+quantization
+container digest
+context limit
+hardware requirement
+trust class
+reasoning semantics
+~~~
+
+BenchmarkResultSet and RateSnapshot rows are append-only.
+
+This preserves historical reproducibility.
+
+### 26.6 Canonical FK delete behavior
+
+The original schema examples used several `ON DELETE CASCADE` clauses for convenience. For Cloud authoritative lineage, implementation must prefer `RESTRICT`/no-delete semantics for Run → Workflow → Task → Job and Artifact history.
+
+CASCADE remains appropriate only for non-authoritative join/cache rows whose parent deletion has already passed explicit retention maintenance.
+
+The normal application role cannot use hard deletes on authoritative lineage.
