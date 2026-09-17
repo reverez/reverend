@@ -85,16 +85,31 @@ class IssueState:
     base_commit: str
     worktree_path: str | None
     branch_name: str | None
+    packet_path: str | None
     accepted_commit: str | None
     attempt_count: int
     updated_at: str
 
 
+@dataclass(frozen=True)
+class AttemptState:
+    id: int
+    run_id: str
+    issue_number: int
+    kind: str
+    ordinal: int
+    status: str
+    model: str | None
+    started_at: str
+    ended_at: str | None
+    detail: dict[str, Any]
+
+
 class StateStore:
     """SQLite-backed source of truth for autonomous controller state.
 
-    The store uses WAL mode and explicit transactions so a controller process can
-    restart and reconstruct its state without relying on model memory or text files.
+    WAL mode plus explicit transactions makes the controller restartable without
+    relying on model memory, tmux scrollback, or ad-hoc status files.
     """
 
     def __init__(self, path: str | Path) -> None:
@@ -147,6 +162,7 @@ class StateStore:
                     base_commit TEXT NOT NULL,
                     worktree_path TEXT,
                     branch_name TEXT,
+                    packet_path TEXT,
                     accepted_commit TEXT,
                     attempt_count INTEGER NOT NULL DEFAULT 0,
                     updated_at TEXT NOT NULL,
@@ -182,8 +198,16 @@ class StateStore:
 
                 CREATE INDEX IF NOT EXISTS idx_events_run_issue
                     ON events(run_id, issue_number, id);
+                CREATE INDEX IF NOT EXISTS idx_issues_run_phase
+                    ON issues(run_id, phase, issue_number);
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(issues)").fetchall()
+            }
+            if "packet_path" not in columns:
+                connection.execute("ALTER TABLE issues ADD COLUMN packet_path TEXT")
             connection.commit()
         finally:
             connection.close()
@@ -215,6 +239,16 @@ class StateStore:
                     now,
                 ),
             )
+
+    def set_run_status(self, run_id: str, status: str) -> None:
+        now = _utc_now()
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                "UPDATE runs SET status = ?, updated_at = ? WHERE run_id = ?",
+                (status, now, run_id),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(f"unknown run_id: {run_id}")
 
     def heartbeat(self, run_id: str) -> None:
         now = _utc_now()
@@ -255,6 +289,23 @@ class StateStore:
                 ),
             )
 
+    @staticmethod
+    def _issue_from_row(row: sqlite3.Row) -> IssueState:
+        return IssueState(
+            run_id=row["run_id"],
+            issue_number=row["issue_number"],
+            milestone=row["milestone"],
+            title=row["title"],
+            phase=IssuePhase(row["phase"]),
+            base_commit=row["base_commit"],
+            worktree_path=row["worktree_path"],
+            branch_name=row["branch_name"],
+            packet_path=row["packet_path"],
+            accepted_commit=row["accepted_commit"],
+            attempt_count=row["attempt_count"],
+            updated_at=row["updated_at"],
+        )
+
     def get_issue(self, run_id: str, issue_number: int) -> IssueState:
         connection = self._connect()
         try:
@@ -266,19 +317,18 @@ class StateStore:
             connection.close()
         if row is None:
             raise KeyError(f"unknown issue: {run_id}/{issue_number}")
-        return IssueState(
-            run_id=row["run_id"],
-            issue_number=row["issue_number"],
-            milestone=row["milestone"],
-            title=row["title"],
-            phase=IssuePhase(row["phase"]),
-            base_commit=row["base_commit"],
-            worktree_path=row["worktree_path"],
-            branch_name=row["branch_name"],
-            accepted_commit=row["accepted_commit"],
-            attempt_count=row["attempt_count"],
-            updated_at=row["updated_at"],
-        )
+        return self._issue_from_row(row)
+
+    def list_issues(self, run_id: str) -> tuple[IssueState, ...]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                "SELECT * FROM issues WHERE run_id = ? ORDER BY issue_number",
+                (run_id,),
+            ).fetchall()
+        finally:
+            connection.close()
+        return tuple(self._issue_from_row(row) for row in rows)
 
     def transition_issue(
         self,
@@ -308,48 +358,185 @@ class StateStore:
                 """,
                 (target.value, now, run_id, issue_number),
             )
-            connection.execute(
-                """
-                INSERT INTO events(run_id, issue_number, kind, payload_json, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    run_id,
-                    issue_number,
-                    "issue_transition",
-                    json.dumps(
-                        {
-                            "from": source.value,
-                            "to": target.value,
-                            **payload,
-                        },
-                        sort_keys=True,
-                    ),
-                    now,
-                ),
+            self._insert_transition_event(
+                connection,
+                run_id=run_id,
+                issue_number=issue_number,
+                source=source,
+                target=target,
+                payload=payload,
+                now=now,
             )
         return self.get_issue(run_id, issue_number)
 
-    def bind_worktree(
+    def mark_context_ready(
         self,
         *,
         run_id: str,
         issue_number: int,
         worktree_path: str,
         branch_name: str,
-    ) -> None:
+        packet_path: str,
+    ) -> IssueState:
+        """Atomically bind runtime assets and move PENDING -> CONTEXT_READY."""
         now = _utc_now()
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT phase FROM issues WHERE run_id = ? AND issue_number = ?",
+                (run_id, issue_number),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown issue: {run_id}/{issue_number}")
+            source = IssuePhase(row["phase"])
+            if source is not IssuePhase.PENDING:
+                raise TransitionError(
+                    f"context may only be prepared from PENDING, got {source}"
+                )
+            connection.execute(
+                """
+                UPDATE issues
+                SET phase = ?, worktree_path = ?, branch_name = ?, packet_path = ?,
+                    updated_at = ?
+                WHERE run_id = ? AND issue_number = ?
+                """,
+                (
+                    IssuePhase.CONTEXT_READY.value,
+                    worktree_path,
+                    branch_name,
+                    packet_path,
+                    now,
+                    run_id,
+                    issue_number,
+                ),
+            )
+            self._insert_transition_event(
+                connection,
+                run_id=run_id,
+                issue_number=issue_number,
+                source=source,
+                target=IssuePhase.CONTEXT_READY,
+                payload={"packet_path": packet_path, "worktree_path": worktree_path},
+                now=now,
+            )
+        return self.get_issue(run_id, issue_number)
+
+    @staticmethod
+    def _insert_transition_event(
+        connection: sqlite3.Connection,
+        *,
+        run_id: str,
+        issue_number: int,
+        source: IssuePhase,
+        target: IssuePhase,
+        payload: dict[str, Any],
+        now: str,
+    ) -> None:
+        connection.execute(
+            """
+            INSERT INTO events(run_id, issue_number, kind, payload_json, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                issue_number,
+                "issue_transition",
+                json.dumps(
+                    {"from": source.value, "to": target.value, **payload},
+                    sort_keys=True,
+                ),
+                now,
+            ),
+        )
+
+    def start_attempt(
+        self,
+        *,
+        run_id: str,
+        issue_number: int,
+        kind: str,
+        model: str | None,
+    ) -> AttemptState:
+        if not kind.strip():
+            raise ValueError("attempt kind must not be empty")
+        now = _utc_now()
+        with self.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT COALESCE(MAX(ordinal), 0) + 1 AS next_ordinal
+                FROM attempts
+                WHERE run_id = ? AND issue_number = ? AND kind = ?
+                """,
+                (run_id, issue_number, kind),
+            ).fetchone()
+            ordinal = int(row["next_ordinal"])
+            cursor = connection.execute(
+                """
+                INSERT INTO attempts(
+                    run_id, issue_number, kind, ordinal, status, model, started_at
+                ) VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)
+                """,
+                (run_id, issue_number, kind, ordinal, model, now),
+            )
+            connection.execute(
+                """
+                UPDATE issues
+                SET attempt_count = attempt_count + 1, updated_at = ?
+                WHERE run_id = ? AND issue_number = ?
+                """,
+                (now, run_id, issue_number),
+            )
+            attempt_id = int(cursor.lastrowid)
+        return self.get_attempt(attempt_id)
+
+    def get_attempt(self, attempt_id: int) -> AttemptState:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM attempts WHERE id = ?", (attempt_id,)
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            raise KeyError(f"unknown attempt: {attempt_id}")
+        return AttemptState(
+            id=row["id"],
+            run_id=row["run_id"],
+            issue_number=row["issue_number"],
+            kind=row["kind"],
+            ordinal=row["ordinal"],
+            status=row["status"],
+            model=row["model"],
+            started_at=row["started_at"],
+            ended_at=row["ended_at"],
+            detail=json.loads(row["detail_json"]),
+        )
+
+    def finish_attempt(
+        self,
+        attempt_id: int,
+        *,
+        status: str,
+        detail: dict[str, Any] | None = None,
+    ) -> AttemptState:
+        if not status.strip():
+            raise ValueError("attempt status must not be empty")
         with self.transaction() as connection:
             cursor = connection.execute(
                 """
-                UPDATE issues
-                SET worktree_path = ?, branch_name = ?, updated_at = ?
-                WHERE run_id = ? AND issue_number = ?
+                UPDATE attempts
+                SET status = ?, ended_at = ?, detail_json = ?
+                WHERE id = ? AND ended_at IS NULL
                 """,
-                (worktree_path, branch_name, now, run_id, issue_number),
+                (
+                    status,
+                    _utc_now(),
+                    json.dumps(detail or {}, sort_keys=True),
+                    attempt_id,
+                ),
             )
             if cursor.rowcount != 1:
-                raise KeyError(f"unknown issue: {run_id}/{issue_number}")
+                raise KeyError(f"attempt is unknown or already finished: {attempt_id}")
+        return self.get_attempt(attempt_id)
 
     def mark_accepted_commit(
         self,
