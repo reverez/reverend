@@ -31,7 +31,13 @@ Rules:
 - Read only files needed to resolve the bounded issue.
 - Do not redesign architecture outside the issue.
 - Preserve accepted Reverend behavior unless the supplied Design authority explicitly supersedes it.
-- Never invent file paths. Verify every path with repository tools before referencing it.
+- Never invent file paths.
+- Paths supplied by the controller in ISSUE_PACKET.design_sources, candidate_source_files, and candidate_tests are already repository-validated. Do NOT glob or search merely to prove those paths exist.
+- Treat ISSUE_PACKET as the bounded search surface. Start from its design_sources and candidate files.
+- Do NOT run broad repository discovery such as **/*.py, repository-wide class searches, or scans of all Design documents when the packet already supplies candidates.
+- Planning has a strict exploration budget: use at most 8 repository read/search operations before returning the plan.
+- Read at most 4 issue-relevant Design sources unless a concrete conflict requires one additional source.
+- Once the implementation surface is known, stop exploring immediately and return the required JSON protocol.
 
 Return a concise implementation plan ending with exactly one JSON object between these markers:
 

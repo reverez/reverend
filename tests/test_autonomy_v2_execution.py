@@ -16,8 +16,11 @@ from reverend.autonomy_v2.execution import (
 
 
 class _CommandRunner(OpenCodeRunner):
-    def __init__(self, command):
-        super().__init__(auto_approve=False)
+    def __init__(self, command, *, stall_timeout=900):
+        super().__init__(
+            auto_approve=False,
+            default_stall_timeout_seconds=stall_timeout,
+        )
         self._command = tuple(command)
 
     def build_command(self, invocation):
@@ -41,6 +44,7 @@ def test_runner_captures_output_without_shell(tmp_path):
     result = runner.run(_invocation(tmp_path))
     assert result.succeeded is True
     assert result.timed_out is False
+    assert result.stalled is False
     assert "hello" in result.output
 
 
@@ -52,6 +56,33 @@ def test_runner_terminates_timed_out_process_group(tmp_path):
     assert result.succeeded is False
     assert result.timed_out is True
     assert "start" in result.output
+
+
+def test_runner_terminates_stalled_process_group(tmp_path):
+    runner = _CommandRunner(
+        [sys.executable, "-u", "-c", "import time; print('start', flush=True); time.sleep(10)"],
+        stall_timeout=0.2,
+    )
+    result = runner.run(_invocation(tmp_path, timeout=5))
+    assert result.succeeded is False
+    assert result.timed_out is False
+    assert result.stalled is True
+    assert "start" in result.output
+
+
+def test_activity_prevents_false_stall(tmp_path):
+    runner = _CommandRunner(
+        [
+            sys.executable,
+            "-u",
+            "-c",
+            "import time; [(print(i, flush=True), time.sleep(.08)) for i in range(5)]",
+        ],
+        stall_timeout=0.15,
+    )
+    result = runner.run(_invocation(tmp_path, timeout=3))
+    assert result.succeeded is True
+    assert result.stalled is False
 
 
 def test_plan_protocol_is_strict():
@@ -80,3 +111,12 @@ def test_review_protocol_rejects_inconsistent_verdicts():
         validate_review_payload({"verdict": "PASS", "defects": [{"message": "bug"}]})
     with pytest.raises(ModelProtocolError):
         validate_review_payload({"verdict": "FAIL", "defects": []})
+
+def test_opencode_command_pins_invocation_worktree(tmp_path):
+    runner = OpenCodeRunner(auto_approve=False)
+    invocation = _invocation(tmp_path)
+
+    command = runner.build_command(invocation)
+
+    index = command.index("--dir")
+    assert command[index + 1] == str(tmp_path.resolve())

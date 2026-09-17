@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from .controller import AutonomousController, PreparedIssue
 from .execution import (
@@ -25,9 +25,9 @@ from .verify import Verifier, default_verification_steps
 @dataclass(frozen=True)
 class EngineConfig:
     model: str
-    planner_agent: str = "autonomy-v2-planner"
+    planner_agent: str = "autonomy-v2-planner-bounded"
     implementer_agent: str = "autonomy-v2-implementer"
-    reviewer_agent: str = "autonomy-v2-reviewer"
+    reviewer_agent: str = "autonomy-v2-reviewer-bounded"
     planner_timeout_seconds: float = 600
     implement_timeout_seconds: float = 2700
     reviewer_timeout_seconds: float = 900
@@ -35,6 +35,7 @@ class EngineConfig:
     max_implement_attempts: int = 2
     max_review_attempts: int = 2
     max_repairs: int = 3
+    heartbeat_interval_seconds: float = 15
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -47,6 +48,8 @@ class EngineConfig:
         ):
             if getattr(self, name) < 1:
                 raise ValueError(f"{name} must be at least 1")
+        if self.heartbeat_interval_seconds <= 0:
+            raise ValueError("heartbeat_interval_seconds must be positive")
 
 
 @dataclass(frozen=True)
@@ -82,12 +85,7 @@ class IssueEngine:
         issue_number = prepared.issue.number
         worktree = prepared.worktree.path
         base_ref = prepared.worktree.base_ref
-        logs = (
-            self.controller.runtime_root
-            / "logs"
-            / run_id
-            / f"issue-{issue_number}"
-        )
+        logs = self.controller.runtime_root / "logs" / run_id / f"issue-{issue_number}"
         logs.mkdir(parents=True, exist_ok=True)
         policy = ChangePolicy(worktree)
 
@@ -95,6 +93,7 @@ class IssueEngine:
         if state.phase is not IssuePhase.CONTEXT_READY:
             raise RuntimeError(f"issue must start in CONTEXT_READY, got {state.phase}")
 
+        self._event(prepared, "engine_started", {"worktree": str(worktree)})
         plan = self._plan(prepared, policy, logs)
         if plan is None:
             return self._terminal(
@@ -110,14 +109,14 @@ class IssueEngine:
             target=IssuePhase.PLANNED,
             payload={"plan": plan},
         )
+        policy.prepare_plan_directories(plan)
         self.controller.store.transition_issue(
             run_id=run_id,
             issue_number=issue_number,
             target=IssuePhase.IMPLEMENTING,
         )
 
-        implementation_ok = self._implement(prepared, plan, policy, logs)
-        if not implementation_ok:
+        if not self._implement(prepared, plan, policy, logs):
             return self._terminal(
                 run_id,
                 issue_number,
@@ -139,19 +138,26 @@ class IssueEngine:
                 )
 
             current = self.controller.store.get_issue(run_id, issue_number)
-            if current.phase is IssuePhase.IMPLEMENTING or current.phase is IssuePhase.REPAIRING:
+            if current.phase in {IssuePhase.IMPLEMENTING, IssuePhase.REPAIRING}:
                 self.controller.store.transition_issue(
                     run_id=run_id,
                     issue_number=issue_number,
                     target=IssuePhase.VERIFYING,
                 )
 
+            self._event(
+                prepared,
+                "verification_started",
+                {"repair_number": repair_number, "changed_files": list(changed)},
+            )
             report = self.verifier.run(
                 worktree=worktree,
                 log_dir=logs / f"verify-{repair_number}",
                 steps=default_verification_steps(
                     targeted_tests=self._targeted_tests(prepared, plan),
                 ),
+                heartbeat=lambda: self.controller.heartbeat(run_id),
+                heartbeat_interval_seconds=self.config.heartbeat_interval_seconds,
             )
             if not report.passed:
                 if repair_number >= self.config.max_repairs:
@@ -177,14 +183,13 @@ class IssueEngine:
                     logs,
                     repair_number,
                     reason=self._verification_failure_text(failed),
-                ):
-                    if repair_number >= self.config.max_repairs:
-                        return self._terminal(
-                            run_id,
-                            issue_number,
-                            IssuePhase.QUARANTINED,
-                            "repair attempts made no progress",
-                        )
+                ) and repair_number >= self.config.max_repairs:
+                    return self._terminal(
+                        run_id,
+                        issue_number,
+                        IssuePhase.QUARANTINED,
+                        "repair attempts made no progress",
+                    )
                 continue
 
             self.controller.store.transition_issue(
@@ -192,7 +197,6 @@ class IssueEngine:
                 issue_number=issue_number,
                 target=IssuePhase.REVIEWING,
             )
-
             review = self._review(prepared, plan, logs)
             if review is None:
                 return self._terminal(
@@ -243,17 +247,13 @@ class IssueEngine:
                     f"controller commit failed: {exc}",
                 )
 
-            self.controller.store.transition_issue(
-                run_id=run_id,
-                issue_number=issue_number,
-                target=IssuePhase.ACCEPTED,
-                payload={"commit": commit},
-            )
-            self.controller.store.mark_accepted_commit(
+            self.controller.store.accept_issue(
                 run_id=run_id,
                 issue_number=issue_number,
                 commit=commit,
             )
+            self.controller.store.set_run_status(run_id, "COMPLETED")
+            self._event(prepared, "issue_accepted", {"commit": commit})
             return IssueOutcome(issue_number, IssuePhase.ACCEPTED, commit=commit)
 
     def _plan(
@@ -263,7 +263,7 @@ class IssueEngine:
         logs: Path,
     ) -> dict[str, list[str]] | None:
         prompt = self._planner_prompt(prepared)
-        for _ in range(self.config.max_planner_attempts):
+        for attempt_number in range(1, self.config.max_planner_attempts + 1):
             result = self._invoke(
                 prepared,
                 kind="plan",
@@ -273,6 +273,12 @@ class IssueEngine:
                 logs=logs,
             )
             if result is None:
+                self._event(prepared, "planner_attempt_no_result", {"attempt": attempt_number})
+                prompt = self._planner_prompt(prepared) + (
+                    "\n\nRECOVERY ATTEMPT: the previous planner process timed out or failed. "
+                    "Do not call any repository tools. All evidence is already embedded in "
+                    "BOUNDED_CONTEXT. Immediately return the required plan protocol."
+                )
                 continue
             try:
                 payload = parse_marker_json(
@@ -280,18 +286,23 @@ class IssueEngine:
                     "AUTONOMY_PLAN_JSON_BEGIN",
                     "AUTONOMY_PLAN_JSON_END",
                 )
-                plan = validate_plan_payload(payload)
-                return policy.validate_plan(plan)
-            except (ModelProtocolError, ChangePolicyError, FileNotFoundError, FileExistsError, ValueError) as exc:
-                self.controller.store.record_event(
-                    run_id=prepared.run_id,
-                    issue_number=prepared.issue.number,
-                    kind="planner_protocol_rejected",
-                    payload={"error": str(exc)},
+                return policy.validate_plan(validate_plan_payload(payload))
+            except (
+                ModelProtocolError,
+                ChangePolicyError,
+                FileNotFoundError,
+                FileExistsError,
+                ValueError,
+            ) as exc:
+                self._event(
+                    prepared,
+                    "planner_protocol_rejected",
+                    {"error": str(exc), "attempt": attempt_number},
                 )
                 prompt = self._planner_prompt(prepared) + (
-                    "\n\nYour previous plan was rejected by the deterministic controller: "
-                    f"{exc}. Return a corrected plan only after verifying every path."
+                    "\n\nThe deterministic controller rejected the previous plan: "
+                    f"{exc}. Do not call tools. Correct the JSON plan using only the "
+                    "controller-supplied paths and BOUNDED_CONTEXT."
                 )
         return None
 
@@ -303,7 +314,7 @@ class IssueEngine:
         logs: Path,
     ) -> bool:
         prompt = self._implementer_prompt(prepared, plan)
-        for attempt in range(1, self.config.max_implement_attempts + 1):
+        for attempt_number in range(1, self.config.max_implement_attempts + 1):
             before = self._diff_fingerprint(prepared)
             result = self._invoke(
                 prepared,
@@ -321,24 +332,16 @@ class IssueEngine:
                     )
                     policy.validate_changed_files(changed)
                 except (ChangePolicyError, ValueError) as exc:
-                    self.controller.store.record_event(
-                        run_id=prepared.run_id,
-                        issue_number=prepared.issue.number,
-                        kind="implementation_policy_rejected",
-                        payload={"error": str(exc)},
-                    )
+                    self._event(prepared, "implementation_policy_rejected", {"error": str(exc)})
                     return False
                 return True
             prompt = self._implementer_prompt(prepared, plan) + (
                 "\n\nRECOVERY ATTEMPT: the previous session produced no new repository diff. "
-                "Do not restate the plan. Inspect the current files and make the required edits now."
+                "Do not restate the plan. Use the ACTUAL native OpenCode Read/Edit/Write tools; "
+                "do not print XML, <function=...>, <tool_call>, JSON tool calls, or other "
+                "pseudo-tool syntax. Inspect the planned files and make the required edits now."
             )
-            self.controller.store.record_event(
-                run_id=prepared.run_id,
-                issue_number=prepared.issue.number,
-                kind="implementation_no_progress",
-                payload={"attempt": attempt},
-            )
+            self._event(prepared, "implementation_no_progress", {"attempt": attempt_number})
         return False
 
     def _repair(
@@ -386,18 +389,16 @@ class IssueEngine:
     ) -> tuple[str, list[dict[str, object]]] | None:
         try:
             diff = self.controller.worktrees.diff_text(
-                prepared.worktree.path, prepared.worktree.base_ref
+                prepared.worktree.path,
+                prepared.worktree.base_ref,
+                max_chars=28_000,
+                max_untracked_file_bytes=128_000,
             )
         except DiffTooLarge as exc:
-            self.controller.store.record_event(
-                run_id=prepared.run_id,
-                issue_number=prepared.issue.number,
-                kind="review_diff_too_large",
-                payload={"error": str(exc)},
-            )
+            self._event(prepared, "review_diff_too_large", {"error": str(exc)})
             return None
         prompt = self._reviewer_prompt(prepared, plan, diff)
-        for _ in range(self.config.max_review_attempts):
+        for attempt_number in range(1, self.config.max_review_attempts + 1):
             result = self._invoke(
                 prepared,
                 kind="review",
@@ -416,15 +417,14 @@ class IssueEngine:
                 )
                 return validate_review_payload(payload)
             except ModelProtocolError as exc:
-                self.controller.store.record_event(
-                    run_id=prepared.run_id,
-                    issue_number=prepared.issue.number,
-                    kind="review_protocol_rejected",
-                    payload={"error": str(exc)},
+                self._event(
+                    prepared,
+                    "review_protocol_rejected",
+                    {"error": str(exc), "attempt": attempt_number},
                 )
                 prompt = self._reviewer_prompt(prepared, plan, diff) + (
-                    "\n\nYour previous verdict did not satisfy the required JSON protocol. "
-                    f"Controller error: {exc}"
+                    "\n\nThe previous verdict violated the JSON protocol. Do not call tools. "
+                    f"Controller error: {exc}. Return a corrected verdict immediately."
                 )
         return None
 
@@ -453,6 +453,15 @@ class IssueEngine:
             timeout_seconds=timeout_seconds,
             log_path=logs / f"{kind}-{attempt.ordinal}.log",
         )
+        self.controller.heartbeat(prepared.run_id)
+        stop = threading.Event()
+        heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop,
+            args=(prepared.run_id, stop),
+            name=f"autonomy-heartbeat-{kind}",
+            daemon=True,
+        )
+        heartbeat_thread.start()
         try:
             result = self.runner.run(invocation)
         except Exception as exc:
@@ -461,10 +470,24 @@ class IssueEngine:
                 status="RUNTIME_ERROR",
                 detail={"error": f"{type(exc).__name__}: {exc}"},
             )
+            self._event(
+                prepared,
+                "agent_runtime_error",
+                {"kind": kind, "error": f"{type(exc).__name__}: {exc}"},
+            )
             return None
+        finally:
+            stop.set()
+            heartbeat_thread.join(timeout=2)
+            try:
+                self.controller.heartbeat(prepared.run_id)
+            except Exception:
+                pass
 
         if result.timed_out:
             status = "TIMED_OUT"
+        elif result.stalled:
+            status = "STALLED"
         elif result.returncode != 0:
             status = "PROCESS_ERROR"
         else:
@@ -472,9 +495,21 @@ class IssueEngine:
         self.controller.store.finish_attempt(
             attempt.id,
             status=status,
-            detail={"returncode": result.returncode, "log_path": str(result.log_path)},
+            detail={
+                "returncode": result.returncode,
+                "timed_out": result.timed_out,
+                "stalled": result.stalled,
+                "log_path": str(result.log_path),
+            },
         )
         return result if result.succeeded else None
+
+    def _heartbeat_loop(self, run_id: str, stop: threading.Event) -> None:
+        while not stop.wait(self.config.heartbeat_interval_seconds):
+            try:
+                self.controller.heartbeat(run_id)
+            except Exception:
+                return
 
     def _diff_fingerprint(self, prepared: PreparedIssue) -> str:
         try:
@@ -497,10 +532,7 @@ class IssueEngine:
     ) -> tuple[str, ...]:
         return tuple(
             dict.fromkeys(
-                [
-                    *prepared.packet.candidate_tests,
-                    *plan["tests_to_add_or_modify"],
-                ]
+                [*prepared.packet.candidate_tests, *plan["tests_to_add_or_modify"]]
             )
         )
 
@@ -517,12 +549,55 @@ class IssueEngine:
         )
 
     @staticmethod
+    def _bounded_context(prepared: PreparedIssue) -> str:
+        root = prepared.worktree.path.resolve()
+        entries: list[tuple[str, str, int]] = []
+        entries.extend(("DESIGN", path, 2400) for path in prepared.packet.design_sources)
+        entries.extend(("SOURCE", path, 3400) for path in prepared.packet.candidate_source_files)
+        entries.extend(("TEST", path, 1600) for path in prepared.packet.candidate_tests[:4])
+
+        chunks: list[str] = []
+        total_chars = 0
+        max_total_chars = 24_000
+        for kind, relative, per_file_limit in entries:
+            path = (root / relative).resolve()
+            try:
+                path.relative_to(root)
+            except ValueError:
+                continue
+            if not path.is_file():
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if len(text) > per_file_limit:
+                head = (per_file_limit * 2) // 3
+                tail = per_file_limit - head
+                text = text[:head] + "\n...[controller excerpt truncated]...\n" + text[-tail:]
+            remaining = max_total_chars - total_chars
+            if remaining <= 0:
+                break
+            if len(text) > remaining:
+                text = text[:remaining] + "\n...[context budget exhausted]..."
+            chunks.append(f"--- {kind}: {relative} ---\n{text}")
+            total_chars += len(text)
+        return "\n\n".join(chunks)
+
+    @staticmethod
     def _planner_prompt(prepared: PreparedIssue) -> str:
         return (
-            "Plan exactly one bounded Reverend issue. The controller has already validated "
-            "the issue packet paths. Read only what you need and obey the required JSON protocol.\n\n"
+            "ZERO-TOOL PLANNING MODE. Plan exactly one bounded Reverend issue. The "
+            "deterministic controller already performed repository discovery and validated "
+            "the supplied paths. Do not call any tool or search for additional files.\n\n"
+            "Use only ISSUE_PACKET and BOUNDED_CONTEXT. A genuinely new path may be proposed "
+            "only under files_to_create. If a new test file is proposed, include it in both "
+            "files_to_create and tests_to_add_or_modify. Determine the smallest complete "
+            "implementation surface, then immediately return the exact required plan JSON.\n\n"
             "ISSUE_PACKET:\n"
             + json.dumps(prepared.packet.as_dict(), indent=2, sort_keys=True)
+            + "\n\nBOUNDED_CONTEXT:\n"
+            + IssueEngine._bounded_context(prepared)
         )
 
     @staticmethod
@@ -545,14 +620,31 @@ class IssueEngine:
         diff: str,
     ) -> str:
         return (
-            "Independently review the implementation for the active issue. Deterministic "
-            "verification has already passed. Return the required review JSON protocol.\n\n"
+            "ZERO-TOOL REVIEW MODE. Independently review the verified implementation for the "
+            "active issue. Do not call repository tools. Deterministic verification already "
+            "passed; use only the supplied requirements, bounded context, plan, and diff. "
+            "Return the required review JSON protocol immediately.\n\n"
             "ISSUE_PACKET:\n"
             + json.dumps(prepared.packet.as_dict(), indent=2, sort_keys=True)
+            + "\n\nBOUNDED_CONTEXT:\n"
+            + IssueEngine._bounded_context(prepared)
             + "\n\nVALIDATED_PLAN:\n"
             + json.dumps(plan, indent=2, sort_keys=True)
             + "\n\nVERIFIED_DIFF:\n"
             + diff
+        )
+
+    def _event(
+        self,
+        prepared: PreparedIssue,
+        kind: str,
+        payload: dict[str, object],
+    ) -> None:
+        self.controller.store.record_event(
+            run_id=prepared.run_id,
+            issue_number=prepared.issue.number,
+            kind=kind,
+            payload=dict(payload),
         )
 
     def _terminal(
@@ -570,4 +662,5 @@ class IssueEngine:
                 target=phase,
                 payload={"reason": reason},
             )
+        self.controller.store.set_run_status(run_id, phase.value)
         return IssueOutcome(issue_number, phase, reason=reason)
