@@ -26,6 +26,7 @@ dev = [
 [project.scripts]
 reverend = "reverend.cli:main"
 ai = "reverend.cli:main"
+reverend-autonomy-v2 = "reverend.autonomy_v2.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
