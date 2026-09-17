@@ -175,59 +175,106 @@ class ModelPreflight:
                     False, tuple(errors), tuple(warnings), tuple(logs), resource_check
                 )
 
-            implement_log = self.runtime_root / token / "implementer.log"
-            implement_result = self.runner.run(
-                AgentInvocation(
-                    kind="preflight-implement",
-                    agent="autonomy-v2-implementer",
-                    model=self.opencode_model,
-                    prompt=(
-                        "This is a disposable autonomy preflight. Create exactly one repository "
-                        f"file named {self.CANARY_NAME} with exact content:\n"
-                        f"{self.CANARY_CONTENT}"
-                        "Do not change any other file. Do not merely describe the edit."
-                    ),
-                    worktree=worktree.path,
-                    timeout_seconds=600,
-                    log_path=implement_log,
-                )
+            implement_prompt = (
+                "This is a disposable autonomy preflight. Create exactly one repository "
+                f"file named {self.CANARY_NAME} with exact content:\n"
+                f"{self.CANARY_CONTENT}"
+                "Do not change any other file. Do not merely describe the edit. "
+                "Use the actual native OpenCode Write/Edit tool; do not print pseudo-tool "
+                "syntax, XML tool calls, <function=...>, <tool_call>, or JSON tool calls."
             )
-            logs.append(implement_log)
-            if not implement_result.succeeded:
-                errors.append(
-                    "OpenCode implementer preflight failed "
-                    f"(returncode={implement_result.returncode}, timeout={implement_result.timed_out})"
+
+            implement_ok = False
+            implement_error = None
+
+            for implement_attempt in range(1, 3):
+                implement_log = (
+                    self.runtime_root
+                    / token
+                    / f"implementer-{implement_attempt}.log"
                 )
-                return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                implement_result = self.runner.run(
+                    AgentInvocation(
+                        kind=f"preflight-implement-{implement_attempt}",
+                        agent="autonomy-v2-implementer",
+                        model=self.opencode_model,
+                        prompt=implement_prompt,
+                        worktree=worktree.path,
+                        timeout_seconds=600,
+                        log_path=implement_log,
+                    )
+                )
+                logs.append(implement_log)
+
+                if not implement_result.succeeded:
+                    implement_error = (
+                        "OpenCode implementer preflight failed "
+                        f"(returncode={implement_result.returncode}, "
+                        f"timeout={implement_result.timed_out})"
+                    )
+                else:
+                    changed = self.worktrees.changed_files(
+                        worktree.path, worktree.base_ref
+                    )
+
+                    if changed and changed != (self.CANARY_NAME,):
+                        errors.append(
+                            f"implementer canary changed unexpected files: {changed!r}"
+                        )
+                        return PreflightReport(
+                            False,
+                            tuple(errors),
+                            tuple(warnings),
+                            tuple(logs),
+                            resource_check,
+                        )
+
+                    if not changed:
+                        implement_error = (
+                            "implementer canary produced no repository diff"
+                        )
+                    else:
+                        canary = worktree.path / self.CANARY_NAME
+
+                        if not canary.is_file():
+                            implement_error = (
+                                "implementer canary file was not created"
+                            )
+                        else:
+                            canary_bytes = canary.read_bytes()
+                            expected = self.CANARY_CONTENT.encode("utf-8")
+                            accepted_contents = {
+                                expected,
+                                expected.rstrip(b"\n"),
+                            }
+
+                            if canary_bytes in accepted_contents:
+                                implement_ok = True
+                                break
+
+                            implement_error = (
+                                "implementer canary content did not match sentinel "
+                                f"(got={canary_bytes!r})"
+                            )
+
+                implement_prompt = (
+                    "RECOVERY ATTEMPT: the previous implementer attempt did not produce "
+                    "the required repository change. Do not explain the task and do not "
+                    "output pseudo-tool syntax. Use the ACTUAL native OpenCode Write/Edit "
+                    f"tool now. Create or overwrite {self.CANARY_NAME} with exactly the "
+                    f"sentinel text {self.CANARY_CONTENT!r}. Change no other file."
                 )
 
-            changed = self.worktrees.changed_files(worktree.path, worktree.base_ref)
-            if changed != (self.CANARY_NAME,):
-                errors.append(f"implementer canary changed unexpected files: {changed!r}")
-                return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
-                )
-            canary = worktree.path / self.CANARY_NAME
-            if not canary.is_file():
-                errors.append("implementer canary file was not created")
-                return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
-                )
-
-            canary_bytes = canary.read_bytes()
-            expected = self.CANARY_CONTENT.encode("utf-8")
-            accepted_contents = {
-                expected,
-                expected.rstrip(b"\n"),
-            }
-            if canary_bytes not in accepted_contents:
+            if not implement_ok:
                 errors.append(
-                    "implementer canary content did not match sentinel "
-                    f"(got={canary_bytes!r})"
+                    implement_error or "implementer preflight exhausted attempts"
                 )
                 return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                    False,
+                    tuple(errors),
+                    tuple(warnings),
+                    tuple(logs),
+                    resource_check,
                 )
         except (GitCommandError, OSError, ValueError) as exc:
             errors.append(f"preflight infrastructure error: {type(exc).__name__}: {exc}")

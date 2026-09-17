@@ -331,7 +331,9 @@ class IssueEngine:
                 return True
             prompt = self._implementer_prompt(prepared, plan) + (
                 "\n\nRECOVERY ATTEMPT: the previous session produced no new repository diff. "
-                "Do not restate the plan. Inspect the current files and make the required edits now."
+                "Do not restate the plan. Use the ACTUAL native OpenCode Read/Edit/Write tools; "
+                "do not print XML, <function=...>, <tool_call>, JSON tool calls, or other "
+                "pseudo-tool syntax. Inspect the current files and make the required edits now."
             )
             self.controller.store.record_event(
                 run_id=prepared.run_id,
