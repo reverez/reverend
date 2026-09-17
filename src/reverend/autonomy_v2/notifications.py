@@ -94,7 +94,6 @@ class IncidentReporter:
                 argv,
                 input=payload + "\n",
                 text=True,
-                stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=20,
