@@ -111,3 +111,12 @@ def test_review_protocol_rejects_inconsistent_verdicts():
         validate_review_payload({"verdict": "PASS", "defects": [{"message": "bug"}]})
     with pytest.raises(ModelProtocolError):
         validate_review_payload({"verdict": "FAIL", "defects": []})
+
+def test_opencode_command_pins_invocation_worktree(tmp_path):
+    runner = OpenCodeRunner(auto_approve=False)
+    invocation = _invocation(tmp_path)
+
+    command = runner.build_command(invocation)
+
+    index = command.index("--dir")
+    assert command[index + 1] == str(tmp_path.resolve())

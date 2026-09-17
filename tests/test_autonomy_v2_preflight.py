@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import subprocess
+
 from reverend.autonomy_v2.preflight import ModelPreflight
 
 
 def test_planner_preflight_prompt_is_explicitly_read_only(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     preflight = ModelPreflight(
         tmp_path,
         opencode_model="fake/model",

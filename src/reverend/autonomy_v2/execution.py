@@ -73,6 +73,8 @@ class OpenCodeRunner:
             invocation.agent,
             "--model",
             invocation.model,
+            "--dir",
+            str(invocation.worktree.resolve()),
         ]
         if self.auto_approve:
             command.append("--auto")
