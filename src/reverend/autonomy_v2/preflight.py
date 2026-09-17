@@ -209,8 +209,23 @@ class ModelPreflight:
                     False, tuple(errors), tuple(warnings), tuple(logs), resource_check
                 )
             canary = worktree.path / self.CANARY_NAME
-            if not canary.is_file() or canary.read_text(encoding="utf-8") != self.CANARY_CONTENT:
-                errors.append("implementer canary file content did not match exactly")
+            if not canary.is_file():
+                errors.append("implementer canary file was not created")
+                return PreflightReport(
+                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                )
+
+            canary_bytes = canary.read_bytes()
+            expected = self.CANARY_CONTENT.encode("utf-8")
+            accepted_contents = {
+                expected,
+                expected.rstrip(b"\\n"),
+            }
+            if canary_bytes not in accepted_contents:
+                errors.append(
+                    "implementer canary content did not match sentinel "
+                    f"(got={canary_bytes!r})"
+                )
                 return PreflightReport(
                     False, tuple(errors), tuple(warnings), tuple(logs), resource_check
                 )

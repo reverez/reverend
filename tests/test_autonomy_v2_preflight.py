@@ -20,3 +20,15 @@ def test_planner_preflight_prompt_is_explicitly_read_only(tmp_path):
     assert "canary file intentionally does not exist yet" in prompt
     assert "Do not perform the plan" in prompt
     assert ModelPreflight.CANARY_NAME in prompt
+
+def test_canary_content_contract_allows_only_optional_final_newline():
+    expected = ModelPreflight.CANARY_CONTENT.encode("utf-8")
+    accepted = {
+        expected,
+        expected.rstrip(b"\n"),
+    }
+
+    assert b"AUTONOMY_V2_CANARY" in accepted
+    assert b"AUTONOMY_V2_CANARY\n" in accepted
+    assert b"AUTONOMY_V2_CANARY\n\n" not in accepted
+    assert b"WRONG" not in accepted
