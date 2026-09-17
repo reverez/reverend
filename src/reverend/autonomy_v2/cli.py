@@ -162,7 +162,14 @@ def _health(root: Path, session: str | None) -> dict[str, object]:
     store = SessionStore(_runtime(root))
     resolved = session or store.latest()
     manifest = store.load(resolved)
-    return build_health_snapshot(root, manifest)
+    snapshot = build_health_snapshot(root, manifest)
+    if snapshot.get("status") in {"BLOCKED", "MILESTONE_FAILED"} or snapshot.get(
+        "issue_phase"
+    ) in {"BLOCKED", "QUARANTINED", "HUMAN_REVIEW_REQUIRED"}:
+        snapshot["healthy"] = False
+    elif snapshot.get("status") == "COMPLETED":
+        snapshot["healthy"] = True
+    return snapshot
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -192,7 +199,9 @@ def main(argv: list[str] | None = None) -> int:
                     print("\033[2J\033[H", end="")
                 print(json.dumps(snapshot, indent=2, sort_keys=True), flush=True)
                 if args.once or snapshot.get("status") in {
-                    "COMPLETED", "BLOCKED", "MILESTONE_FAILED"
+                    "COMPLETED",
+                    "BLOCKED",
+                    "MILESTONE_FAILED",
                 }:
                     return _exit_for_status(str(snapshot.get("status")))
                 time.sleep(args.interval)
