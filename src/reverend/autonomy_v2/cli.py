@@ -5,8 +5,10 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
+from .notifications import IncidentReporter
 from .preflight import ModelPreflight
 from .production import (
     ProductionConfig,
@@ -15,13 +17,14 @@ from .production import (
     ProductionRunLocked,
     ProductionRunner,
     SessionStore,
+    build_health_snapshot,
 )
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="reverend-autonomy-v2",
-        description="Crash-resilient local autonomous Reverend development controller.",
+        description="Crash-resilient unattended Reverend development controller.",
     )
     parser.add_argument(
         "--root",
@@ -30,7 +33,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    run = sub.add_parser("run", help="start a new C0-C9 production session")
+    run = sub.add_parser("run", help="start a new unattended C0-C9 production session")
     run.add_argument("--repository", help="GitHub owner/name; auto-detected when omitted")
     run.add_argument(
         "--model",
@@ -44,14 +47,29 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--include-alex", action="store_true")
     run.add_argument("--max-repairs", type=int, default=3)
     run.add_argument("--max-issues", type=int)
+    run.add_argument("--max-issue-attempts", type=int, default=3)
+    run.add_argument("--max-deferred-passes", type=int, default=2)
+    run.add_argument("--max-milestone-gate-attempts", type=int, default=2)
     run.add_argument("--skip-preflight", action="store_true")
+    run.add_argument("--no-push-progress", action="store_true")
 
     resume = sub.add_parser("resume", help="resume the latest or named session")
     resume.add_argument("--session")
     resume.add_argument("--retry-failed", action="store_true")
 
-    status = sub.add_parser("status", help="show durable session status")
+    status = sub.add_parser("status", help="show raw durable session manifest")
     status.add_argument("--session")
+
+    health = sub.add_parser("health", help="show concise live autonomy health")
+    health.add_argument("--session")
+
+    watch = sub.add_parser("watch", help="continuously display live autonomy health")
+    watch.add_argument("--session")
+    watch.add_argument("--interval", type=float, default=5.0)
+    watch.add_argument("--once", action="store_true")
+
+    incidents = sub.add_parser("incidents", help="show recent autonomy incidents")
+    incidents.add_argument("--limit", type=int, default=20)
 
     preflight = sub.add_parser("preflight", help="prove model read/edit capability")
     preflight.add_argument(
@@ -99,6 +117,12 @@ def _config_from_manifest(manifest: dict[str, object]) -> ProductionConfig:
         base_ref=str(manifest["base_ref"]),
         include_alex=bool(manifest.get("include_alex", False)),
         max_repairs=int(manifest.get("max_repairs", 3)),
+        max_issue_attempts=int(manifest.get("max_issue_attempts", 3)),
+        max_deferred_passes=int(manifest.get("max_deferred_passes", 2)),
+        max_milestone_gate_attempts=int(
+            manifest.get("max_milestone_gate_attempts", 2)
+        ),
+        push_progress=bool(manifest.get("push_progress", True)),
         run_preflight=False,
     )
 
@@ -122,13 +146,18 @@ def _print_result(result: ProductionResult) -> None:
 
 
 def _exit_for_status(status: str) -> int:
-    if status == "COMPLETED":
-        return 0
-    if status == "RUNNING":
+    if status in {"COMPLETED", "RUNNING"}:
         return 0
     if status == "MILESTONE_FAILED":
         return 30
     return 20
+
+
+def _health(root: Path, session: str | None) -> dict[str, object]:
+    store = SessionStore(_runtime(root))
+    resolved = session or store.latest()
+    manifest = store.load(resolved)
+    return build_health_snapshot(root, manifest)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -143,6 +172,29 @@ def main(argv: list[str] | None = None) -> int:
             store = SessionStore(_runtime(root))
             session = args.session or store.latest()
             print(json.dumps(store.load(session), indent=2, sort_keys=True))
+            return 0
+
+        if args.command == "health":
+            print(json.dumps(_health(root, args.session), indent=2, sort_keys=True))
+            return 0
+
+        if args.command == "watch":
+            if args.interval <= 0:
+                raise ValueError("watch interval must be positive")
+            while True:
+                snapshot = _health(root, args.session)
+                if not args.once:
+                    print("\033[2J\033[H", end="")
+                print(json.dumps(snapshot, indent=2, sort_keys=True), flush=True)
+                if args.once or snapshot.get("status") in {
+                    "COMPLETED", "BLOCKED", "MILESTONE_FAILED"
+                }:
+                    return _exit_for_status(str(snapshot.get("status")))
+                time.sleep(args.interval)
+
+        if args.command == "incidents":
+            reporter = IncidentReporter(root)
+            print(json.dumps(reporter.latest(args.limit), indent=2, sort_keys=True))
             return 0
 
         if args.command == "preflight":
@@ -175,6 +227,10 @@ def main(argv: list[str] | None = None) -> int:
                 include_alex=args.include_alex,
                 max_repairs=args.max_repairs,
                 max_issues=args.max_issues,
+                max_issue_attempts=args.max_issue_attempts,
+                max_deferred_passes=args.max_deferred_passes,
+                max_milestone_gate_attempts=args.max_milestone_gate_attempts,
+                push_progress=not args.no_push_progress,
                 run_preflight=not args.skip_preflight,
             )
             result = ProductionRunner(root, config=config).start()
@@ -205,9 +261,6 @@ def main(argv: list[str] | None = None) -> int:
         print("interrupted", file=sys.stderr)
         return 130
     except Exception as exc:
-        # Code 70 is intentionally reserved for supervisor-retryable controller
-        # crashes. Durable state and isolated worktrees make a fresh process the
-        # safer recovery mechanism than trying to continue in a damaged process.
         print(f"controller crash: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 70
 
