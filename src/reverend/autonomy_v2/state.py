@@ -76,6 +76,17 @@ class TransitionError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class RunState:
+    run_id: str
+    base_commit: str
+    status: str
+    queue: list[dict[str, Any]]
+    heartbeat_at: str
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True)
 class IssueState:
     run_id: str
     issue_number: int
@@ -105,12 +116,18 @@ class AttemptState:
     detail: dict[str, Any]
 
 
-class StateStore:
-    """SQLite-backed source of truth for autonomous controller state.
+@dataclass(frozen=True)
+class EventState:
+    id: int
+    run_id: str
+    issue_number: int | None
+    kind: str
+    payload: dict[str, Any]
+    created_at: str
 
-    WAL mode plus explicit transactions makes the controller restartable without
-    relying on model memory, tmux scrollback, or ad-hoc status files.
-    """
+
+class StateStore:
+    """SQLite-backed source of truth for autonomous controller state."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -200,6 +217,8 @@ class StateStore:
                     ON events(run_id, issue_number, id);
                 CREATE INDEX IF NOT EXISTS idx_issues_run_phase
                     ON issues(run_id, phase, issue_number);
+                CREATE INDEX IF NOT EXISTS idx_attempts_run_issue
+                    ON attempts(run_id, issue_number, id);
                 """
             )
             columns = {
@@ -239,6 +258,26 @@ class StateStore:
                     now,
                 ),
             )
+
+    def get_run(self, run_id: str) -> RunState:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            raise KeyError(f"unknown run_id: {run_id}")
+        return RunState(
+            run_id=row["run_id"],
+            base_commit=row["base_commit"],
+            status=row["status"],
+            queue=json.loads(row["queue_json"]),
+            heartbeat_at=row["heartbeat_at"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
 
     def set_run_status(self, run_id: str, status: str) -> None:
         now = _utc_now()
@@ -369,6 +408,49 @@ class StateStore:
             )
         return self.get_issue(run_id, issue_number)
 
+    def accept_issue(
+        self,
+        *,
+        run_id: str,
+        issue_number: int,
+        commit: str,
+        payload: dict[str, Any] | None = None,
+    ) -> IssueState:
+        """Atomically transition REVIEWING -> ACCEPTED and persist its commit."""
+        if not commit.strip():
+            raise ValueError("accepted commit must not be empty")
+        now = _utc_now()
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT phase FROM issues WHERE run_id = ? AND issue_number = ?",
+                (run_id, issue_number),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown issue: {run_id}/{issue_number}")
+            source = IssuePhase(row["phase"])
+            if source is not IssuePhase.REVIEWING:
+                raise TransitionError(
+                    f"issue may only be accepted from REVIEWING, got {source}"
+                )
+            connection.execute(
+                """
+                UPDATE issues
+                SET phase = ?, accepted_commit = ?, updated_at = ?
+                WHERE run_id = ? AND issue_number = ?
+                """,
+                (IssuePhase.ACCEPTED.value, commit, now, run_id, issue_number),
+            )
+            self._insert_transition_event(
+                connection,
+                run_id=run_id,
+                issue_number=issue_number,
+                source=source,
+                target=IssuePhase.ACCEPTED,
+                payload={"commit": commit, **(payload or {})},
+                now=now,
+            )
+        return self.get_issue(run_id, issue_number)
+
     def mark_context_ready(
         self,
         *,
@@ -378,7 +460,6 @@ class StateStore:
         branch_name: str,
         packet_path: str,
     ) -> IssueState:
-        """Atomically bind runtime assets and move PENDING -> CONTEXT_READY."""
         now = _utc_now()
         with self.transaction() as connection:
             row = connection.execute(
@@ -498,6 +579,10 @@ class StateStore:
             connection.close()
         if row is None:
             raise KeyError(f"unknown attempt: {attempt_id}")
+        return self._attempt_from_row(row)
+
+    @staticmethod
+    def _attempt_from_row(row: sqlite3.Row) -> AttemptState:
         return AttemptState(
             id=row["id"],
             run_id=row["run_id"],
@@ -510,6 +595,28 @@ class StateStore:
             ended_at=row["ended_at"],
             detail=json.loads(row["detail_json"]),
         )
+
+    def list_attempts(
+        self, run_id: str, issue_number: int | None = None
+    ) -> tuple[AttemptState, ...]:
+        connection = self._connect()
+        try:
+            if issue_number is None:
+                rows = connection.execute(
+                    "SELECT * FROM attempts WHERE run_id = ? ORDER BY id",
+                    (run_id,),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM attempts
+                    WHERE run_id = ? AND issue_number = ? ORDER BY id
+                    """,
+                    (run_id, issue_number),
+                ).fetchall()
+        finally:
+            connection.close()
+        return tuple(self._attempt_from_row(row) for row in rows)
 
     def finish_attempt(
         self,
@@ -545,6 +652,11 @@ class StateStore:
         issue_number: int,
         commit: str,
     ) -> None:
+        """Backward-compatible helper for older callers/tests.
+
+        New controller code should use accept_issue(), which avoids the crash window
+        between setting ACCEPTED and persisting the commit.
+        """
         state = self.get_issue(run_id, issue_number)
         if state.phase is not IssuePhase.ACCEPTED:
             raise TransitionError("accepted commit can only be recorded after ACCEPTED")
@@ -581,3 +693,45 @@ class StateStore:
                     _utc_now(),
                 ),
             )
+
+    def list_events(
+        self,
+        run_id: str,
+        *,
+        issue_number: int | None = None,
+        limit: int = 100,
+    ) -> tuple[EventState, ...]:
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        connection = self._connect()
+        try:
+            if issue_number is None:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM events WHERE run_id = ?
+                    ORDER BY id DESC LIMIT ?
+                    """,
+                    (run_id, limit),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM events
+                    WHERE run_id = ? AND issue_number = ?
+                    ORDER BY id DESC LIMIT ?
+                    """,
+                    (run_id, issue_number, limit),
+                ).fetchall()
+        finally:
+            connection.close()
+        return tuple(
+            EventState(
+                id=row["id"],
+                run_id=row["run_id"],
+                issue_number=row["issue_number"],
+                kind=row["kind"],
+                payload=json.loads(row["payload_json"]),
+                created_at=row["created_at"],
+            )
+            for row in reversed(rows)
+        )
