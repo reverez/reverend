@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 import re
 import subprocess
 from dataclasses import dataclass
@@ -18,6 +19,10 @@ class GitCommandError(RuntimeError):
         super().__init__(
             f"git command failed ({returncode}): {' '.join(command)}\n{stderr.strip()}"
         )
+
+
+class DiffTooLarge(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -122,12 +127,12 @@ class WorktreeManager:
         self._git(args)
         self._git(["worktree", "prune"])
 
+    def delete_branch(self, branch_name: str, *, force: bool = False) -> None:
+        self._validate_ref(branch_name, label="branch_name")
+        self._git(["branch", "-D" if force else "-d", branch_name])
+
     def has_meaningful_diff(self, worktree_path: str | Path, base_ref: str) -> bool:
-        path = Path(worktree_path).resolve()
-        self._validate_ref(base_ref, label="base_ref")
-        tracked = self._git(["diff", "--name-only", base_ref, "--"], cwd=path)
-        untracked = self._git(["ls-files", "--others", "--exclude-standard"], cwd=path)
-        return bool(tracked.strip() or untracked.strip())
+        return bool(self.changed_files(worktree_path, base_ref))
 
     def changed_files(self, worktree_path: str | Path, base_ref: str) -> tuple[str, ...]:
         path = Path(worktree_path).resolve()
@@ -135,3 +140,85 @@ class WorktreeManager:
         tracked = self._git(["diff", "--name-only", base_ref, "--"], cwd=path).splitlines()
         untracked = self._git(["ls-files", "--others", "--exclude-standard"], cwd=path).splitlines()
         return tuple(dict.fromkeys(item for item in [*tracked, *untracked] if item))
+
+    def diff_text(
+        self,
+        worktree_path: str | Path,
+        base_ref: str,
+        *,
+        max_chars: int = 120_000,
+        max_untracked_file_bytes: int = 256_000,
+    ) -> str:
+        path = Path(worktree_path).resolve()
+        self._validate_ref(base_ref, label="base_ref")
+        diff = self._git(
+            ["diff", "--no-ext-diff", "--unified=40", base_ref, "--"], cwd=path
+        )
+        chunks = [diff] if diff else []
+
+        untracked = self._git(
+            ["ls-files", "--others", "--exclude-standard"], cwd=path
+        ).splitlines()
+        for relative in untracked:
+            file_path = (path / relative).resolve()
+            try:
+                file_path.relative_to(path)
+            except ValueError as exc:
+                raise RuntimeError(f"untracked path escaped worktree: {relative}") from exc
+            if file_path.stat().st_size > max_untracked_file_bytes:
+                chunks.append(
+                    f"diff --git a/{relative} b/{relative}\n"
+                    f"[untracked file omitted: {file_path.stat().st_size} bytes]\n"
+                )
+                continue
+            try:
+                text = file_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                chunks.append(
+                    f"diff --git a/{relative} b/{relative}\n[untracked binary file omitted]\n"
+                )
+                continue
+            chunks.append(
+                "".join(
+                    difflib.unified_diff(
+                        [],
+                        text.splitlines(keepends=True),
+                        fromfile="/dev/null",
+                        tofile=f"b/{relative}",
+                        n=40,
+                    )
+                )
+            )
+
+        combined = "\n".join(chunk for chunk in chunks if chunk)
+        if len(combined) > max_chars:
+            raise DiffTooLarge(
+                f"review diff is {len(combined)} characters; limit is {max_chars}"
+            )
+        return combined
+
+    def commit_changes(
+        self,
+        worktree_path: str | Path,
+        *,
+        message: str,
+        author_name: str = "Reverend Autonomy",
+        author_email: str = "autonomy@reverend.local",
+    ) -> str:
+        path = Path(worktree_path).resolve()
+        if not message.strip():
+            raise ValueError("commit message must not be empty")
+        self._git(["add", "-A"], cwd=path)
+        self._git(
+            [
+                "-c",
+                f"user.name={author_name}",
+                "-c",
+                f"user.email={author_email}",
+                "commit",
+                "-m",
+                message,
+            ],
+            cwd=path,
+        )
+        return self._git(["rev-parse", "HEAD"], cwd=path)
