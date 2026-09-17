@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Iterable, Mapping
@@ -18,6 +20,21 @@ DEFAULT_PROTECTED_PATHS = (
     "config/autonomy-v2",
 )
 
+# Dependencies explicitly anticipated by the frozen C0-C9 Design programme.
+# Existing requirements may not be removed or have their requirement strings
+# rewritten unattended. New requirements outside this set require human review.
+ALLOWED_DEPENDENCY_ADDITIONS = frozenset(
+    {
+        "fastapi",
+        "pydantic",
+        "uvicorn",
+        "psycopg",
+        "argon2-cffi",
+        "httpx",
+    }
+)
+_REQUIREMENT_NAME_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)")
+
 
 class ChangePolicyError(RuntimeError):
     pass
@@ -28,6 +45,8 @@ class ChangePolicy:
     repository_root: Path
     protected_prefixes: tuple[str, ...] = DEFAULT_PROTECTED_PATHS
     allow_protected: bool = False
+    _planned_paths: frozenset[str] | None = None
+    _baseline_dependencies: Mapping[str, tuple[str, ...]] | None = None
 
     def __init__(
         self,
@@ -36,9 +55,16 @@ class ChangePolicy:
         protected_prefixes: Iterable[str] = DEFAULT_PROTECTED_PATHS,
         allow_protected: bool = False,
     ) -> None:
-        object.__setattr__(self, "repository_root", Path(repository_root).resolve())
+        root = Path(repository_root).resolve()
+        object.__setattr__(self, "repository_root", root)
         object.__setattr__(self, "protected_prefixes", tuple(protected_prefixes))
         object.__setattr__(self, "allow_protected", allow_protected)
+        object.__setattr__(self, "_planned_paths", None)
+        object.__setattr__(
+            self,
+            "_baseline_dependencies",
+            _dependency_sections(root / "pyproject.toml"),
+        )
 
     def normalize_relative(self, raw_path: str, *, must_exist: bool | None = None) -> str:
         pure = PurePosixPath(raw_path)
@@ -67,12 +93,21 @@ class ChangePolicy:
 
     def validate_changed_files(self, paths: Iterable[str]) -> tuple[str, ...]:
         normalized: list[str] = []
+        planned = self._planned_paths
         for raw_path in paths:
             path = self.normalize_relative(raw_path)
             if self.is_protected(path) and not self.allow_protected:
                 raise ChangePolicyError(f"protected path modified: {path}")
+            if planned is not None and path not in planned:
+                raise ChangePolicyError(
+                    f"implementation changed path outside validated plan: {path}"
+                )
             normalized.append(path)
-        return tuple(dict.fromkeys(normalized))
+
+        result = tuple(dict.fromkeys(normalized))
+        if "pyproject.toml" in result:
+            self._validate_dependency_changes()
+        return result
 
     def validate_plan(self, plan: Mapping[str, list[str]]) -> dict[str, list[str]]:
         required = {
@@ -97,9 +132,6 @@ class ChangePolicy:
             path = self.normalize_relative(raw_path, must_exist=False)
             if self.is_protected(path) and not self.allow_protected:
                 raise ChangePolicyError(f"plan targets protected path: {path}")
-            parent = (self.repository_root / path).parent
-            if not parent.exists():
-                raise FileNotFoundError(f"parent directory does not exist: {parent}")
             create.append(path)
         for raw_path in plan["tests_to_add_or_modify"]:
             path = self.normalize_relative(raw_path)
@@ -109,10 +141,116 @@ class ChangePolicy:
                 raise ChangePolicyError(f"test path must be under tests/: {path}")
             tests.append(path)
 
-        return {
+        normalized_plan = {
             "files_to_modify": list(dict.fromkeys(modify)),
             "files_to_create": list(dict.fromkeys(create)),
             "tests_to_add_or_modify": list(dict.fromkeys(tests)),
             "acceptance_checks": list(plan["acceptance_checks"]),
             "risks": list(plan["risks"]),
         }
+        object.__setattr__(
+            self,
+            "_planned_paths",
+            frozenset(
+                [
+                    *normalized_plan["files_to_modify"],
+                    *normalized_plan["files_to_create"],
+                    *normalized_plan["tests_to_add_or_modify"],
+                ]
+            ),
+        )
+        return normalized_plan
+
+    def prepare_plan_directories(self, plan: Mapping[str, list[str]]) -> None:
+        """Create only parent directories explicitly implied by a validated plan.
+
+        Empty directories are not Git changes. Creating them controller-side lets
+        the implementer use native edit tools for new packages without requiring
+        shell access or loosening repository path validation.
+        """
+        if self._planned_paths is None:
+            raise ChangePolicyError("plan must be validated before preparing directories")
+        for raw_path in [
+            *plan["files_to_create"],
+            *plan["tests_to_add_or_modify"],
+        ]:
+            path = self.normalize_relative(raw_path)
+            if path not in self._planned_paths:
+                raise ChangePolicyError(f"unvalidated plan path: {path}")
+            (self.repository_root / path).parent.mkdir(parents=True, exist_ok=True)
+
+    def _validate_dependency_changes(self) -> None:
+        baseline = dict(self._baseline_dependencies or {})
+        current = _dependency_sections(self.repository_root / "pyproject.toml")
+        if not baseline and current:
+            raise ChangePolicyError("creating dependency policy from scratch requires human review")
+
+        section_names = set(baseline) | set(current)
+        for section in sorted(section_names):
+            before = _requirements_by_name(baseline.get(section, ()))
+            after = _requirements_by_name(current.get(section, ()))
+
+            for name, requirement in before.items():
+                if name not in after:
+                    raise ChangePolicyError(
+                        f"existing dependency removed from {section}: {requirement}"
+                    )
+                if after[name] != requirement:
+                    raise ChangePolicyError(
+                        f"existing dependency requirement changed in {section}: "
+                        f"{requirement!r} -> {after[name]!r}"
+                    )
+
+            for name, requirement in after.items():
+                if name in before:
+                    continue
+                if name not in ALLOWED_DEPENDENCY_ADDITIONS:
+                    raise ChangePolicyError(
+                        f"dependency addition requires human review in {section}: {requirement}"
+                    )
+
+
+def _dependency_sections(path: Path) -> dict[str, tuple[str, ...]]:
+    if not path.is_file():
+        return {}
+    try:
+        document = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise ChangePolicyError(f"unable to parse pyproject.toml: {exc}") from exc
+    project = document.get("project")
+    if not isinstance(project, dict):
+        return {}
+
+    result: dict[str, tuple[str, ...]] = {}
+    dependencies = project.get("dependencies", [])
+    if not isinstance(dependencies, list) or not all(
+        isinstance(item, str) for item in dependencies
+    ):
+        raise ChangePolicyError("project.dependencies must be a list of strings")
+    result["project.dependencies"] = tuple(dependencies)
+
+    optional = project.get("optional-dependencies", {})
+    if not isinstance(optional, dict):
+        raise ChangePolicyError("project.optional-dependencies must be a table")
+    for group, requirements in optional.items():
+        if not isinstance(group, str) or not isinstance(requirements, list) or not all(
+            isinstance(item, str) for item in requirements
+        ):
+            raise ChangePolicyError(
+                "project.optional-dependencies entries must be string lists"
+            )
+        result[f"project.optional-dependencies.{group}"] = tuple(requirements)
+    return result
+
+
+def _requirements_by_name(requirements: Iterable[str]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for requirement in requirements:
+        match = _REQUIREMENT_NAME_RE.match(requirement)
+        if match is None:
+            raise ChangePolicyError(f"unable to identify dependency name: {requirement!r}")
+        name = match.group(1).lower().replace("_", "-").replace(".", "-")
+        if name in result:
+            raise ChangePolicyError(f"duplicate dependency requirement: {name}")
+        result[name] = requirement
+    return result
