@@ -23,6 +23,7 @@ htmlcov/
 
 # Reverend local state
 .reverend/
+.autonomy/
 *.db
 *.db-shm
 *.db-wal
