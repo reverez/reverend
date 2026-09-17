@@ -85,6 +85,16 @@ class WorktreeManager:
             raise GitCommandError(["git", "rev-parse", ref], 0, "unexpected commit id")
         return value
 
+    def worktree_head(self, worktree_path: str | Path) -> str:
+        path = Path(worktree_path).resolve()
+        value = self._git(["rev-parse", "HEAD"], cwd=path)
+        if not re.fullmatch(r"[0-9a-f]{40}", value):
+            raise GitCommandError(["git", "rev-parse", "HEAD"], 0, "unexpected commit id")
+        return value
+
+    def worktree_status(self, worktree_path: str | Path) -> str:
+        return self._git(["status", "--porcelain"], cwd=Path(worktree_path).resolve())
+
     def assert_clean(self) -> None:
         if self._git(["status", "--porcelain"]):
             raise RuntimeError("repository working tree is not clean")
@@ -202,12 +212,24 @@ class WorktreeManager:
         worktree_path: str | Path,
         *,
         message: str,
+        base_ref: str | None = None,
         author_name: str = "Reverend Autonomy",
         author_email: str = "autonomy@reverend.local",
     ) -> str:
         path = Path(worktree_path).resolve()
         if not message.strip():
             raise ValueError("commit message must not be empty")
+
+        status = self.worktree_status(path)
+        if not status:
+            head = self.worktree_head(path)
+            if base_ref is not None:
+                self._validate_ref(base_ref, label="base_ref")
+                base = self._git(["rev-parse", "--verify", f"{base_ref}^{{commit}}"], cwd=path)
+                if head != base:
+                    return head
+            raise RuntimeError("no controller-owned changes are available to commit")
+
         self._git(["add", "-A"], cwd=path)
         self._git(
             [
@@ -221,4 +243,16 @@ class WorktreeManager:
             ],
             cwd=path,
         )
-        return self._git(["rev-parse", "HEAD"], cwd=path)
+        return self.worktree_head(path)
+
+    def fast_forward_merge(
+        self,
+        integration_worktree: str | Path,
+        branch_name: str,
+    ) -> str:
+        self._validate_ref(branch_name, label="branch_name")
+        path = Path(integration_worktree).resolve()
+        if self.worktree_status(path):
+            raise RuntimeError("integration worktree is dirty")
+        self._git(["merge", "--ff-only", branch_name], cwd=path)
+        return self.worktree_head(path)
