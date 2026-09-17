@@ -29,10 +29,9 @@ class PreparedIssue:
 class AutonomousController:
     """Durable outer controller for autonomous development.
 
-    This class intentionally does not invoke an LLM yet. Its responsibility is
-    to establish crash-recoverable run state and an isolated issue worktree with
-    a deterministic, verified context packet. Model execution is layered on top
-    only after these invariants are established.
+    The model never owns run state, Git integration, or acceptance. This
+    controller establishes crash-recoverable state, isolated per-run issue
+    worktrees, and deterministic verified context packets before model work.
     """
 
     def __init__(self, repository_root: str | Path) -> None:
@@ -100,9 +99,17 @@ class AutonomousController:
         if state.title != issue.title or state.milestone != issue.milestone:
             raise ValueError("issue specification does not match persisted queue")
 
-        short_run = run_id.replace("run-", "")[:8]
+        short_run = _safe_run_key(run_id)
         branch_name = f"autonomy/v2-{short_run}-issue-{issue.number}"
-        worktree = self.worktrees.create_issue_worktree(
+        # The original v2 prototype keyed worktree paths only by issue number.
+        # That made a crashed/stale run capable of blocking a later run of the
+        # same issue. Namespace worktrees by durable run id while keeping Git
+        # operations controlled by the shared manager.
+        run_worktrees = WorktreeManager(
+            self.repository_root,
+            runtime_root=self.worktrees.runtime_root / short_run,
+        )
+        worktree = run_worktrees.create_issue_worktree(
             issue_number=issue.number,
             base_ref=state.base_commit,
             branch_name=branch_name,
@@ -134,7 +141,7 @@ class AutonomousController:
             )
         except Exception:
             try:
-                self.worktrees.remove_worktree(worktree, force=True)
+                run_worktrees.remove_worktree(worktree, force=True)
             finally:
                 raise
 
@@ -148,3 +155,10 @@ class AutonomousController:
 
     def heartbeat(self, run_id: str) -> None:
         self.store.heartbeat(run_id)
+
+
+def _safe_run_key(run_id: str) -> str:
+    """Produce a branch/path-safe stable short key without trusting run text."""
+    import hashlib
+
+    return hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:12]
