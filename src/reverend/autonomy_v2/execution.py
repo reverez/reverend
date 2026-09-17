@@ -4,6 +4,8 @@ import json
 import os
 import signal
 import subprocess
+import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -22,6 +24,7 @@ class AgentInvocation:
     worktree: Path
     timeout_seconds: float
     log_path: Path
+    stall_timeout_seconds: float | None = None
 
 
 @dataclass(frozen=True)
@@ -31,14 +34,21 @@ class AgentResult:
     timed_out: bool
     output: str
     log_path: Path
+    stalled: bool = False
 
     @property
     def succeeded(self) -> bool:
-        return not self.timed_out and self.returncode == 0
+        return not self.timed_out and not self.stalled and self.returncode == 0
 
 
 class OpenCodeRunner:
-    """Run one bounded OpenCode session without giving it controller authority."""
+    """Run one bounded OpenCode session without giving it controller authority.
+
+    Both an absolute timeout and an output-activity timeout are enforced. The
+    latter prevents a wedged model/OpenCode process from consuming an entire
+    unattended run while still allowing long model calls by using a generous
+    default stall budget.
+    """
 
     def __init__(
         self,
@@ -46,10 +56,14 @@ class OpenCodeRunner:
         executable: str = "opencode",
         auto_approve: bool = True,
         extra_env: Mapping[str, str] | None = None,
+        default_stall_timeout_seconds: float | None = 900,
     ) -> None:
         self.executable = executable
         self.auto_approve = auto_approve
         self.extra_env = dict(extra_env or {})
+        if default_stall_timeout_seconds is not None and default_stall_timeout_seconds <= 0:
+            raise ValueError("default_stall_timeout_seconds must be positive")
+        self.default_stall_timeout_seconds = default_stall_timeout_seconds
 
     def build_command(self, invocation: AgentInvocation) -> tuple[str, ...]:
         command: list[str] = [
@@ -68,6 +82,14 @@ class OpenCodeRunner:
     def run(self, invocation: AgentInvocation) -> AgentResult:
         if invocation.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+        stall_timeout = (
+            invocation.stall_timeout_seconds
+            if invocation.stall_timeout_seconds is not None
+            else self.default_stall_timeout_seconds
+        )
+        if stall_timeout is not None and stall_timeout <= 0:
+            raise ValueError("stall_timeout_seconds must be positive")
+
         worktree = invocation.worktree.resolve()
         if not worktree.is_dir():
             raise ValueError(f"worktree does not exist: {worktree}")
@@ -76,25 +98,65 @@ class OpenCodeRunner:
         env = os.environ.copy()
         env.update(self.extra_env)
 
+        started = time.monotonic()
+        activity_lock = threading.Lock()
+        last_activity = started
         returncode: int | None = None
         timed_out = False
-        with invocation.log_path.open("w", encoding="utf-8") as log_handle:
+        stalled = False
+
+        with invocation.log_path.open("w", encoding="utf-8", buffering=1) as log_handle:
             process = subprocess.Popen(
                 command,
                 cwd=worktree,
                 env=env,
                 stdin=subprocess.DEVNULL,
-                stdout=log_handle,
+                stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                bufsize=1,
                 start_new_session=(os.name == "posix"),
             )
+            assert process.stdout is not None
+
+            def consume() -> None:
+                nonlocal last_activity
+                try:
+                    for line in process.stdout:
+                        with activity_lock:
+                            last_activity = time.monotonic()
+                        log_handle.write(line)
+                        log_handle.flush()
+                finally:
+                    process.stdout.close()
+
+            reader = threading.Thread(
+                target=consume,
+                name=f"opencode-output-{invocation.kind}",
+                daemon=True,
+            )
+            reader.start()
+
+            while process.poll() is None:
+                now = time.monotonic()
+                if now - started >= invocation.timeout_seconds:
+                    timed_out = True
+                    self._terminate_process(process)
+                    break
+                with activity_lock:
+                    idle_for = now - last_activity
+                if stall_timeout is not None and idle_for >= stall_timeout:
+                    stalled = True
+                    self._terminate_process(process)
+                    break
+                time.sleep(0.1)
+
             try:
-                returncode = process.wait(timeout=invocation.timeout_seconds)
+                returncode = process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                timed_out = True
                 self._terminate_process(process)
-                returncode = process.returncode
+                returncode = process.wait(timeout=5)
+            reader.join(timeout=2)
 
         output = invocation.log_path.read_text(encoding="utf-8", errors="replace")
         return AgentResult(
@@ -103,6 +165,7 @@ class OpenCodeRunner:
             timed_out=timed_out,
             output=output,
             log_path=invocation.log_path,
+            stalled=stalled,
         )
 
     @staticmethod
