@@ -1,23 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "providers": {
+  "provider": {
     "ollama": {
-      "settings": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
         "baseURL": "http://127.0.0.1:11434/v1"
       },
       "models": {
         "reverend-coder30": {
-          "modelID": "reverend-coder30:latest",
-          "name": "Reverend Coder 30B",
-          "capabilities": {
-            "tools": true,
-            "input": ["text"],
-            "output": ["text"]
-          },
-          "limit": {
-            "context": 16384,
-            "output": 4096
-          }
+          "name": "Reverend Coder 30B"
         }
       }
     }
