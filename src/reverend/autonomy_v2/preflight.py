@@ -57,6 +57,20 @@ class ModelPreflight:
             runtime_root=self.repository_root / ".worktrees" / "autonomy-v2-preflight",
         )
 
+    def _planner_prompt(self) -> str:
+        return (
+            "This is a READ-ONLY planner canary for Reverend autonomy v2. "
+            "Use native repository READ tools to read README.md. Planning only: DO NOT create, "
+            "edit, write, verify, search for, or otherwise act on the canary file. The canary "
+            "file intentionally does not exist yet and will be created later by a separate "
+            "implementer stage. After reading README.md, stop all repository exploration and "
+            "immediately return the required plan JSON protocol. In that future plan, set "
+            "files_to_create to exactly "
+            f"[{self.CANARY_NAME!r}], set files_to_modify and tests_to_add_or_modify to empty "
+            "lists, include exactly one acceptance check saying the canary content must match, "
+            "and return no risks. Do not perform the plan."
+        )
+
     def run(self, *, base_ref: str = "HEAD") -> PreflightReport:
         resource_check = check_resources(
             self.repository_root,
@@ -90,13 +104,7 @@ class ModelPreflight:
                     kind="preflight-plan",
                     agent="autonomy-v2-planner",
                     model=self.opencode_model,
-                    prompt=(
-                        "This is a disposable autonomy preflight. Read README.md using native "
-                        "repository tools. Do not edit anything. Then return the required plan "
-                        "JSON protocol with files_to_create containing exactly "
-                        f"{self.CANARY_NAME!r}, all other file lists empty, one acceptance check "
-                        "saying canary content must match, and no risks."
-                    ),
+                    prompt=self._planner_prompt(),
                     worktree=worktree.path,
                     timeout_seconds=600,
                     log_path=planner_log,
@@ -111,6 +119,17 @@ class ModelPreflight:
                 return PreflightReport(
                     False, tuple(errors), tuple(warnings), tuple(logs), resource_check
                 )
+
+            planner_changes = self.worktrees.changed_files(worktree.path, worktree.base_ref)
+            if planner_changes:
+                errors.append(
+                    "read-only planner modified repository files during preflight: "
+                    f"{planner_changes!r}"
+                )
+                return PreflightReport(
+                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                )
+
             try:
                 payload = parse_marker_json(
                     planner_result.output,
