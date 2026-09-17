@@ -10,7 +10,7 @@ else
   PYTHON="${PYTHON:-python3}"
 fi
 
-MAX_RESTARTS="${AUTONOMY_V2_MAX_RESTARTS:-5}"
+MAX_RESTARTS="${AUTONOMY_V2_MAX_RESTARTS:-8}"
 RESTART_DELAY="${AUTONOMY_V2_RESTART_DELAY:-5}"
 RUNTIME="$ROOT/.autonomy/v2-production"
 mkdir -p "$RUNTIME"
@@ -32,6 +32,10 @@ fi
 restarts=0
 command=("${INITIAL[@]}")
 
+health_dump() {
+  "$PYTHON" -m reverend.autonomy_v2.cli health 2>/dev/null || true
+}
+
 while true; do
   {
     echo
@@ -44,26 +48,32 @@ while true; do
   "$PYTHON" -m reverend.autonomy_v2.cli "${command[@]}" 2>&1 | tee -a "$LOG"
   rc=${PIPESTATUS[0]}
 
-  echo "AUTONOMY_V2_CHILD_EXIT=$rc" | tee -a "$LOG"
+  {
+    echo "AUTONOMY_V2_CHILD_EXIT=$rc"
+    echo "--- HEALTH SNAPSHOT ---"
+    health_dump
+    echo "-----------------------"
+  } | tee -a "$LOG"
 
   case "$rc" in
     0)
       exit 0
       ;;
     20|30)
-      # Genuine blocker or failed milestone gate. Restarting would only repeat
-      # a deterministically rejected state and could hide the evidence.
+      # The production runner already exhausted issue/deferred/milestone retry
+      # budgets. Repeating blindly would hide a genuine deterministic blocker.
+      echo "autonomy stopped after exhausting deterministic recovery budget" | tee -a "$LOG"
       exit "$rc"
       ;;
     75)
-      # Another controller owns the lock. Do not start a competing process.
+      # Another controller owns the lock. Never start a competing process.
       exit "$rc"
       ;;
     130)
-      # Explicit human interrupt is authoritative.
+      # Explicit Ctrl-C is authoritative.
       exit 130
       ;;
-    70|1|137)
+    70|1|137|143)
       if (( restarts >= MAX_RESTARTS )); then
         echo "restart budget exhausted ($MAX_RESTARTS)" | tee -a "$LOG"
         exit "$rc"
@@ -77,7 +87,7 @@ while true; do
       fi
       ;;
     *)
-      # Unknown exit codes are not assumed transient.
+      echo "unknown child exit code $rc; preserving evidence and stopping" | tee -a "$LOG"
       exit "$rc"
       ;;
   esac
