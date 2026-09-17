@@ -5,7 +5,6 @@ import json
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from .controller import AutonomousController, PreparedIssue
 from .execution import (
@@ -86,12 +85,7 @@ class IssueEngine:
         issue_number = prepared.issue.number
         worktree = prepared.worktree.path
         base_ref = prepared.worktree.base_ref
-        logs = (
-            self.controller.runtime_root
-            / "logs"
-            / run_id
-            / f"issue-{issue_number}"
-        )
+        logs = self.controller.runtime_root / "logs" / run_id / f"issue-{issue_number}"
         logs.mkdir(parents=True, exist_ok=True)
         policy = ChangePolicy(worktree)
 
@@ -122,8 +116,7 @@ class IssueEngine:
             target=IssuePhase.IMPLEMENTING,
         )
 
-        implementation_ok = self._implement(prepared, plan, policy, logs)
-        if not implementation_ok:
+        if not self._implement(prepared, plan, policy, logs):
             return self._terminal(
                 run_id,
                 issue_number,
@@ -152,7 +145,6 @@ class IssueEngine:
                     target=IssuePhase.VERIFYING,
                 )
 
-            self.controller.heartbeat(run_id)
             self._event(
                 prepared,
                 "verification_started",
@@ -164,8 +156,9 @@ class IssueEngine:
                 steps=default_verification_steps(
                     targeted_tests=self._targeted_tests(prepared, plan),
                 ),
+                heartbeat=lambda: self.controller.heartbeat(run_id),
+                heartbeat_interval_seconds=self.config.heartbeat_interval_seconds,
             )
-            self.controller.heartbeat(run_id)
             if not report.passed:
                 if repair_number >= self.config.max_repairs:
                     return self._terminal(
@@ -204,7 +197,6 @@ class IssueEngine:
                 issue_number=issue_number,
                 target=IssuePhase.REVIEWING,
             )
-
             review = self._review(prepared, plan, logs)
             if review is None:
                 return self._terminal(
@@ -255,8 +247,6 @@ class IssueEngine:
                     f"controller commit failed: {exc}",
                 )
 
-            # ACCEPTED and accepted_commit are one SQLite transaction. A process
-            # crash can no longer leave an ACCEPTED issue without its commit.
             self.controller.store.accept_issue(
                 run_id=run_id,
                 issue_number=issue_number,
@@ -283,11 +273,7 @@ class IssueEngine:
                 logs=logs,
             )
             if result is None:
-                self._event(
-                    prepared,
-                    "planner_attempt_no_result",
-                    {"attempt": attempt_number},
-                )
+                self._event(prepared, "planner_attempt_no_result", {"attempt": attempt_number})
                 prompt = self._planner_prompt(prepared) + (
                     "\n\nRECOVERY ATTEMPT: the previous planner process timed out or failed. "
                     "Do not call any repository tools. All evidence is already embedded in "
@@ -300,8 +286,7 @@ class IssueEngine:
                     "AUTONOMY_PLAN_JSON_BEGIN",
                     "AUTONOMY_PLAN_JSON_END",
                 )
-                plan = validate_plan_payload(payload)
-                return policy.validate_plan(plan)
+                return policy.validate_plan(validate_plan_payload(payload))
             except (
                 ModelProtocolError,
                 ChangePolicyError,
@@ -347,11 +332,7 @@ class IssueEngine:
                     )
                     policy.validate_changed_files(changed)
                 except (ChangePolicyError, ValueError) as exc:
-                    self._event(
-                        prepared,
-                        "implementation_policy_rejected",
-                        {"error": str(exc)},
-                    )
+                    self._event(prepared, "implementation_policy_rejected", {"error": str(exc)})
                     return False
                 return True
             prompt = self._implementer_prompt(prepared, plan) + (
@@ -360,11 +341,7 @@ class IssueEngine:
                 "do not print XML, <function=...>, <tool_call>, JSON tool calls, or other "
                 "pseudo-tool syntax. Inspect the planned files and make the required edits now."
             )
-            self._event(
-                prepared,
-                "implementation_no_progress",
-                {"attempt": attempt_number},
-            )
+            self._event(prepared, "implementation_no_progress", {"attempt": attempt_number})
         return False
 
     def _repair(
@@ -412,7 +389,10 @@ class IssueEngine:
     ) -> tuple[str, list[dict[str, object]]] | None:
         try:
             diff = self.controller.worktrees.diff_text(
-                prepared.worktree.path, prepared.worktree.base_ref
+                prepared.worktree.path,
+                prepared.worktree.base_ref,
+                max_chars=28_000,
+                max_untracked_file_bytes=128_000,
             )
         except DiffTooLarge as exc:
             self._event(prepared, "review_diff_too_large", {"error": str(exc)})
@@ -529,7 +509,6 @@ class IssueEngine:
             try:
                 self.controller.heartbeat(run_id)
             except Exception:
-                # Heartbeat telemetry must never terminate an otherwise healthy agent.
                 return
 
     def _diff_fingerprint(self, prepared: PreparedIssue) -> str:
@@ -553,10 +532,7 @@ class IssueEngine:
     ) -> tuple[str, ...]:
         return tuple(
             dict.fromkeys(
-                [
-                    *prepared.packet.candidate_tests,
-                    *plan["tests_to_add_or_modify"],
-                ]
+                [*prepared.packet.candidate_tests, *plan["tests_to_add_or_modify"]]
             )
         )
 
@@ -576,13 +552,13 @@ class IssueEngine:
     def _bounded_context(prepared: PreparedIssue) -> str:
         root = prepared.worktree.path.resolve()
         entries: list[tuple[str, str, int]] = []
-        entries.extend(("DESIGN", path, 3200) for path in prepared.packet.design_sources)
-        entries.extend(("SOURCE", path, 4500) for path in prepared.packet.candidate_source_files)
-        entries.extend(("TEST", path, 2400) for path in prepared.packet.candidate_tests[:4])
+        entries.extend(("DESIGN", path, 2400) for path in prepared.packet.design_sources)
+        entries.extend(("SOURCE", path, 3400) for path in prepared.packet.candidate_source_files)
+        entries.extend(("TEST", path, 1600) for path in prepared.packet.candidate_tests[:4])
 
         chunks: list[str] = []
         total_chars = 0
-        max_total_chars = 36000
+        max_total_chars = 24_000
         for kind, relative, per_file_limit in entries:
             path = (root / relative).resolve()
             try:
@@ -598,11 +574,7 @@ class IssueEngine:
             if len(text) > per_file_limit:
                 head = (per_file_limit * 2) // 3
                 tail = per_file_limit - head
-                text = (
-                    text[:head]
-                    + "\n...[controller excerpt truncated]...\n"
-                    + text[-tail:]
-                )
+                text = text[:head] + "\n...[controller excerpt truncated]...\n" + text[-tail:]
             remaining = max_total_chars - total_chars
             if remaining <= 0:
                 break
