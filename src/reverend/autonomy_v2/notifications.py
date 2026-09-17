@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import urllib.request
 from dataclasses import asdict, dataclass
@@ -28,7 +29,8 @@ class IncidentReporter:
     The local JSONL journal is authoritative. External delivery is best-effort and
     never changes controller outcome. Configure REVEREND_ALERT_COMMAND to execute a
     local notifier with the incident JSON on stdin, or REVEREND_ALERT_WEBHOOK_URL
-    to POST the same JSON to an external endpoint.
+    to POST the same JSON to an external endpoint. When no explicit destination is
+    configured, WARNING/CRITICAL incidents use notify-send when available.
     """
 
     def __init__(self, repository_root: str | Path) -> None:
@@ -61,8 +63,15 @@ class IncidentReporter:
             handle.write(payload + "\n")
             handle.flush()
             os.fsync(handle.fileno())
+
+        configured = bool(
+            os.environ.get("REVEREND_ALERT_COMMAND", "").strip()
+            or os.environ.get("REVEREND_ALERT_WEBHOOK_URL", "").strip()
+        )
         self._command(payload)
         self._webhook(payload)
+        if not configured and incident.severity in {"WARNING", "CRITICAL"}:
+            self._desktop(incident)
         return incident
 
     def latest(self, limit: int = 20) -> list[dict[str, Any]]:
@@ -118,4 +127,25 @@ class IncidentReporter:
                 response.read(1)
         except Exception:
             # Alert delivery must never be able to crash autonomous development.
+            return
+
+    @staticmethod
+    def _desktop(incident: Incident) -> None:
+        executable = shutil.which("notify-send")
+        if not executable:
+            return
+        title = f"Reverend {incident.severity}: {incident.kind}"
+        body = incident.message
+        if incident.issue_number is not None:
+            body = f"Issue #{incident.issue_number}: {body}"
+        try:
+            subprocess.run(
+                [executable, title, body],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
             return
