@@ -156,3 +156,18 @@ def test_issue_engine_quarantines_model_that_produces_no_diff(tmp_path):
     assert controller.store.get_issue(prepared.run_id, 66).accepted_commit is None
 
     controller.worktrees.remove_worktree(prepared.worktree, force=True)
+
+
+def test_planner_prompt_uses_prevalidated_bounded_context(tmp_path):
+    root = _repository(tmp_path)
+    controller, prepared = _prepared(root)
+
+    prompt = IssueEngine._planner_prompt(prepared)
+
+    assert "already resolved and validated" in prompt
+    assert "Do not run repository-wide globs" in prompt
+    assert "at most eight repository read/search operations" in prompt
+    assert "STOP exploring" in prompt
+    assert "AUTONOMY_PLAN_JSON_BEGIN" in prompt
+
+    controller.worktrees.remove_worktree(prepared.worktree, force=True)

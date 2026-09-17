@@ -263,7 +263,7 @@ class IssueEngine:
         logs: Path,
     ) -> dict[str, list[str]] | None:
         prompt = self._planner_prompt(prepared)
-        for _ in range(self.config.max_planner_attempts):
+        for attempt_number in range(1, self.config.max_planner_attempts + 1):
             result = self._invoke(
                 prepared,
                 kind="plan",
@@ -273,6 +273,21 @@ class IssueEngine:
                 logs=logs,
             )
             if result is None:
+                self.controller.store.record_event(
+                    run_id=prepared.run_id,
+                    issue_number=prepared.issue.number,
+                    kind="planner_attempt_no_result",
+                    payload={"attempt": attempt_number},
+                )
+                prompt = self._planner_prompt(prepared) + (
+                    "\n\nRECOVERY ATTEMPT: the previous planner process timed out or failed "
+                    "before producing a valid plan. Be substantially more constrained now. "
+                    "Do NOT repeat broad discovery. Do NOT use repository-wide Glob or Grep. "
+                    "Use only paths already present in ISSUE_PACKET unless a single missing "
+                    "fact makes planning impossible. Read at most two Design sources and two "
+                    "candidate implementation/test files, then immediately return the required "
+                    "AUTONOMY_PLAN_JSON_BEGIN / AUTONOMY_PLAN_JSON_END block."
+                )
                 continue
             try:
                 payload = parse_marker_json(
@@ -521,8 +536,22 @@ class IssueEngine:
     @staticmethod
     def _planner_prompt(prepared: PreparedIssue) -> str:
         return (
-            "Plan exactly one bounded Reverend issue. The controller has already validated "
-            "the issue packet paths. Read only what you need and obey the required JSON protocol.\n\n"
+            "Plan exactly one bounded Reverend issue. The deterministic controller has already "
+            "resolved and validated every path supplied in ISSUE_PACKET.design_sources, "
+            "candidate_source_files, and candidate_tests. Trust those paths. Do NOT glob or "
+            "search merely to rediscover or verify them.\n\n"
+            "STRICT PLANNING BUDGET:\n"
+            "- Treat ISSUE_PACKET as the bounded planning surface.\n"
+            "- Do not run repository-wide globs such as **/*.py.\n"
+            "- Do not grep the whole repository for generic classes or symbols.\n"
+            "- Select the most issue-relevant Design documents from design_sources; read no "
+            "more than four unless a concrete conflict requires one additional document.\n"
+            "- Inspect candidate source files directly instead of rediscovering them.\n"
+            "- Use at most eight repository read/search operations.\n"
+            "- Once the required implementation files and tests are known, STOP exploring.\n"
+            "- Immediately return the exact AUTONOMY_PLAN_JSON_BEGIN / "
+            "AUTONOMY_PLAN_JSON_END protocol required by the planner agent.\n"
+            "- Do not implement anything during planning.\n\n"
             "ISSUE_PACKET:\n"
             + json.dumps(prepared.packet.as_dict(), indent=2, sort_keys=True)
         )
