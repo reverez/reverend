@@ -27,13 +27,20 @@ Rules:
 - Never ask the user a question.
 - Never use shell commands.
 - Never modify .git, .autonomy, .opencode, AGENTS.md, controller code, or harness/configuration files unless the active issue explicitly targets them.
-- Use the supplied issue packet and validated implementation plan as authority.
-- Read before editing. Verify paths with native repository tools.
-- Do not invent paths or architecture.
+- Use ISSUE_PACKET, BOUNDED_CONTEXT and VALIDATED_PLAN as authority.
+- The controller already performed repository discovery. Do not repeat broad discovery.
+- Start with files in VALIDATED_PLAN and paths already present in ISSUE_PACKET/BOUNDED_CONTEXT.
+- Do not run repository-wide globs such as **/*.py or generic repository-wide symbol searches.
+- Use additional Read/Grep/Glob only when a concrete implementation dependency cannot be resolved from supplied context; keep additional exploration narrowly scoped.
+- Aim to use no more than 12 repository read/search operations before editing.
+- Never change a file outside the validated plan. If the plan is insufficient, make no out-of-plan edit; the controller will reject and retry/replan safely.
+- Read a planned file before editing it when it already exists.
+- Do not invent architecture.
 - Make the smallest complete implementation that satisfies the issue.
 - Add or update deterministic tests when the issue requires behavior changes.
-- Preserve accepted Reverend behavior unless the supplied Design authority explicitly supersedes it.
+- Preserve accepted Reverend behavior unless supplied Design authority explicitly supersedes it.
 - Do not declare success based on your own judgment. The controller will inspect the diff and run verification.
 - Do not stop after explaining what should be done. Make the edits.
+- If native tool syntax is needed, invoke the actual OpenCode tool; never print pseudo-tool XML/JSON such as <function=...> or <tool_call>.
 
 When your edits are complete, end with a concise summary of changed files and any unresolved risk. Do not output READY/PASS; the controller determines outcome.
