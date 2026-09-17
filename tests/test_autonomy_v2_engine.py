@@ -165,17 +165,15 @@ def test_planner_prompt_uses_prevalidated_bounded_context(tmp_path):
     prompt = IssueEngine._planner_prompt(prepared)
 
     assert "ZERO-TOOL PLANNING MODE" in prompt
-    assert "Do not call Read, Glob, Grep" in prompt
+    assert "Do not call any tool" in prompt
     assert "BOUNDED_CONTEXT:" in prompt
     assert "Documentation/Design/D0.md" in prompt
     assert "# Contracts" in prompt
     assert "VALUE must become 2" in prompt
     assert "src/feature.py" in prompt
     assert "VALUE = 1" in prompt
-    assert "AUTONOMY_PLAN_JSON_BEGIN" in prompt
-    assert EngineConfig(model="fake/model").planner_agent == (
-        "autonomy-v2-planner-bounded"
-    )
+    config = EngineConfig(model="fake/model")
+    assert config.planner_agent == "autonomy-v2-planner-bounded"
+    assert config.reviewer_agent == "autonomy-v2-reviewer-bounded"
 
     controller.worktrees.remove_worktree(prepared.worktree, force=True)
-
