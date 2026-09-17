@@ -98,47 +98,71 @@ class ModelPreflight:
                 branch_name=branch,
             )
 
-            planner_log = self.runtime_root / token / "planner.log"
-            planner_result = self.runner.run(
-                AgentInvocation(
-                    kind="preflight-plan",
-                    agent="autonomy-v2-planner",
-                    model=self.opencode_model,
-                    prompt=self._planner_prompt(),
-                    worktree=worktree.path,
-                    timeout_seconds=600,
-                    log_path=planner_log,
-                )
-            )
-            logs.append(planner_log)
-            if not planner_result.succeeded:
-                errors.append(
-                    "OpenCode planner preflight failed "
-                    f"(returncode={planner_result.returncode}, timeout={planner_result.timed_out})"
-                )
-                return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
-                )
+            plan = None
+            planner_error = None
+            planner_prompt = self._planner_prompt()
 
-            planner_changes = self.worktrees.changed_files(worktree.path, worktree.base_ref)
-            if planner_changes:
-                errors.append(
-                    "read-only planner modified repository files during preflight: "
-                    f"{planner_changes!r}"
+            for planner_attempt in range(1, 3):
+                planner_log = (
+                    self.runtime_root
+                    / token
+                    / f"planner-{planner_attempt}.log"
                 )
-                return PreflightReport(
-                    False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                planner_result = self.runner.run(
+                    AgentInvocation(
+                        kind=f"preflight-plan-{planner_attempt}",
+                        agent="autonomy-v2-planner",
+                        model=self.opencode_model,
+                        prompt=planner_prompt,
+                        worktree=worktree.path,
+                        timeout_seconds=600,
+                        log_path=planner_log,
+                    )
                 )
+                logs.append(planner_log)
 
-            try:
-                payload = parse_marker_json(
-                    planner_result.output,
-                    "AUTONOMY_PLAN_JSON_BEGIN",
-                    "AUTONOMY_PLAN_JSON_END",
+                if not planner_result.succeeded:
+                    planner_error = (
+                        "OpenCode planner preflight failed "
+                        f"(returncode={planner_result.returncode}, "
+                        f"timeout={planner_result.timed_out})"
+                    )
+                    continue
+
+                planner_changes = self.worktrees.changed_files(
+                    worktree.path, worktree.base_ref
                 )
-                plan = validate_plan_payload(payload)
-            except ModelProtocolError as exc:
-                errors.append(f"planner tool/protocol canary failed: {exc}")
+                if planner_changes:
+                    errors.append(
+                        "read-only planner modified repository files during preflight: "
+                        f"{planner_changes!r}"
+                    )
+                    return PreflightReport(
+                        False, tuple(errors), tuple(warnings), tuple(logs), resource_check
+                    )
+
+                try:
+                    payload = parse_marker_json(
+                        planner_result.output,
+                        "AUTONOMY_PLAN_JSON_BEGIN",
+                        "AUTONOMY_PLAN_JSON_END",
+                    )
+                    plan = validate_plan_payload(payload)
+                    break
+                except ModelProtocolError as exc:
+                    planner_error = f"planner tool/protocol canary failed: {exc}"
+                    planner_prompt = self._planner_prompt() + (
+                        "\n\nRECOVERY ATTEMPT: The previous response was rejected. "
+                        "You emitted or described tool-call syntax instead of completing "
+                        "the native OpenCode tool interaction and required protocol. "
+                        "Do NOT print XML, <function=...>, <tool_call>, JSON tool calls, "
+                        "or pseudo-tool syntax. Invoke the actual native Read tool exposed "
+                        "by OpenCode. After the real tool result returns, immediately output "
+                        "the exact AUTONOMY_PLAN_JSON_BEGIN / AUTONOMY_PLAN_JSON_END block."
+                    )
+
+            if plan is None:
+                errors.append(planner_error or "planner preflight exhausted attempts")
                 return PreflightReport(
                     False, tuple(errors), tuple(warnings), tuple(logs), resource_check
                 )
