@@ -25,7 +25,7 @@ from .verify import Verifier, default_verification_steps
 @dataclass(frozen=True)
 class EngineConfig:
     model: str
-    planner_agent: str = "autonomy-v2-planner"
+    planner_agent: str = "autonomy-v2-planner-bounded"
     implementer_agent: str = "autonomy-v2-implementer"
     reviewer_agent: str = "autonomy-v2-reviewer"
     planner_timeout_seconds: float = 600
@@ -282,10 +282,9 @@ class IssueEngine:
                 prompt = self._planner_prompt(prepared) + (
                     "\n\nRECOVERY ATTEMPT: the previous planner process timed out or failed "
                     "before producing a valid plan. Be substantially more constrained now. "
-                    "Do NOT repeat broad discovery. Do NOT use repository-wide Glob or Grep. "
-                    "Use only paths already present in ISSUE_PACKET unless a single missing "
-                    "fact makes planning impossible. Read at most two Design sources and two "
-                    "candidate implementation/test files, then immediately return the required "
+                    "Do not call any repository tools. The controller has already embedded "
+                    "all bounded evidence in BOUNDED_CONTEXT. Do not search, browse, or verify "
+                    "paths. Immediately reason from the supplied context and return the required "
                     "AUTONOMY_PLAN_JSON_BEGIN / AUTONOMY_PLAN_JSON_END block."
                 )
                 continue
@@ -306,7 +305,9 @@ class IssueEngine:
                 )
                 prompt = self._planner_prompt(prepared) + (
                     "\n\nYour previous plan was rejected by the deterministic controller: "
-                    f"{exc}. Return a corrected plan only after verifying every path."
+                    f"{exc}. Existing paths supplied by the controller are already validated. "
+                    "Do not call tools. Immediately return a corrected plan using only "
+                    "ISSUE_PACKET and BOUNDED_CONTEXT."
                 )
         return None
 
@@ -534,26 +535,87 @@ class IssueEngine:
         )
 
     @staticmethod
+    def _bounded_planner_context(prepared: PreparedIssue) -> str:
+        root = prepared.worktree.path.resolve()
+
+        entries: list[tuple[str, str, int]] = []
+        entries.extend(
+            ("DESIGN", path, 3200)
+            for path in prepared.packet.design_sources
+        )
+        entries.extend(
+            ("SOURCE", path, 4500)
+            for path in prepared.packet.candidate_source_files
+        )
+
+        chunks: list[str] = []
+        total_chars = 0
+        max_total_chars = 30000
+
+        for kind, relative, per_file_limit in entries:
+            path = (root / relative).resolve()
+            try:
+                path.relative_to(root)
+            except ValueError:
+                continue
+
+            if not path.is_file():
+                continue
+
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+
+            if len(text) > per_file_limit:
+                head = (per_file_limit * 2) // 3
+                tail = per_file_limit - head
+                text = (
+                    text[:head]
+                    + "\n...[controller excerpt truncated]...\n"
+                    + text[-tail:]
+                )
+
+            remaining = max_total_chars - total_chars
+            if remaining <= 0:
+                break
+
+            if len(text) > remaining:
+                text = text[:remaining] + "\n...[context budget exhausted]..."
+
+            chunks.append(
+                f"--- {kind}: {relative} ---\n{text}"
+            )
+            total_chars += len(text)
+
+        return "\n\n".join(chunks)
+
+    @staticmethod
     def _planner_prompt(prepared: PreparedIssue) -> str:
+        packet = json.dumps(
+            prepared.packet.as_dict(),
+            indent=2,
+            sort_keys=True,
+        )
+        context = IssueEngine._bounded_planner_context(prepared)
+
         return (
-            "Plan exactly one bounded Reverend issue. The deterministic controller has already "
-            "resolved and validated every path supplied in ISSUE_PACKET.design_sources, "
-            "candidate_source_files, and candidate_tests. Trust those paths. Do NOT glob or "
-            "search merely to rediscover or verify them.\n\n"
-            "STRICT PLANNING BUDGET:\n"
-            "- Treat ISSUE_PACKET as the bounded planning surface.\n"
-            "- Do not run repository-wide globs such as **/*.py.\n"
-            "- Do not grep the whole repository for generic classes or symbols.\n"
-            "- Select the most issue-relevant Design documents from design_sources; read no "
-            "more than four unless a concrete conflict requires one additional document.\n"
-            "- Inspect candidate source files directly instead of rediscovering them.\n"
-            "- Use at most eight repository read/search operations.\n"
-            "- Once the required implementation files and tests are known, STOP exploring.\n"
-            "- Immediately return the exact AUTONOMY_PLAN_JSON_BEGIN / "
-            "AUTONOMY_PLAN_JSON_END protocol required by the planner agent.\n"
-            "- Do not implement anything during planning.\n\n"
+            "ZERO-TOOL PLANNING MODE. Plan exactly one bounded Reverend issue. "
+            "The deterministic controller has already performed repository discovery "
+            "and validated the supplied paths. Do not call Read, Glob, Grep, List, LSP, "
+            "Bash, or any other tool. Do not search for additional files.\n\n"
+            "Use only ISSUE_PACKET and BOUNDED_CONTEXT below. Existing repository files "
+            "in this context are controller-validated. A genuinely new source or test "
+            "path may be proposed under files_to_create. If a new test file is proposed, "
+            "also include that same path in tests_to_add_or_modify.\n\n"
+            "Determine the smallest implementation surface that satisfies the issue and "
+            "canonical Design. Then immediately return the exact "
+            "AUTONOMY_PLAN_JSON_BEGIN / AUTONOMY_PLAN_JSON_END protocol. "
+            "Do not implement the plan.\n\n"
             "ISSUE_PACKET:\n"
-            + json.dumps(prepared.packet.as_dict(), indent=2, sort_keys=True)
+            + packet
+            + "\n\nBOUNDED_CONTEXT:\n"
+            + context
         )
 
     @staticmethod
