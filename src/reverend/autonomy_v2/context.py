@@ -25,8 +25,7 @@ class IssuePacket:
     acceptance: tuple[str, ...]
 
     def as_dict(self) -> dict[str, object]:
-        payload = asdict(self)
-        return payload
+        return asdict(self)
 
 
 class ContextBuilder:
@@ -100,13 +99,20 @@ class ContextBuilder:
             acceptance=normalized_acceptance,
         )
 
-    def write_atomic(self, packet: IssuePacket, destination: str | Path) -> Path:
+    def write_atomic(
+        self,
+        packet: IssuePacket,
+        destination: str | Path,
+        *,
+        destination_root: str | Path | None = None,
+    ) -> Path:
+        allowed_root = Path(destination_root or self.repository_root).resolve()
         destination_path = Path(destination)
         if not destination_path.is_absolute():
-            destination_path = self.repository_root / destination_path
+            destination_path = allowed_root / destination_path
         destination_path = destination_path.resolve()
         try:
-            destination_path.relative_to(self.repository_root)
+            destination_path.relative_to(allowed_root)
         except ValueError as exc:
             raise UnsafeRepositoryPath(str(destination)) from exc
 
