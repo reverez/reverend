@@ -122,19 +122,15 @@ class AutonomousController:
             )
             packet_path = builder.write_atomic(
                 packet,
-                Path(".autonomy") / "packets" / f"issue-{issue.number}.json",
+                self.runtime_root / "packets" / run_id / f"issue-{issue.number}.json",
+                destination_root=self.runtime_root,
             )
-            self.store.bind_worktree(
+            self.store.mark_context_ready(
                 run_id=run_id,
                 issue_number=issue.number,
                 worktree_path=str(worktree.path),
                 branch_name=branch_name,
-            )
-            self.store.transition_issue(
-                run_id=run_id,
-                issue_number=issue.number,
-                target=IssuePhase.CONTEXT_READY,
-                payload={"packet_path": str(packet_path)},
+                packet_path=str(packet_path),
             )
         except Exception:
             try:
