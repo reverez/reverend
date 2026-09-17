@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import threading
@@ -53,7 +54,7 @@ class VerificationReport:
 
 
 class Verifier:
-    """Run controller-owned verification commands with bounded liveness telemetry."""
+    """Run controller-owned verification against the isolated worktree."""
 
     def __init__(self, *, fail_fast: bool = True) -> None:
         self.fail_fast = fail_fast
@@ -74,6 +75,18 @@ class Verifier:
             raise ValueError("heartbeat_interval_seconds must be positive")
         log_root = Path(log_dir).resolve()
         log_root.mkdir(parents=True, exist_ok=True)
+
+        # A shared editable venv can point back at the controller checkout.
+        # Force imports to resolve the isolated worktree first so verification
+        # actually tests the code the agent changed.
+        env = os.environ.copy()
+        worktree_src = str((worktree_path / "src").resolve())
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = (
+            worktree_src
+            if not existing_pythonpath
+            else worktree_src + os.pathsep + existing_pythonpath
+        )
 
         results: list[VerificationResult] = []
         for index, step in enumerate(steps, start=1):
@@ -100,6 +113,7 @@ class Verifier:
                         completed = subprocess.run(
                             list(step.argv),
                             cwd=worktree_path,
+                            env=env,
                             stdin=subprocess.DEVNULL,
                             stdout=handle,
                             stderr=subprocess.STDOUT,
