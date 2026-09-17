@@ -36,6 +36,16 @@ health_dump() {
   "$PYTHON" -m reverend.autonomy_v2.cli health 2>/dev/null || true
 }
 
+emit_incident() {
+  local severity="$1"
+  local kind="$2"
+  local message="$3"
+  "$PYTHON" -m reverend.autonomy_v2.cli emit-incident \
+    --severity "$severity" \
+    --kind "$kind" \
+    --message "$message" >/dev/null 2>&1 || true
+}
+
 while true; do
   {
     echo
@@ -60,9 +70,9 @@ while true; do
       exit 0
       ;;
     20|30)
-      # The production runner already exhausted issue/deferred/milestone retry
-      # budgets. Repeating blindly would hide a genuine deterministic blocker.
-      echo "autonomy stopped after exhausting deterministic recovery budget" | tee -a "$LOG"
+      message="autonomy stopped after exhausting deterministic recovery budget (rc=$rc)"
+      echo "$message" | tee -a "$LOG"
+      emit_incident "CRITICAL" "supervisor_blocked" "$message"
       exit "$rc"
       ;;
     75)
@@ -70,15 +80,21 @@ while true; do
       exit "$rc"
       ;;
     130)
-      # Explicit Ctrl-C is authoritative.
+      # Explicit Ctrl-C is authoritative and should not page the user.
       exit 130
       ;;
     70|1|137|143)
       if (( restarts >= MAX_RESTARTS )); then
-        echo "restart budget exhausted ($MAX_RESTARTS)" | tee -a "$LOG"
+        message="autonomy supervisor restart budget exhausted ($MAX_RESTARTS), last rc=$rc"
+        echo "$message" | tee -a "$LOG"
+        emit_incident "CRITICAL" "supervisor_restart_exhausted" "$message"
         exit "$rc"
       fi
       restarts=$((restarts + 1))
+      emit_incident \
+        "WARNING" \
+        "supervisor_restart" \
+        "controller exited rc=$rc; autonomous restart $restarts/$MAX_RESTARTS scheduled"
       sleep "$RESTART_DELAY"
       if [[ -s "$RUNTIME/latest-session" ]]; then
         command=("resume")
@@ -87,7 +103,9 @@ while true; do
       fi
       ;;
     *)
-      echo "unknown child exit code $rc; preserving evidence and stopping" | tee -a "$LOG"
+      message="unknown autonomy child exit code $rc; preserving evidence and stopping"
+      echo "$message" | tee -a "$LOG"
+      emit_incident "CRITICAL" "supervisor_unknown_exit" "$message"
       exit "$rc"
       ;;
   esac
