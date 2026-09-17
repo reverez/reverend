@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,7 @@ class VerificationReport:
 
 
 class Verifier:
-    """Run controller-owned verification commands with no shell interpolation."""
+    """Run controller-owned verification commands with bounded liveness telemetry."""
 
     def __init__(self, *, fail_fast: bool = True) -> None:
         self.fail_fast = fail_fast
@@ -63,10 +64,14 @@ class Verifier:
         worktree: str | Path,
         log_dir: str | Path,
         steps: Iterable[VerificationStep],
+        heartbeat: Callable[[], None] | None = None,
+        heartbeat_interval_seconds: float = 15,
     ) -> VerificationReport:
         worktree_path = Path(worktree).resolve()
         if not worktree_path.is_dir():
             raise ValueError(f"worktree does not exist: {worktree_path}")
+        if heartbeat_interval_seconds <= 0:
+            raise ValueError("heartbeat_interval_seconds must be positive")
         log_root = Path(log_dir).resolve()
         log_root.mkdir(parents=True, exist_ok=True)
 
@@ -75,21 +80,45 @@ class Verifier:
             log_path = log_root / f"{index:02d}-{_slug(step.name)}.log"
             returncode: int | None = None
             timed_out = False
-            with log_path.open("w", encoding="utf-8") as handle:
+            stop = threading.Event()
+            thread: threading.Thread | None = None
+            if heartbeat is not None:
                 try:
-                    completed = subprocess.run(
-                        list(step.argv),
-                        cwd=worktree_path,
-                        stdin=subprocess.DEVNULL,
-                        stdout=handle,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        timeout=step.timeout_seconds,
-                        check=False,
-                    )
-                    returncode = completed.returncode
-                except subprocess.TimeoutExpired:
-                    timed_out = True
+                    heartbeat()
+                except Exception:
+                    pass
+                thread = threading.Thread(
+                    target=_heartbeat_loop,
+                    args=(stop, heartbeat, heartbeat_interval_seconds),
+                    name=f"verification-heartbeat-{_slug(step.name)}",
+                    daemon=True,
+                )
+                thread.start()
+            try:
+                with log_path.open("w", encoding="utf-8") as handle:
+                    try:
+                        completed = subprocess.run(
+                            list(step.argv),
+                            cwd=worktree_path,
+                            stdin=subprocess.DEVNULL,
+                            stdout=handle,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            timeout=step.timeout_seconds,
+                            check=False,
+                        )
+                        returncode = completed.returncode
+                    except subprocess.TimeoutExpired:
+                        timed_out = True
+            finally:
+                stop.set()
+                if thread is not None:
+                    thread.join(timeout=2)
+                if heartbeat is not None:
+                    try:
+                        heartbeat()
+                    except Exception:
+                        pass
             result = VerificationResult(
                 name=step.name,
                 argv=step.argv,
@@ -136,6 +165,20 @@ def default_verification_steps(
     return tuple(steps)
 
 
+def _heartbeat_loop(
+    stop: threading.Event,
+    heartbeat: Callable[[], None],
+    interval_seconds: float,
+) -> None:
+    while not stop.wait(interval_seconds):
+        try:
+            heartbeat()
+        except Exception:
+            return
+
+
 def _slug(value: str) -> str:
-    output = "".join(character.lower() if character.isalnum() else "-" for character in value)
+    output = "".join(
+        character.lower() if character.isalnum() else "-" for character in value
+    )
     return "-".join(part for part in output.split("-") if part) or "step"
