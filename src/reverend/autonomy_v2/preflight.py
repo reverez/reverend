@@ -219,7 +219,7 @@ class ModelPreflight:
             expected = self.CANARY_CONTENT.encode("utf-8")
             accepted_contents = {
                 expected,
-                expected.rstrip(b"\\n"),
+                expected.rstrip(b"\n"),
             }
             if canary_bytes not in accepted_contents:
                 errors.append(
