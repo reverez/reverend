@@ -71,6 +71,11 @@ def _parser() -> argparse.ArgumentParser:
     incidents = sub.add_parser("incidents", help="show recent autonomy incidents")
     incidents.add_argument("--limit", type=int, default=20)
 
+    emit = sub.add_parser("emit-incident", help=argparse.SUPPRESS)
+    emit.add_argument("--severity", required=True)
+    emit.add_argument("--kind", required=True)
+    emit.add_argument("--message", required=True)
+
     preflight = sub.add_parser("preflight", help="prove model read/edit capability")
     preflight.add_argument(
         "--model",
@@ -193,8 +198,21 @@ def main(argv: list[str] | None = None) -> int:
                 time.sleep(args.interval)
 
         if args.command == "incidents":
-            reporter = IncidentReporter(root)
-            print(json.dumps(reporter.latest(args.limit), indent=2, sort_keys=True))
+            print(
+                json.dumps(
+                    IncidentReporter(root).latest(args.limit),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+            return 0
+
+        if args.command == "emit-incident":
+            IncidentReporter(root).emit(
+                severity=args.severity,
+                kind=args.kind,
+                message=args.message,
+            )
             return 0
 
         if args.command == "preflight":
